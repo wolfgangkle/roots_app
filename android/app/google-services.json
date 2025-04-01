@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "693756626112",
+    "project_id": "roots-backend-ce2ec",
+    "storage_bucket": "roots-backend-ce2ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693756626112:android:d7ffa6168bf8ff8ce71925",
+        "android_client_info": {
+          "package_name": "com.kleinhaentz.roots"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDo2msl_Dui6zYVH5iSbjrd6isGBR729cw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

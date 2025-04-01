@@ -1,4 +1,4 @@
-package com.kleinhaentz.roots.roots_app
+package com.kleinhaentz.roots
 
 import io.flutter.embedding.android.FlutterActivity
 
