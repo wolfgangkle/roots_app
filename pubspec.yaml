@@ -38,6 +38,8 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   firebase_core: ^2.24.2   # 👈 Add this line
+  cloud_firestore: ^4.14.0
+
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
