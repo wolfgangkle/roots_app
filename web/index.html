@@ -1,19 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
@@ -31,8 +18,29 @@
 
   <title>roots_app</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase JS SDKs (only needed if you're manually using Firebase JS in plain HTML/JS apps) -->
+  <!-- Not needed for most Flutter apps unless you need analytics on web -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js"></script>
+
+  <!-- Initialize Firebase only for Analytics (optional) -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDo2msl_Dui6zYVH5iSbjrd6isGBR729cw",
+      authDomain: "roots-backend-ce2ec.firebaseapp.com",
+      projectId: "roots-backend-ce2ec",
+      storageBucket: "roots-backend-ce2ec.appspot.com",
+      messagingSenderId: "693756626112",
+      appId: "1:693756626112:android:d7ffa6168bf8ff8ce71925",
+      measurementId: "G-XXXXXXXXXX" // <-- optional
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics(); // optional, no harm if unused
+  </script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+<script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
