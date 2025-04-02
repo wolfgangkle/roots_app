@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../onboard/onboarding_entry.dart';
-import '../village/village_home_screen.dart';
+import '../home/main_home_screen.dart';
 
 class CheckUserProfile extends StatelessWidget {
   const CheckUserProfile({super.key});
@@ -30,7 +30,7 @@ class CheckUserProfile extends StatelessWidget {
 
         if (snapshot.hasData && snapshot.data!.exists) {
           // User has already completed onboarding
-          return const VillageHomeScreen();
+          return const MainHomeScreen();
         } else {
           // New player, go to onboarding
           return const OnboardingEntry();

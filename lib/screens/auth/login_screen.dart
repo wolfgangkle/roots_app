@@ -1,9 +1,8 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../services/auth_service.dart';
+import '../auth/check_user_profile.dart'; // 🔧 Make sure this path is correct for your project
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,8 +12,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController(text: "test@roots.dev"); // 💡 Pre-filled
+  final _passwordController = TextEditingController(text: "123456");       // 💡 Pre-filled
   bool isLoginMode = true;
   String errorMessage = '';
 
@@ -44,6 +43,12 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         errorMessage = 'Authentication failed. Please check your credentials.';
       });
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const CheckUserProfile(),
+        ),
+      );
     }
   }
 
@@ -82,6 +87,23 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 10),
             if (errorMessage.isNotEmpty)
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
+
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: () async {
+                final user = await AuthService().signIn("test@roots.dev", "123456");
+                if (user != null) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                  );
+                } else {
+                  setState(() {
+                    errorMessage = "Auto-login failed 😬";
+                  });
+                }
+              },
+              child: const Text("🚀 Dev Auto-Login (test@roots.dev)"),
+            ),
           ],
         ),
       ),
