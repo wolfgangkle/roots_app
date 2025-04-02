@@ -5,7 +5,7 @@ import 'race_picker_screen.dart';
 import 'name_picker_screen.dart';
 import 'village_name_screen.dart';
 import 'zone_picker_screen.dart';
-import '../../services/firestore_service.dart';
+import '../services/onboard_service.dart';
 
 class OnboardingEntry extends StatefulWidget {
   const OnboardingEntry({super.key});

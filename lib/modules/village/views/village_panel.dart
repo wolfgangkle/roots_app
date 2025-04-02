@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import '../services/village_service.dart';
 import '../models/village_model.dart';
 import '../widgets/village_card.dart';
-import '../views/village_screen.dart';
-
-
 
 class VillagePanel extends StatelessWidget {
-  const VillagePanel({super.key});
+  final void Function(VillageModel)? onVillageTap;
+
+  const VillagePanel({super.key, this.onVillageTap});
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +37,7 @@ class VillagePanel extends StatelessWidget {
             final village = villages[index];
             return VillageCard(
               village: village,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => VillageScreen(village: village),
-                  ),
-                );
-              },
+              onTap: () => onVillageTap?.call(village),
             );
           },
         );

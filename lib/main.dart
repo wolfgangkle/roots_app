@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'config/firebase_options.dart';
 import 'package:roots_app/screens/auth/login_screen.dart';         // 👈 your login screen
 import 'package:roots_app/screens/auth/check_user_profile.dart';       // 👈 handles onboarding redirect
 
@@ -22,8 +22,15 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Roots',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(), // or whatever you use
-      home: const LoginScreen(),   // 👈 start with login
+
+      // ✅ Define both themes (optional if you're forcing one)
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+
+      // ✅ Force light mode here
+      themeMode: ThemeMode.light,  // <--- 👈 Forces light mode, override system setting
+
+      home: const LoginScreen(),
     );
   }
 }

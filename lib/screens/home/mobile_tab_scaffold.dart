@@ -1,20 +1,22 @@
-
 import 'package:flutter/material.dart';
 import 'panels/hero_panel.dart';
 import 'panels/main_content_panel.dart';
 import 'package:roots_app/modules/village/views/village_panel.dart';
 import 'panels/chat_panel.dart';
 import 'panels/navigation_drawer.dart';
-
+import '../controllers/main_content_controller.dart'; // NEW
 
 class MobileTabScaffold extends StatefulWidget {
-  const MobileTabScaffold({super.key});
+  final MainContentController contentController;
+
+  const MobileTabScaffold({super.key, required this.contentController});
 
   @override
   State<MobileTabScaffold> createState() => _MobileTabScaffoldState();
 }
 
-class _MobileTabScaffoldState extends State<MobileTabScaffold> with SingleTickerProviderStateMixin {
+class _MobileTabScaffoldState extends State<MobileTabScaffold>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   late final PageController _pageController;
 
@@ -60,11 +62,11 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold> with SingleTicker
         onPageChanged: (index) {
           _tabController.animateTo(index);
         },
-        children: const [
-          HeroPanel(),
-          MainContentPanel(),
-          VillagePanel(),
-          ChatPanel(),
+        children: [
+          const HeroPanel(),
+          MainContentPanel(controller: widget.contentController),
+          VillagePanel(onVillageTap: widget.contentController.showVillageCenter),
+          const ChatPanel(),
         ],
       ),
     );

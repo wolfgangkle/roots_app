@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../onboard/onboarding_entry.dart';
+import 'package:roots_app/modules/onboard/views/onboarding_entry.dart';
 import '../home/main_home_screen.dart';
 
 class CheckUserProfile extends StatelessWidget {
