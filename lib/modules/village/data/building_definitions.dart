@@ -7,10 +7,12 @@ final buildingDefinitions = <String, BuildingDefinition>{
     description: 'Produces wood over time.',
     maxLevel: 10,
     baseProductionPerHour: 100,
-    costPerLevel: {
+    baseCost: {
       'wood': 50,
       'stone': 20,
     },
+    costMultiplierFormula: (level) => level,
+    buildTimeFormula: (level) => Duration(seconds: 20 + level * 10),
   ),
 
   'quarry': BuildingDefinition(
@@ -19,7 +21,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
     description: 'Produces stone over time.',
     maxLevel: 10,
     baseProductionPerHour: 80,
-    costPerLevel: {
+    baseCost: {
       'wood': 60,
       'stone': 30,
     },
@@ -27,6 +29,8 @@ final buildingDefinitions = <String, BuildingDefinition>{
       dependsOn: 'woodcutter',
       requiredLevel: 1,
     ),
+    costMultiplierFormula: (level) => level,
+    buildTimeFormula: (level) => Duration(seconds: 25 + level * 12),
   ),
 
   'farm': BuildingDefinition(
@@ -35,7 +39,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
     description: 'Produces food over time.',
     maxLevel: 10,
     baseProductionPerHour: 120,
-    costPerLevel: {
+    baseCost: {
       'wood': 40,
       'stone': 40,
     },
@@ -43,6 +47,8 @@ final buildingDefinitions = <String, BuildingDefinition>{
       dependsOn: 'woodcutter',
       requiredLevel: 2,
     ),
+    costMultiplierFormula: (level) => level,
+    buildTimeFormula: (level) => Duration(seconds: 22 + level * 11),
   ),
 
   'mine': BuildingDefinition(
@@ -51,7 +57,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
     description: 'Produces iron over time.',
     maxLevel: 10,
     baseProductionPerHour: 60,
-    costPerLevel: {
+    baseCost: {
       'wood': 80,
       'stone': 60,
     },
@@ -59,6 +65,8 @@ final buildingDefinitions = <String, BuildingDefinition>{
       dependsOn: 'quarry',
       requiredLevel: 2,
     ),
+    costMultiplierFormula: (level) => level,
+    buildTimeFormula: (level) => Duration(seconds: 30 + level * 14),
   ),
 
   'wood_storage': BuildingDefinition(
@@ -66,8 +74,8 @@ final buildingDefinitions = <String, BuildingDefinition>{
     displayName: 'Wood Storage',
     description: 'Increases your maximum wood capacity.',
     maxLevel: 5,
-    baseProductionPerHour: 0, // not a production building
-    costPerLevel: {
+    baseProductionPerHour: 0, // Not a production building
+    baseCost: {
       'wood': 150,
       'stone': 100,
     },
@@ -75,5 +83,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       dependsOn: 'woodcutter',
       requiredLevel: 3,
     ),
+    costMultiplierFormula: (level) => level + 1,
+    buildTimeFormula: (level) => Duration(seconds: 40 + level * 20),
   ),
 };

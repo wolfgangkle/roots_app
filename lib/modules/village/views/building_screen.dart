@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/village_model.dart';
+import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/widgets/filter_bar.dart';
 import 'package:roots_app/widgets/top_tab_selector.dart';
 import 'building_tab.dart';

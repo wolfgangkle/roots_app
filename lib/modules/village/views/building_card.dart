@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/models/building_definition.dart';
-import 'package:roots_app/modules/village/data/building_definitions.dart';
-
+import 'package:roots_app/modules/village/widgets/upgrade_button.dart';
+import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
+import 'package:roots_app/modules/village/models/village_model.dart';
 
 class BuildingCard extends StatelessWidget {
   final String type;
   final int level;
   final BuildingDefinition definition;
-  final VoidCallback onUpgrade;
+  final VoidCallback? onUpgrade;
+  final VillageModel village;
 
   const BuildingCard({
     super.key,
@@ -15,12 +17,18 @@ class BuildingCard extends StatelessWidget {
     required this.level,
     required this.definition,
     required this.onUpgrade,
+    required this.village,
   });
 
   @override
   Widget build(BuildContext context) {
     final production = definition.baseProductionPerHour * level;
-    final upgradeCost = definition.costPerLevel;
+    final nextLevel = level + 1;
+    final upgradeCost = definition.getCostForLevel(nextLevel);
+    final upgradeTime = definition.getBuildTime(nextLevel);
+    final isUpgradingThis =
+        village.currentBuildJob?.buildingType == type &&
+            village.currentBuildJob?.isComplete == false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -56,28 +64,32 @@ class BuildingCard extends StatelessWidget {
           // 💸 Upgrade Cost
           if (upgradeCost.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('💸 Upgrade cost: ${_formatCost(upgradeCost)}'),
+            Text('💸 Next upgrade cost: ${_formatCost(upgradeCost)}'),
           ],
 
-          // 🧱 Requirements
-          if (definition.unlockRequirement != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '🧱 Requires: ${definition.unlockRequirement!.dependsOn} Level ${definition.unlockRequirement!.requiredLevel}',
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ],
+          // ⏱️ Upgrade time
+          const SizedBox(height: 4),
+          Text('⏱️ Takes: ${_formatDuration(upgradeTime)}'),
 
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton(
-                onPressed: onUpgrade,
-                child: const Text('Upgrade'),
+
+          // 🔄 Show progress bar or upgrade button
+          if (isUpgradingThis)
+            UpgradeProgressIndicator(
+              startedAt: village.currentBuildJob!.startedAt,
+              endsAt: village.currentBuildJob!.startedAt.add(
+                village.currentBuildJob!.duration,
               ),
-            ],
-          )
+            )
+          else
+            Align(
+              alignment: Alignment.centerRight,
+              child: UpgradeButton(
+                buildingType: type,
+                currentLevel: level,
+                onUpgradeQueued: onUpgrade,
+              ),
+            ),
         ],
       ),
     );
@@ -85,5 +97,12 @@ class BuildingCard extends StatelessWidget {
 
   String _formatCost(Map<String, int> cost) {
     return cost.entries.map((e) => '${e.value} ${e.key}').join(', ');
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    if (minutes == 0) return '$seconds sec';
+    return '$minutes min ${seconds.toString().padLeft(2, '0')} sec';
   }
 }

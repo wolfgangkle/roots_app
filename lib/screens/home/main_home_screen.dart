@@ -31,7 +31,7 @@ class MainHomeScreen extends StatelessWidget {
         drawer: const NavigationDrawerPanel(),
         body: Row(
           children: [
-            const SizedBox(width: 250, child: HeroPanel()),
+            const SizedBox(width: 400, child: HeroPanel()),
             const VerticalDivider(width: 1),
             Expanded(
               flex: 2,
@@ -39,7 +39,7 @@ class MainHomeScreen extends StatelessWidget {
             ),
             const VerticalDivider(width: 1),
             SizedBox(
-              width: 250,
+              width: 400,
               child: VillagePanel(onVillageTap: contentController.showVillageCenter),
             ),
           ],
@@ -57,7 +57,7 @@ class MainHomeScreen extends StatelessWidget {
             children: [
               const SizedBox(width: 200, child: NavigationDrawerPanel()),
               const VerticalDivider(width: 1),
-              const SizedBox(width: 250, child: HeroPanel()),
+              const SizedBox(width: 400, child: HeroPanel()),
               const VerticalDivider(width: 1),
               Expanded(
                 flex: 2,
@@ -65,7 +65,7 @@ class MainHomeScreen extends StatelessWidget {
               ),
               const VerticalDivider(width: 1),
               SizedBox(
-                width: 250,
+                width: 400,
                 child: VillagePanel(onVillageTap: contentController.showVillageCenter),
               ),
             ],

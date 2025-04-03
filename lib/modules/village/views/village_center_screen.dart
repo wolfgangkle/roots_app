@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/village_model.dart';
+import 'package:roots_app/modules/village/models/village_model.dart';
+import 'package:roots_app/modules/village/services/village_service.dart';
 import 'building_screen.dart';
 
 enum VillageTab { buildings, equipment, storage }
@@ -15,6 +16,7 @@ class VillageCenterScreen extends StatefulWidget {
 
 class _VillageCenterScreenState extends State<VillageCenterScreen> {
   VillageTab currentTab = VillageTab.buildings;
+  final VillageService villageService = VillageService();
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,6 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
           ],
         ),
         const Divider(),
-
         // Active tab content
         Expanded(
           child: _buildTabContent(),
@@ -60,11 +61,23 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
   Widget _buildTabContent() {
     switch (currentTab) {
       case VillageTab.buildings:
-        return BuildingScreen(village: widget.village);
+      // Wrap BuildingScreen with a StreamBuilder so that the UI updates instantly.
+        return StreamBuilder<VillageModel>(
+          stream: villageService.getVillageStream(widget.village.id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: Text('Village not found'));
+            }
+            return BuildingScreen(village: snapshot.data!);
+          },
+        );
       case VillageTab.equipment:
-        return Center(child: Text('⚔️ Equipment view coming soon!'));
+        return const Center(child: Text('⚔️ Equipment view coming soon!'));
       case VillageTab.storage:
-        return Center(child: Text('📦 Storage view coming soon!'));
+        return const Center(child: Text('📦 Storage view coming soon!'));
       default:
         return const SizedBox.shrink();
     }

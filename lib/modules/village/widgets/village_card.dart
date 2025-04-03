@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/village_model.dart';
+import 'package:roots_app/modules/village/models/village_model.dart';
+import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
 
 class VillageCard extends StatelessWidget {
   final VillageModel village;
@@ -13,6 +14,15 @@ class VillageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final res = village.calculateCurrentResources();
+    final upgrade = village.currentBuildJob;
+
+    final prodWood = village.buildings['woodcutter']?.productionPerHour ?? 0;
+    final prodStone = village.buildings['quarry']?.productionPerHour ?? 0;
+    final prodFood = village.buildings['farm']?.productionPerHour ?? 0;
+    final prodIron = village.buildings['ironmine']?.productionPerHour ?? 0;
+    final prodGold = village.buildings['goldmine']?.productionPerHour ?? 0;
+
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -24,24 +34,42 @@ class VillageCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '🏰 ${village.name}',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              Text('📍 Tile: ${village.tileX}, ${village.tileY}'),
-              const SizedBox(height: 8),
+              // 🏰 Name + Coordinates
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('🌲 ${village.wood}'),
-                  const SizedBox(width: 12),
-                  Text('🪨 ${village.stone}'),
-                  const SizedBox(width: 12),
-                  Text('🍞 ${village.food}'),
+                  Text(
+                    '🏰 ${village.name}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  Text('📍 ${village.tileX}, ${village.tileY}'),
                 ],
-              )
+              ),
+              const SizedBox(height: 8),
+
+              // 📦 Resources with production
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('⛓️ Iron: ${res['iron']} (+$prodIron/h)'),
+                  Text('🌲 Wood: ${res['wood']} (+$prodWood/h)'),
+                  Text('🪨 Stone: ${res['stone']} (+$prodStone/h)'),
+                  Text('🍞 Food: ${res['food']} (+$prodFood/h)'),
+                  Text('💰 Gold: ${res['gold']} (+$prodGold/h)'),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // ⏳ Upgrade progress
+              if (upgrade != null)
+                UpgradeProgressIndicator(
+                  startedAt: upgrade.startedAt,
+                  endsAt: upgrade.startedAt.add(upgrade.duration),
+                ),
             ],
           ),
         ),
