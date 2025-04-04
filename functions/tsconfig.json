@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "esModuleInterop": true,
-    "moduleResolution": "nodenext",
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "outDir": "lib",
-    "sourceMap": true,
-    "strict": true,
-    "target": "es2017"
+    "target": "ES2020",                      // 👈 Use ES2020 for better async/await & modern features
+    "module": "NodeNext",                    // ✅ ESM with Node
+    "moduleResolution": "nodenext",          // ✅ Required for Node ESM
+    "esModuleInterop": true,                 // ✅ Allows clean imports from CJS modules
+    "allowSyntheticDefaultImports": true,    // ✅ Helps avoid import warnings with Firebase packages
+    "strict": true,                          // ✅ Good for type safety
+    "noImplicitReturns": true,               // ✅ Prevents missing return bugs
+    "noUnusedLocals": true,                  // ✅ Clean code
+    "sourceMap": true,                       // ✅ Helpful for debugging
+    "outDir": "lib",                         // ✅ Standard out directory
+    "resolveJsonModule": true,               // 🟢 Optional but useful if importing JSON
+    "forceConsistentCasingInFileNames": true // 🟢 Avoids casing issues on Linux vs Windows
   },
   "compileOnSave": true,
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

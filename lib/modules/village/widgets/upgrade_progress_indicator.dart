@@ -1,14 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+
 
 class UpgradeProgressIndicator extends StatefulWidget {
   final DateTime startedAt;
   final DateTime endsAt;
+  final String? villageId; // 👈 We need this to trigger the function
 
   const UpgradeProgressIndicator({
     super.key,
     required this.startedAt,
     required this.endsAt,
+    this.villageId, // 👈 Optional but required to trigger function
   });
 
   @override
@@ -19,6 +23,7 @@ class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
   late Timer _timer;
   late Duration totalDuration;
   Duration remaining = Duration.zero;
+  bool _calledFinish = false;
 
   @override
   void initState() {
@@ -31,9 +36,25 @@ class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
   void _updateRemaining() {
     final now = DateTime.now();
     final rem = widget.endsAt.difference(now);
+
     setState(() {
       remaining = rem > Duration.zero ? rem : Duration.zero;
     });
+
+    // 🧠 When timer hits 0 AND we haven't called it yet...
+    if (remaining <= Duration.zero &&
+        !_calledFinish &&
+        widget.villageId != null) {
+      _calledFinish = true;
+      FirebaseFunctions.instance
+          .httpsCallable('finishBuildingUpgrade')
+          .call({'villageId': widget.villageId}).then((result) {
+        debugPrint('✅ finishBuildingUpgrade success: ${result.data}');
+      }).catchError((e) {
+        debugPrint('❌ Error calling finishBuildingUpgrade: $e');
+        _calledFinish = false; // Allow retry on next tick if it failed
+      });
+    }
   }
 
   @override

@@ -61,7 +61,6 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
   Widget _buildTabContent() {
     switch (currentTab) {
       case VillageTab.buildings:
-      // Wrap BuildingScreen with a StreamBuilder so that the UI updates instantly.
         return StreamBuilder<VillageModel>(
           stream: villageService.getVillageStream(widget.village.id),
           builder: (context, snapshot) {
@@ -71,7 +70,11 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
             if (!snapshot.hasData) {
               return const Center(child: Text('Village not found'));
             }
-            return BuildingScreen(village: snapshot.data!);
+
+            final updatedVillage = snapshot.data!;
+            final _ = updatedVillage.simulatedResources; // ✅ Trigger simulation side-effect
+
+            return BuildingScreen(village: updatedVillage);
           },
         );
       case VillageTab.equipment:

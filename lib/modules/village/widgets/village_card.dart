@@ -14,7 +14,9 @@ class VillageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final res = village.calculateCurrentResources();
+    // ✅ Use simulated resource values based on time since last update
+    final res = village.simulatedResources;
+
     final upgrade = village.currentBuildJob;
 
     final prodWood = village.buildings['woodcutter']?.productionPerHour ?? 0;

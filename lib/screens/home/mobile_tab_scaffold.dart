@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-import 'panels/hero_panel.dart';
-import 'panels/main_content_panel.dart';
-import 'package:roots_app/modules/village/views/village_panel.dart';
-import 'panels/chat_panel.dart';
-import 'panels/navigation_drawer.dart';
-import '../controllers/main_content_controller.dart'; // NEW
+import 'package:flutter/material.dart'; // ✅ required for Text, Center, etc.
+import 'package:roots_app/screens/home/panels/chat_overlay.dart';
+import 'package:roots_app/screens/home/panels/chat_panel.dart';
+import 'package:roots_app/screens/home/panels/hero_panel.dart';
+import 'package:roots_app/screens/home/panels/main_content_panel.dart';
+import 'package:roots_app/screens/home/panels/navigation_drawer.dart';
 
 class MobileTabScaffold extends StatefulWidget {
   final MainContentController contentController;

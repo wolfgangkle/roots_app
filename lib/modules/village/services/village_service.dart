@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_functions/firebase_functions.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/models/building_model.dart';
-import 'package:roots_app/modules/village/data/building_definitions.dart';
 import 'package:roots_app/utils/firestore_logger.dart';
 
 class VillageService {
@@ -13,17 +12,13 @@ class VillageService {
 
   Stream<List<VillageModel>> getVillagesStream() {
     final user = _auth.currentUser;
-    if (user == null) {
-      throw Exception("No user logged in");
-    }
+    if (user == null) throw Exception("No user logged in");
 
     final stream = _firestore
         .collection('users')
         .doc(user.uid)
         .collection('villages')
         .snapshots();
-
-    // Not logging here, because snapshot listeners count as reads automatically per doc.
 
     return stream.map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -95,65 +90,19 @@ class VillageService {
     FirestoreLogger.delete("deleteVillage($villageId)");
   }
 
-  Future<void> startBuildingUpgrade({
+  /// 🔄 Calls backend function to start a building upgrade
+  Future<void> startUpgradeViaBackend({
     required String villageId,
     required String buildingType,
-    required int targetLevel,
-    required Duration duration,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception("Not logged in");
+    final callable = FirebaseFunctions.instance.httpsCallable('startBuildingUpgrade');
 
-    final now = DateTime.now();
-
-    final villageDocRef = _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('villages')
-        .doc(villageId);
-
-    final villageDoc = await villageDocRef.get();
-    FirestoreLogger.read("startBuildingUpgrade → get($villageId)");
-
-    if (!villageDoc.exists) throw Exception("Village not found");
-    final data = villageDoc.data()!;
-    final resources = (data['resources'] as Map<String, dynamic>?) ?? {};
-
-    final def = buildingDefinitions[buildingType];
-    if (def == null) throw Exception("Invalid building: $buildingType");
-    final cost = def.getCostForLevel(targetLevel);
-
-    final newWood = (resources['wood'] ?? 0) - (cost['wood'] ?? 0);
-    final newStone = (resources['stone'] ?? 0) - (cost['stone'] ?? 0);
-    final newFood = (resources['food'] ?? 0) - (cost['food'] ?? 0);
-    final newIron = (resources['iron'] ?? 0) - (cost['iron'] ?? 0);
-    final newGold = (resources['gold'] ?? 0) - (cost['gold'] ?? 0);
-
-    if (newWood < 0 ||
-        newStone < 0 ||
-        newFood < 0 ||
-        newIron < 0 ||
-        newGold < 0) {
-      throw Exception("Not enough resources");
-    }
-
-    await villageDocRef.update({
-      'currentBuildJob': {
-        'buildingType': buildingType,
-        'startedAt': Timestamp.fromDate(now),
-        'durationSeconds': duration.inSeconds,
-        'targetLevel': targetLevel,
-      },
-      'resources': {
-        'wood': newWood,
-        'stone': newStone,
-        'food': newFood,
-        'iron': newIron,
-        'gold': newGold,
-      },
+    await callable.call({
+      'villageId': villageId,
+      'buildingType': buildingType,
     });
 
-    FirestoreLogger.write("startBuildingUpgrade($villageId → $buildingType L$targetLevel)");
+    FirestoreLogger.write("startUpgradeViaBackend($villageId → $buildingType)");
   }
 
   Future<void> createTestVillage() async {
@@ -166,26 +115,37 @@ class VillageService {
         .collection('villages')
         .doc();
 
-    final village = VillageModel(
-      id: newDoc.id,
-      name: 'Test Village',
-      tileX: DateTime.now().millisecondsSinceEpoch % 100,
-      tileY: DateTime.now().millisecondsSinceEpoch % 100,
-      wood: 300,
-      stone: 200,
-      food: 250,
-      iron: 80,
-      gold: 50,
-      lastUpdated: DateTime.now(),
-      buildings: {
-        'woodcutter': BuildingModel(type: 'woodcutter', level: 1),
-        'quarry': BuildingModel(type: 'quarry', level: 1),
-      },
-    );
+    final now = DateTime.now();
 
-    await saveVillage(village);
-    FirestoreLogger.write("createTestVillage → ${village.id}");
+    final villageData = {
+      'name': 'Test Village',
+      'tileX': now.millisecondsSinceEpoch % 100,
+      'tileY': now.millisecondsSinceEpoch % 100,
+      'lastUpdated': Timestamp.fromDate(now),
+      'resources': {
+        'wood': 300,
+        'stone': 200,
+        'food': 250,
+        'iron': 80,
+        'gold': 50,
+      },
+      'buildings': {
+        'woodcutter': {'level': 1},
+        'quarry': {'level': 1},
+      },
+      'productionPerHour': {
+        'wood': 100,
+        'stone': 80,
+        'food': 0,
+        'iron': 0,
+        'gold': 0,
+      },
+    };
+
+    await newDoc.set(villageData);
+    FirestoreLogger.write("createTestVillage → ${newDoc.id}");
   }
+
 
   Future<VillageModel> getVillage(String villageId) async {
     final user = _auth.currentUser;

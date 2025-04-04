@@ -12,9 +12,10 @@ dependencies:
   cupertino_icons: ^1.0.6
 
   # ✅ Firebase packages - web compatible combo
-  firebase_core: ^3.13.0
-  firebase_auth: ^5.5.2
-  cloud_firestore: ^5.6.6
+  firebase_core: ^2.25.4
+  firebase_auth: ^4.17.6
+  cloud_firestore: ^4.15.7
+  cloud_functions: ^4.5.5
   firebase_core_web: ^2.9.0
 
   # ✅ Needed for firebase_auth_web

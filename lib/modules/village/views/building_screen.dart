@@ -20,6 +20,8 @@ class _BuildingScreenState extends State<BuildingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final simulated = widget.village.simulatedResources;
+
     return Column(
       children: [
         // 🔝 Top Tabs

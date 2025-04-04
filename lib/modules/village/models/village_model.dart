@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/village/models/building_model.dart';
-import 'package:roots_app/modules/village/models/build_job_model.dart'; // Import the dedicated BuildJobModel
+import 'package:roots_app/modules/village/models/build_job_model.dart';
 import '../data/building_definitions.dart';
 
 class VillageModel {
@@ -17,7 +17,6 @@ class VillageModel {
 
   final DateTime lastUpdated;
   final Map<String, BuildingModel> buildings;
-
   final BuildJobModel? currentBuildJob;
 
   VillageModel({
@@ -44,10 +43,9 @@ class VillageModel {
       buildings[type] = BuildingModel.fromMap(type, value);
     });
 
-    // Build job is now parsed using BuildJobModel.
     final jobData = data['currentBuildJob'];
-    final BuildJobModel? job = jobData != null ? BuildJobModel.fromMap(jobData) : null;
-
+    final BuildJobModel? job =
+    jobData != null ? BuildJobModel.fromMap(jobData) : null;
 
     return VillageModel(
       id: id,
@@ -79,25 +77,15 @@ class VillageModel {
         'gold': gold,
       },
       'buildings': buildings.map((key, value) => MapEntry(key, value.toMap())),
-      if (currentBuildJob != null) 'currentBuildJob': currentBuildJob!.toMap(),
+      if (currentBuildJob != null)
+        'currentBuildJob': currentBuildJob!.toMap(),
     };
   }
 
-  Map<String, int> calculateCurrentResources() {
+  Map<String, int> getSimulatedResources(Map<String, int> productionPerHour) {
     final now = DateTime.now();
-    final job = currentBuildJob;
+    final elapsedMinutes = now.difference(lastUpdated).inMinutes;
 
-    // Update: Use durationSeconds to calculate finish time.
-    final upgradeFinishedAt = job != null
-        ? job.startedAt.add(Duration(seconds: job.durationSeconds))
-        : null;
-    final upgradeCompleted =
-        upgradeFinishedAt != null && upgradeFinishedAt.isBefore(now);
-
-    final elapsed = now.difference(lastUpdated);
-    final elapsedMinutes = elapsed.inMinutes;
-
-    // Prevent overproduction spam if too little time has passed.
     if (elapsedMinutes < 1) {
       return {
         'wood': wood,
@@ -108,64 +96,14 @@ class VillageModel {
       };
     }
 
-    final elapsedHours = elapsedMinutes / 60;
-
-    int woodGained = 0;
-    int stoneGained = 0;
-    int foodGained = 0;
-
-    if (job == null || !upgradeCompleted) {
-      woodGained =
-          ((buildings['woodcutter']?.productionPerHour ?? 0) * elapsedHours)
-              .floor();
-      stoneGained =
-          ((buildings['quarry']?.productionPerHour ?? 0) * elapsedHours)
-              .floor();
-      foodGained =
-          ((buildings['farm']?.productionPerHour ?? 0) * elapsedHours)
-              .floor();
-    } else {
-      final beforeUpgrade =
-          upgradeFinishedAt.difference(lastUpdated).inMinutes / 60;
-      final afterUpgrade = now.difference(upgradeFinishedAt).inMinutes / 60;
-
-      final oldBuildings = Map<String, BuildingModel>.from(buildings);
-      final upgradingType = job.buildingType;
-      final upgraded = BuildingModel(
-        type: upgradingType,
-        level: (buildings[upgradingType]?.level ?? 0) + 1,
-      );
-
-      final newBuildings = Map<String, BuildingModel>.from(buildings)
-        ..[upgradingType] = upgraded;
-
-      woodGained +=
-          ((oldBuildings['woodcutter']?.productionPerHour ?? 0) * beforeUpgrade)
-              .floor();
-      stoneGained +=
-          ((oldBuildings['quarry']?.productionPerHour ?? 0) * beforeUpgrade)
-              .floor();
-      foodGained +=
-          ((oldBuildings['farm']?.productionPerHour ?? 0) * beforeUpgrade)
-              .floor();
-
-      woodGained +=
-          ((newBuildings['woodcutter']?.productionPerHour ?? 0) * afterUpgrade)
-              .floor();
-      stoneGained +=
-          ((newBuildings['quarry']?.productionPerHour ?? 0) * afterUpgrade)
-              .floor();
-      foodGained +=
-          ((newBuildings['farm']?.productionPerHour ?? 0) * afterUpgrade)
-              .floor();
-    }
+    final elapsedHours = elapsedMinutes / 60.0;
 
     return {
-      'wood': wood + woodGained,
-      'stone': stone + stoneGained,
-      'food': food + foodGained,
-      'iron': iron,
-      'gold': gold,
+      'wood': wood + (productionPerHour['wood'] ?? 0) * elapsedHours ~/ 1,
+      'stone': stone + (productionPerHour['stone'] ?? 0) * elapsedHours ~/ 1,
+      'food': food + (productionPerHour['food'] ?? 0) * elapsedHours ~/ 1,
+      'iron': iron + (productionPerHour['iron'] ?? 0) * elapsedHours ~/ 1,
+      'gold': gold + (productionPerHour['gold'] ?? 0) * elapsedHours ~/ 1,
     };
   }
 

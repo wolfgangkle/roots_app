@@ -11,8 +11,6 @@
 
 
 
-
-
 ### 📄 main_content_controller.dart
 
 ✅ What it does:
@@ -30,4 +28,9 @@
 ✅ What it does:
 - Handles all Firestore CRUD for villages
 - Sends building upgrade requests
-- Removed local timer sync logic (moved to cloud functions)
+- Handles all Firestore CRUD for villages
+- Sends building upgrade requests
+- Removed local timer/resource sync logic (now handled via Cloud Functions)
+- Still includes createTestVillage() and saveVillage() for manual village creation (used for dev/testing only)
+
+⚠️ These will later be replaced by a server-side createVillage() Cloud Function, once village creation rules (e.g. tile placement, spawn zones) are finalized.

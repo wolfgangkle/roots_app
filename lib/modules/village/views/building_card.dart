@@ -22,10 +22,11 @@ class BuildingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final production = definition.baseProductionPerHour * level;
+    final currentProduction = definition.baseProductionPerHour * level;
     final nextLevel = level + 1;
-    final upgradeCost = definition.getCostForLevel(nextLevel);
-    final upgradeTime = definition.getBuildTime(nextLevel);
+    final nextProduction = definition.baseProductionPerHour * nextLevel;
+    final nextCost = definition.getCostForLevel(nextLevel);
+    final nextDuration = definition.getBuildTime(nextLevel);
     final isUpgradingThis =
         village.currentBuildJob?.buildingType == type &&
             village.currentBuildJob?.isComplete == false;
@@ -57,23 +58,21 @@ class BuildingCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // ⚙️ Production
+          // 📦 Current production
           if (definition.baseProductionPerHour > 0)
-            Text('📦 Produces: $production per hour'),
+            Text('📦 Produces: $currentProduction per hour'),
 
-          // 💸 Upgrade Cost
-          if (upgradeCost.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text('💸 Next upgrade cost: ${_formatCost(upgradeCost)}'),
-          ],
-
-          // ⏱️ Upgrade time
-          const SizedBox(height: 4),
-          Text('⏱️ Takes: ${_formatDuration(upgradeTime)}'),
+          // ➡️ Next level info
+          const Divider(height: 20),
+          Text('➡️ Next Level ($nextLevel):'),
+          if (definition.baseProductionPerHour > 0)
+            Text('📦 Produces: $nextProduction per hour'),
+          Text('💸 Costs: ${_formatCost(nextCost)}'),
+          Text('⏱️ Takes: ${_formatDuration(nextDuration)}'),
 
           const SizedBox(height: 12),
 
-          // 🔄 Show progress bar or upgrade button
+          // 🔄 Progress bar or upgrade button
           if (isUpgradingThis)
             UpgradeProgressIndicator(
               startedAt: village.currentBuildJob!.startedAt,

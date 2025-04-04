@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
-import '../../controllers/main_content_controller.dart';
-
+import 'package:flutter/material.dart'; // ✅ required for Text, Center, etc.
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
 class MainContentPanel extends StatelessWidget {
   final MainContentController controller;

@@ -1,33 +1,35 @@
 module.exports = {
   root: true,
   env: {
-    es6: true,
+    es2020: true, // updated from es6 for modern features
     node: true,
   },
+  parser: "@typescript-eslint/parser",
+  parserOptions: {
+    project: ["tsconfig.json"],
+    sourceType: "module",
+    ecmaVersion: 2020, // modern parsing
+  },
+  plugins: ["@typescript-eslint", "import"],
   extends: [
     "eslint:recommended",
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:import/typescript",
-    "google",
     "plugin:@typescript-eslint/recommended",
-  ],
-  parser: "@typescript-eslint/parser",
-  parserOptions: {
-    project: ["tsconfig.json", "tsconfig.dev.json"],
-    sourceType: "module",
-  },
-  ignorePatterns: [
-    "/lib/**/*", // Ignore built files.
-    "/generated/**/*", // Ignore generated files.
-  ],
-  plugins: [
-    "@typescript-eslint",
-    "import",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "google"
   ],
   rules: {
     "quotes": ["error", "double"],
-    "import/no-unresolved": 0,
+    "import/no-unresolved": "off", // disable false positives with .js in ESM
     "indent": ["error", 2],
+    "require-jsdoc": "off", // optional: Google styleguide enforces this
+    "@typescript-eslint/no-unused-vars": ["warn"],
+    "@typescript-eslint/no-floating-promises": ["error"],
   },
+  ignorePatterns: [
+    "/lib/**/*",
+    "/generated/**/*"
+  ],
 };
