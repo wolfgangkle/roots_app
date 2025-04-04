@@ -25,19 +25,11 @@ class VillageService {
 
     // Not logging here, because snapshot listeners count as reads automatically per doc.
 
-    return stream.asyncMap((snapshot) async {
-      final villages = snapshot.docs
-          .map((doc) {
+    return stream.map((snapshot) {
+      return snapshot.docs.map((doc) {
         FirestoreLogger.read("getVillagesStream -> doc: ${doc.id}");
         return VillageModel.fromMap(doc.id, doc.data());
-      })
-          .toList();
-
-      for (final village in villages) {
-        await syncVillageResources(village);
-      }
-
-      return villages;
+      }).toList();
     });
   }
 
@@ -56,6 +48,23 @@ class VillageService {
       FirestoreLogger.read("getVillageStream($villageId)");
       return VillageModel.fromMap(doc.id, doc.data()!);
     });
+  }
+
+  Future<List<VillageModel>> getVillagesOnce() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("No user logged in");
+
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('villages')
+        .get();
+
+    FirestoreLogger.read("getVillagesOnce (all villages)");
+
+    return snapshot.docs.map((doc) {
+      return VillageModel.fromMap(doc.id, doc.data());
+    }).toList();
   }
 
   Future<void> saveVillage(VillageModel village) async {
@@ -145,117 +154,6 @@ class VillageService {
     });
 
     FirestoreLogger.write("startBuildingUpgrade($villageId → $buildingType L$targetLevel)");
-  }
-
-  Future<void> finishBuildingUpgrade({
-    required String villageId,
-    required String buildingType,
-    required int newLevel,
-  }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception("Not logged in");
-
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('villages')
-        .doc(villageId)
-        .update({
-      'buildings.$buildingType.level': newLevel,
-      'currentBuildJob': FieldValue.delete(),
-    });
-
-    FirestoreLogger.write("finishBuildingUpgrade($villageId → $buildingType → L$newLevel)");
-  }
-
-  Future<void> queueUpgradeForBuilding({
-    required String villageId,
-    required String buildingType,
-    required int currentLevel,
-  }) async {
-    final def = buildingDefinitions[buildingType];
-    if (def == null) throw Exception("Invalid building: $buildingType");
-
-    final targetLevel = currentLevel + 1;
-    final seconds =
-    (30 * sqrt((targetLevel * targetLevel).toDouble())).round();
-    final duration = Duration(seconds: seconds);
-
-    await startBuildingUpgrade(
-      villageId: villageId,
-      buildingType: buildingType,
-      targetLevel: targetLevel,
-      duration: duration,
-    );
-  }
-
-  Future<VillageModel> applyPendingUpgradeIfNeeded(VillageModel village) async {
-    final job = village.currentBuildJob;
-    if (job == null || !job.isComplete) return village;
-
-    final type = job.buildingType;
-    final currentLevel = village.buildings[type]?.level ?? 0;
-    final targetLevel = job.targetLevel;
-
-    if (currentLevel >= targetLevel) {
-      await finishBuildingUpgrade(
-        villageId: village.id,
-        buildingType: type,
-        newLevel: currentLevel,
-      );
-      return village.copyWith(
-        currentBuildJob: null,
-        lastUpdated: DateTime.now(),
-      );
-    }
-
-    final updatedBuildings =
-    Map<String, BuildingModel>.from(village.buildings)
-      ..[type] = BuildingModel(type: type, level: targetLevel);
-
-    await finishBuildingUpgrade(
-      villageId: village.id,
-      buildingType: type,
-      newLevel: targetLevel,
-    );
-
-    return village.copyWith(
-      buildings: updatedBuildings,
-      currentBuildJob: null,
-      lastUpdated: DateTime.now(),
-    );
-  }
-
-  Future<void> syncVillageResources(VillageModel village) async {
-    final updatedResources = village.calculateCurrentResources();
-    final upgradeFinished = village.currentBuildJob?.isComplete ?? false;
-
-    final bool hasChanges =
-        updatedResources['wood'] != village.wood ||
-            updatedResources['stone'] != village.stone ||
-            updatedResources['food'] != village.food ||
-            updatedResources['iron'] != village.iron ||
-            updatedResources['gold'] != village.gold;
-
-    final elapsed = DateTime.now().difference(village.lastUpdated);
-
-    if (!hasChanges && !upgradeFinished && elapsed.inSeconds < 60) return;
-
-    if (upgradeFinished) {
-      await applyPendingUpgradeIfNeeded(village);
-      return;
-    }
-
-    final updatedVillage = village.copyWith(
-      wood: updatedResources['wood'],
-      stone: updatedResources['stone'],
-      food: updatedResources['food'],
-      iron: updatedResources['iron'],
-      gold: updatedResources['gold'],
-      lastUpdated: DateTime.now(),
-    );
-
-    await saveVillage(updatedVillage);
   }
 
   Future<void> createTestVillage() async {

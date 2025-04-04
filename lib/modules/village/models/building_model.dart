@@ -19,18 +19,4 @@ class BuildingModel {
       'level': level,
     };
   }
-
-  int get productionPerHour {
-    // simple placeholder logic
-    switch (type) {
-      case 'woodcutter':
-        return 100 * level;
-      case 'quarry':
-        return 80 * level;
-      case 'farm':
-        return 120 * level;
-      default:
-        return 0;
-    }
-  }
 }
