@@ -5,29 +5,34 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/models/building_model.dart';
 import 'package:roots_app/modules/village/data/building_definitions.dart';
+import 'package:roots_app/utils/firestore_logger.dart';
 
 class VillageService {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  /// 🔄 Returns a stream of all villages for the current user.
   Stream<List<VillageModel>> getVillagesStream() {
     final user = _auth.currentUser;
     if (user == null) {
       throw Exception("No user logged in");
     }
 
-    return _firestore
+    final stream = _firestore
         .collection('users')
         .doc(user.uid)
         .collection('villages')
-        .snapshots()
-        .asyncMap((snapshot) async {
+        .snapshots();
+
+    // Not logging here, because snapshot listeners count as reads automatically per doc.
+
+    return stream.asyncMap((snapshot) async {
       final villages = snapshot.docs
-          .map((doc) => VillageModel.fromMap(doc.id, doc.data()))
+          .map((doc) {
+        FirestoreLogger.read("getVillagesStream -> doc: ${doc.id}");
+        return VillageModel.fromMap(doc.id, doc.data());
+      })
           .toList();
 
-      // 💾 Auto-finish upgrades and sync resources for each village.
       for (final village in villages) {
         await syncVillageResources(village);
       }
@@ -36,21 +41,23 @@ class VillageService {
     });
   }
 
-  /// Returns a stream of a single village by its ID.
   Stream<VillageModel> getVillageStream(String villageId) {
     final user = _auth.currentUser;
     if (user == null) throw Exception("No user logged in");
 
-    return _firestore
+    final stream = _firestore
         .collection('users')
         .doc(user.uid)
         .collection('villages')
         .doc(villageId)
-        .snapshots()
-        .map((doc) => VillageModel.fromMap(doc.id, doc.data()!));
+        .snapshots();
+
+    return stream.map((doc) {
+      FirestoreLogger.read("getVillageStream($villageId)");
+      return VillageModel.fromMap(doc.id, doc.data()!);
+    });
   }
 
-  /// 💾 Create or update a village.
   Future<void> saveVillage(VillageModel village) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("Not logged in");
@@ -61,9 +68,10 @@ class VillageService {
         .collection('villages')
         .doc(village.id)
         .set(village.toMap());
+
+    FirestoreLogger.write("saveVillage(${village.id})");
   }
 
-  /// ❌ Optional: Delete a village (not used yet).
   Future<void> deleteVillage(String villageId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("Not logged in");
@@ -74,9 +82,10 @@ class VillageService {
         .collection('villages')
         .doc(villageId)
         .delete();
+
+    FirestoreLogger.delete("deleteVillage($villageId)");
   }
 
-  /// 🏗️ Start an upgrade (adds upgrade job with timestamps).
   Future<void> startBuildingUpgrade({
     required String villageId,
     required String buildingType,
@@ -88,32 +97,29 @@ class VillageService {
 
     final now = DateTime.now();
 
-    // Get a reference to the village document.
     final villageDocRef = _firestore
         .collection('users')
         .doc(user.uid)
         .collection('villages')
         .doc(villageId);
 
-    // Retrieve the current village data.
     final villageDoc = await villageDocRef.get();
+    FirestoreLogger.read("startBuildingUpgrade → get($villageId)");
+
     if (!villageDoc.exists) throw Exception("Village not found");
     final data = villageDoc.data()!;
     final resources = (data['resources'] as Map<String, dynamic>?) ?? {};
 
-    // Calculate the upgrade cost from the building definition.
     final def = buildingDefinitions[buildingType];
     if (def == null) throw Exception("Invalid building: $buildingType");
     final cost = def.getCostForLevel(targetLevel);
 
-    // Subtract the cost from each resource.
     final newWood = (resources['wood'] ?? 0) - (cost['wood'] ?? 0);
     final newStone = (resources['stone'] ?? 0) - (cost['stone'] ?? 0);
     final newFood = (resources['food'] ?? 0) - (cost['food'] ?? 0);
     final newIron = (resources['iron'] ?? 0) - (cost['iron'] ?? 0);
     final newGold = (resources['gold'] ?? 0) - (cost['gold'] ?? 0);
 
-    // Optional: Check if any new resource value is negative.
     if (newWood < 0 ||
         newStone < 0 ||
         newFood < 0 ||
@@ -122,7 +128,6 @@ class VillageService {
       throw Exception("Not enough resources");
     }
 
-    // Update the document with both the upgrade job and the new resource values.
     await villageDocRef.update({
       'currentBuildJob': {
         'buildingType': buildingType,
@@ -138,9 +143,10 @@ class VillageService {
         'gold': newGold,
       },
     });
+
+    FirestoreLogger.write("startBuildingUpgrade($villageId → $buildingType L$targetLevel)");
   }
 
-  /// ✅ Finish upgrade (writes new level + removes upgrade job).
   Future<void> finishBuildingUpgrade({
     required String villageId,
     required String buildingType,
@@ -158,9 +164,10 @@ class VillageService {
       'buildings.$buildingType.level': newLevel,
       'currentBuildJob': FieldValue.delete(),
     });
+
+    FirestoreLogger.write("finishBuildingUpgrade($villageId → $buildingType → L$newLevel)");
   }
 
-  /// 🧮 Wrapper that calculates upgrade duration and starts upgrade.
   Future<void> queueUpgradeForBuilding({
     required String villageId,
     required String buildingType,
@@ -182,7 +189,6 @@ class VillageService {
     );
   }
 
-  /// 🔁 Auto-finish upgrade if complete.
   Future<VillageModel> applyPendingUpgradeIfNeeded(VillageModel village) async {
     final job = village.currentBuildJob;
     if (job == null || !job.isComplete) return village;
@@ -191,7 +197,6 @@ class VillageService {
     final currentLevel = village.buildings[type]?.level ?? 0;
     final targetLevel = job.targetLevel;
 
-    // If the building is already upgraded to or beyond the target, clear the job.
     if (currentLevel >= targetLevel) {
       await finishBuildingUpgrade(
         villageId: village.id,
@@ -204,7 +209,6 @@ class VillageService {
       );
     }
 
-    // Otherwise, upgrade the building to the target level and clear the job.
     final updatedBuildings =
     Map<String, BuildingModel>.from(village.buildings)
       ..[type] = BuildingModel(type: type, level: targetLevel);
@@ -217,17 +221,15 @@ class VillageService {
 
     return village.copyWith(
       buildings: updatedBuildings,
-      currentBuildJob: null, // Clear the job.
+      currentBuildJob: null,
       lastUpdated: DateTime.now(),
     );
   }
 
-  /// ⏱️ Sync resources and finish upgrade if done.
   Future<void> syncVillageResources(VillageModel village) async {
     final updatedResources = village.calculateCurrentResources();
     final upgradeFinished = village.currentBuildJob?.isComplete ?? false;
 
-    // Determine if there are resource changes.
     final bool hasChanges =
         updatedResources['wood'] != village.wood ||
             updatedResources['stone'] != village.stone ||
@@ -237,16 +239,13 @@ class VillageService {
 
     final elapsed = DateTime.now().difference(village.lastUpdated);
 
-    // If nothing significant changed and no upgrade is finished, skip the update.
     if (!hasChanges && !upgradeFinished && elapsed.inSeconds < 60) return;
 
-    // If an upgrade is finished, apply it and return immediately.
     if (upgradeFinished) {
       await applyPendingUpgradeIfNeeded(village);
       return;
     }
 
-    // Otherwise, update the resource values (and lastUpdated).
     final updatedVillage = village.copyWith(
       wood: updatedResources['wood'],
       stone: updatedResources['stone'],
@@ -259,7 +258,6 @@ class VillageService {
     await saveVillage(updatedVillage);
   }
 
-  /// 🧪 TEMP: Create a test village manually.
   Future<void> createTestVillage() async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("Not logged in");
@@ -288,9 +286,9 @@ class VillageService {
     );
 
     await saveVillage(village);
+    FirestoreLogger.write("createTestVillage → ${village.id}");
   }
 
-  /// 🔍 Fetch a single village by its ID.
   Future<VillageModel> getVillage(String villageId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("Not logged in");
@@ -301,6 +299,8 @@ class VillageService {
         .collection('villages')
         .doc(villageId)
         .get();
+
+    FirestoreLogger.read("getVillage($villageId)");
 
     if (!doc.exists) {
       throw Exception("Village not found");
