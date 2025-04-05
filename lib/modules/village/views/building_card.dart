@@ -8,17 +8,17 @@ class BuildingCard extends StatelessWidget {
   final String type;
   final int level;
   final BuildingDefinition definition;
-  final VoidCallback? onUpgrade;
+  final Widget? upgradeButtonWidget; // New optional widget parameter
   final VillageModel village;
 
   const BuildingCard({
-    super.key,
+    Key? key,
     required this.type,
     required this.level,
     required this.definition,
-    required this.onUpgrade,
     required this.village,
-  });
+    this.upgradeButtonWidget,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -69,26 +69,23 @@ class BuildingCard extends StatelessWidget {
             Text('📦 Produces: $nextProduction per hour'),
           Text('💸 Costs: ${_formatCost(nextCost)}'),
           Text('⏱️ Takes: ${_formatDuration(nextDuration)}'),
-
           const SizedBox(height: 12),
 
-          // 🔄 Progress bar or upgrade button
+          // 🔄 Either show the upgrade progress indicator or the upgrade button widget.
           if (isUpgradingThis)
             UpgradeProgressIndicator(
               startedAt: village.currentBuildJob!.startedAt,
-              endsAt: village.currentBuildJob!.startedAt.add(
-                village.currentBuildJob!.duration,
-              ),
+              endsAt: village.currentBuildJob!.startedAt
+                  .add(village.currentBuildJob!.duration),
+              villageId: village.id, // Pass the village ID if needed inside the indicator.
             )
-          else
+          else if (upgradeButtonWidget != null)
             Align(
               alignment: Alignment.centerRight,
-              child: UpgradeButton(
-                buildingType: type,
-                currentLevel: level,
-                onUpgradeQueued: onUpgrade,
-              ),
-            ),
+              child: upgradeButtonWidget!,
+            )
+          else
+            Container(), // Fallback: empty container.
         ],
       ),
     );

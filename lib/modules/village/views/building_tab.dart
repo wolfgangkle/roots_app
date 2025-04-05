@@ -1,35 +1,63 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_functions/firebase_functions.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/data/building_definitions.dart';
 import 'package:roots_app/modules/village/views/building_card.dart';
+import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
+import 'package:roots_app/modules/village/widgets/upgrade_button.dart';
 
-class BuildingTab extends StatelessWidget {
+class BuildingTab extends StatefulWidget {
   final VillageModel village;
   final String selectedFilter;
 
   const BuildingTab({
-    super.key,
+    Key? key,
     required this.village,
     required this.selectedFilter,
-  });
+  }) : super(key: key);
+
+  @override
+  _BuildingTabState createState() => _BuildingTabState();
+}
+
+class _BuildingTabState extends State<BuildingTab> {
+  // Global flag to lock all upgrade buttons.
+  bool _globalUpgradeActive = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set up a timer that fires every second to rebuild the widget.
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final allUnlocked = village.getUnlockedBuildings();
-    final currentUpgrade = village.currentBuildJob;
-    final resources = village.simulatedResources;
+    final allUnlocked = widget.village.getUnlockedBuildings();
+    final currentUpgrade = widget.village.currentBuildJob;
+    final resources = widget.village.simulatedResources;
 
-    // Filter buildings by selected tag
-    final filtered = selectedFilter == 'All'
+    // Filter buildings by selected tag.
+    final filtered = widget.selectedFilter == 'All'
         ? allUnlocked
         : allUnlocked.where((type) {
       final def = buildingDefinitions[type];
       if (def == null) return false;
-
-      if (selectedFilter == 'Production' && def.baseProductionPerHour > 0) {
+      if (widget.selectedFilter == 'Production' &&
+          def.baseProductionPerHour > 0) {
         return true;
-      } else if (selectedFilter == 'Storage' &&
+      } else if (widget.selectedFilter == 'Storage' &&
           def.displayName.contains('Storage')) {
         return true;
       }
@@ -42,10 +70,10 @@ class BuildingTab extends StatelessWidget {
       itemBuilder: (context, index) {
         final type = filtered[index];
         final def = buildingDefinitions[type]!;
-        final level = village.buildings[type]?.level ?? 0;
+        final level = widget.village.buildings[type]?.level ?? 0;
         final nextLevel = level + 1;
 
-        // Use formula-based dynamic cost
+        // Calculate the cost for the next level.
         final cost = def.getCostForLevel(nextLevel);
 
         final hasResources = (resources['wood'] ?? 0) >= (cost['wood'] ?? 0) &&
@@ -61,27 +89,24 @@ class BuildingTab extends StatelessWidget {
           type: type,
           level: level,
           definition: def,
-          village: village,
-          onUpgrade: canUpgrade
-              ? () async {
-            try {
-              final functions = FirebaseFunctions.instance;
-              final callable =
-              functions.httpsCallable('startBuildingUpgrade');
-              await callable.call({
-                'villageId': village.id,
-                'buildingType': type,
+          village: widget.village,
+          upgradeButtonWidget: canUpgrade
+              ? UpgradeButton(
+            buildingType: type,
+            currentLevel: level,
+            villageId: widget.village.id,
+            isGloballyDisabled: _globalUpgradeActive,
+            onGlobalUpgradeStart: () {
+              setState(() {
+                _globalUpgradeActive = true;
               });
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Upgrade started for $type')),
-              );
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: $e')),
-              );
-            }
-          }
+            },
+            onUpgradeComplete: () {
+              setState(() {
+                _globalUpgradeActive = false;
+              });
+            },
+          )
               : null,
         );
       },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/services/village_service.dart';
 import 'building_screen.dart';
+import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 
 enum VillageTab { buildings, equipment, storage }
 

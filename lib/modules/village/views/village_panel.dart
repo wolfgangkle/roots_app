@@ -1,10 +1,25 @@
+import 'package:flutter/material.dart';
+import 'package:roots_app/modules/village/services/village_service.dart';
+import 'package:roots_app/modules/village/models/village_model.dart';
+import 'package:roots_app/modules/village/widgets/village_card.dart';
+import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
+
+class VillagePanel extends StatefulWidget {
+  final void Function(VillageModel)? onVillageTap;
+
+  const VillagePanel({Key? key, this.onVillageTap}) : super(key: key);
+
+  @override
+  _VillagePanelState createState() => _VillagePanelState();
+}
+
 class _VillagePanelState extends State<VillagePanel> {
   final VillageService service = VillageService();
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<VillageModel>>(
-      future: service.getVillagesOnce(),
+    return StreamBuilder<List<VillageModel>>(
+      stream: service.getVillagesStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -28,7 +43,6 @@ class _VillagePanelState extends State<VillagePanel> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Test village created!')),
                   );
-                  setState(() {}); // Refresh UI
                 },
                 child: const Text("Create Test Village"),
               ),
@@ -46,7 +60,6 @@ class _VillagePanelState extends State<VillagePanel> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Test village created!')),
                   );
-                  setState(() {}); // Refresh UI
                 },
                 icon: const Icon(Icons.add),
                 label: const Text("Create Test Village"),
@@ -61,7 +74,7 @@ class _VillagePanelState extends State<VillagePanel> {
                   final village = villages[index];
                   return VillageCard(
                     village: village,
-                    onTap: () => onVillageTap?.call(village),
+                    onTap: () => widget.onVillageTap?.call(village),
                   );
                 },
               ),

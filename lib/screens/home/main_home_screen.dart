@@ -4,6 +4,9 @@ import 'package:roots_app/screens/home/panels/chat_panel.dart';
 import 'package:roots_app/screens/home/panels/hero_panel.dart';
 import 'package:roots_app/screens/home/panels/main_content_panel.dart';
 import 'package:roots_app/screens/home/panels/navigation_drawer.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/screens/home/mobile_tab_scaffold.dart';
+import 'package:roots_app/modules/village/views/village_panel.dart';
 
 
 
