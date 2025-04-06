@@ -44,6 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
         errorMessage = 'Authentication failed. Please check your credentials.';
       });
     } else {
+      // Debug print: Log the user's email (or other details)
+      debugPrint('Logged in user: ${user.email}');
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => const CheckUserProfile(),
@@ -87,12 +89,13 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 10),
             if (errorMessage.isNotEmpty)
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
-
             const SizedBox(height: 20),
             TextButton(
               onPressed: () async {
                 final user = await AuthService().signIn("test@roots.dev", "123456");
                 if (user != null) {
+                  // Debug print for auto login as well
+                  debugPrint('Auto-logged in user: ${user.email}');
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const CheckUserProfile()),
                   );

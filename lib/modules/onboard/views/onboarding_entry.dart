@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import 'lore_intro_screen.dart';
 import 'race_picker_screen.dart';
 import 'name_picker_screen.dart';
 import 'village_name_screen.dart';
 import 'zone_picker_screen.dart';
-import '../services/onboard_service.dart';
+import 'onboard_summary.dart';
 
 class OnboardingEntry extends StatefulWidget {
-  const OnboardingEntry({super.key});
+  const OnboardingEntry({Key? key}) : super(key: key);
 
   @override
   State<OnboardingEntry> createState() => _OnboardingEntryState();
@@ -19,7 +20,6 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
   String? heroName;
   String? villageName;
   String? startZone;
-
   int currentStep = 0;
 
   void _nextStep() {
@@ -41,17 +41,35 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
     _nextStep();
   }
 
-  void _setZone(String zone) async {
+  void _setZone(String zone) {
     startZone = zone;
+    _nextStep();
+  }
 
-    await FirestoreService().createNewPlayer(
-      heroName: heroName!,
-      villageName: villageName!,
-      startZone: startZone!,
-      race: selectedRace!,
-    );
+  /// Finalizes onboarding by calling the Cloud Function.
+  void _finalizeOnboarding() async {
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
+      final result = await callable.call({
+        'heroName': heroName!,
+        'villageName': villageName!,
+        'startZone': startZone!,
+        'race': selectedRace!,
+      });
+      // Process result.data if necessary.
+      Navigator.of(context).pushReplacementNamed('/village');
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error finalizing onboarding: $error')),
+      );
+    }
+  }
 
-    Navigator.of(context).pushReplacementNamed('/village');
+  /// Allows the user to edit their choices. Here we simply restart the flow.
+  void _editOnboarding() {
+    setState(() {
+      currentStep = 0;
+    });
   }
 
   @override
@@ -66,8 +84,17 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
       case 3:
         return VillageNameScreen(onNext: _setVillageName);
       case 4:
-      default:
         return ZonePickerScreen(onNext: _setZone);
+      case 5:
+      default:
+        return OnboardSummaryScreen(
+          heroName: heroName!,
+          race: selectedRace!,
+          villageName: villageName!,
+          startZone: startZone!,
+          onConfirm: _finalizeOnboarding,
+          onEdit: _editOnboarding,
+        );
     }
   }
 }

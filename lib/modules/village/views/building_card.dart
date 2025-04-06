@@ -3,12 +3,14 @@ import 'package:roots_app/modules/village/models/building_definition.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_button.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
+import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
+
 
 class BuildingCard extends StatelessWidget {
   final String type;
   final int level;
   final BuildingDefinition definition;
-  final Widget? upgradeButtonWidget; // New optional widget parameter
+  final Widget? upgradeButtonWidget;
   final VillageModel village;
 
   const BuildingCard({
@@ -27,9 +29,8 @@ class BuildingCard extends StatelessWidget {
     final nextProduction = definition.baseProductionPerHour * nextLevel;
     final nextCost = definition.getCostForLevel(nextLevel);
     final nextDuration = definition.getBuildTime(nextLevel);
-    final isUpgradingThis =
-        village.currentBuildJob?.buildingType == type &&
-            village.currentBuildJob?.isComplete == false;
+    final isUpgradingThis = village.currentBuildJob?.buildingType == type &&
+        village.currentBuildJob?.isComplete == false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -67,17 +68,25 @@ class BuildingCard extends StatelessWidget {
           Text('➡️ Next Level ($nextLevel):'),
           if (definition.baseProductionPerHour > 0)
             Text('📦 Produces: $nextProduction per hour'),
-          Text('💸 Costs: ${_formatCost(nextCost)}'),
+
+          // 💸 Cost with red text for insufficient resources
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('💸 Costs: '),
+              Expanded(child: _buildCostRichText(nextCost)),
+            ],
+          ),
+
           Text('⏱️ Takes: ${_formatDuration(nextDuration)}'),
           const SizedBox(height: 12),
 
-          // 🔄 Either show the upgrade progress indicator or the upgrade button widget.
           if (isUpgradingThis)
             UpgradeProgressIndicator(
               startedAt: village.currentBuildJob!.startedAt,
               endsAt: village.currentBuildJob!.startedAt
                   .add(village.currentBuildJob!.duration),
-              villageId: village.id, // Pass the village ID if needed inside the indicator.
+              villageId: village.id,
             )
           else if (upgradeButtonWidget != null)
             Align(
@@ -85,14 +94,39 @@ class BuildingCard extends StatelessWidget {
               child: upgradeButtonWidget!,
             )
           else
-            Container(), // Fallback: empty container.
+            Container(),
         ],
       ),
     );
   }
 
-  String _formatCost(Map<String, int> cost) {
-    return cost.entries.map((e) => '${e.value} ${e.key}').join(', ');
+  /// 🔧 Builds a RichText with cost values in red if not affordable.
+  Widget _buildCostRichText(Map<String, int> cost) {
+    final simulated = village.simulatedResources;
+
+    final spans = <TextSpan>[];
+    cost.forEach((resource, amount) {
+      final current = simulated[resource] ?? 0;
+      final isEnough = current >= amount;
+
+      spans.add(TextSpan(
+        text: '$amount $resource',
+        style: TextStyle(
+          color: isEnough ? Colors.black : Colors.red,
+          fontWeight: FontWeight.w500,
+        ),
+      ));
+
+      spans.add(const TextSpan(text: ', ')); // comma separator
+    });
+
+    if (spans.isNotEmpty) {
+      spans.removeLast(); // remove trailing comma
+    }
+
+    return RichText(
+      text: TextSpan(style: const TextStyle(fontSize: 14), children: spans),
+    );
   }
 
   String _formatDuration(Duration duration) {

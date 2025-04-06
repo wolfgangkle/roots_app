@@ -1,13 +1,10 @@
-
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class NamePickerScreen extends StatefulWidget {
   final void Function(String heroName) onNext;
 
-  const NamePickerScreen({super.key, required this.onNext});
+  const NamePickerScreen({Key? key, required this.onNext}) : super(key: key);
 
   @override
   State<NamePickerScreen> createState() => _NamePickerScreenState();
@@ -21,7 +18,7 @@ class _NamePickerScreenState extends State<NamePickerScreen> {
   Future<void> _checkAndContinue() async {
     final input = _controller.text.trim();
 
-    // Validation: letters + spaces only
+    // Validate: allow only letters and spaces, and check length.
     final isValid = RegExp(r'^[A-Za-z ]+$').hasMatch(input);
     if (!isValid || input.length < 3 || input.length > 24) {
       setState(() => _errorText = 'Name must be 3–24 letters/spaces only.');
@@ -33,10 +30,12 @@ class _NamePickerScreenState extends State<NamePickerScreen> {
       _isChecking = true;
     });
 
-    // Check Firestore for existing hero name
+    // Check Firestore for existing hero name in user profiles.
+    // We assume that finalized onboarding stores the hero name in the 'heroName' field
+    // in each user's 'profile' subcollection.
     final query = await FirebaseFirestore.instance
-        .collection('heroes')
-        .where('name', isEqualTo: input)
+        .collectionGroup('profile')
+        .where('heroName', isEqualTo: input)
         .limit(1)
         .get();
 
@@ -45,7 +44,7 @@ class _NamePickerScreenState extends State<NamePickerScreen> {
     if (query.docs.isNotEmpty) {
       setState(() => _errorText = 'That name is already taken.');
     } else {
-      widget.onNext(input); // pass the validated name to the next screen
+      widget.onNext(input); // Pass the validated name to the next screen.
     }
   }
 
@@ -62,8 +61,6 @@ class _NamePickerScreenState extends State<NamePickerScreen> {
               'Choose your hero name',
               style: TextStyle(fontSize: 20),
             ),
-
-            // WARNING for account and hero name
             const SizedBox(height: 12),
             const Text(
               'This name will represent your account and your main hero.\n'
@@ -75,8 +72,6 @@ class _NamePickerScreenState extends State<NamePickerScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
-                        
             const SizedBox(height: 20),
             TextField(
               controller: _controller,

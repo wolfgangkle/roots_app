@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'config/firebase_options.dart';
-import 'package:roots_app/screens/auth/login_screen.dart';         // 👈 your login screen
-import 'package:roots_app/screens/auth/check_user_profile.dart';       // 👈 handles onboarding redirect
-import 'package:roots_app/screens/dev/map_editor_screen.dart'; //
-
+import 'package:roots_app/screens/auth/check_user_profile.dart';
+import 'package:roots_app/screens/dev/map_editor_screen.dart';
+import 'package:roots_app/screens/home/main_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,20 +23,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Roots',
       debugShowCheckedModeBanner: false,
-
-      // ✅ Define both themes (optional if you're forcing one)
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
-
-      // ✅ Force light mode here
-      themeMode: ThemeMode.light,  // <--- 👈 Forces light mode, override system setting
-
-      // ⬇️ dev mode entry
+      themeMode: ThemeMode.light,
       routes: {
         '/map_editor': (_) => const MapEditorScreen(),
+        '/village': (_) => const MainHomeScreen(),
       },
-
-      home: const LoginScreen(),
+      // Instead of starting with the LoginScreen, we start with CheckUserProfile,
+      // which will determine whether the user is logged in and has a profile.
+      home: const CheckUserProfile(),
     );
   }
 }

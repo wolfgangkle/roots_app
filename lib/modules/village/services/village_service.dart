@@ -105,48 +105,6 @@ class VillageService {
     FirestoreLogger.write("startUpgradeViaBackend($villageId → $buildingType)");
   }
 
-  Future<void> createTestVillage() async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception("Not logged in");
-
-    final newDoc = _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('villages')
-        .doc();
-
-    final now = DateTime.now();
-
-    final villageData = {
-      'name': 'Test Village',
-      'tileX': now.millisecondsSinceEpoch % 100,
-      'tileY': now.millisecondsSinceEpoch % 100,
-      'lastUpdated': Timestamp.fromDate(now),
-      'resources': {
-        'wood': 300,
-        'stone': 200,
-        'food': 250,
-        'iron': 80,
-        'gold': 50,
-      },
-      'buildings': {
-        'woodcutter': {'level': 1},
-        'quarry': {'level': 1},
-      },
-      'productionPerHour': {
-        'wood': 100,
-        'stone': 80,
-        'food': 0,
-        'iron': 0,
-        'gold': 0,
-      },
-    };
-
-    await newDoc.set(villageData);
-    FirestoreLogger.write("createTestVillage → ${newDoc.id}");
-  }
-
-
   Future<VillageModel> getVillage(String villageId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("Not logged in");
