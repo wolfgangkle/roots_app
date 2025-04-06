@@ -31,7 +31,7 @@ class MainHomeScreen extends StatelessWidget {
     if (isMediumScreen) {
       return Scaffold(
         appBar: AppBar(title: const Text('ROOTS')),
-        drawer: const NavigationDrawerPanel(),
+        drawer: NavigationDrawerPanel(), // (without const, since we'll pass state later)
         body: Row(
           children: [
             const SizedBox(width: 400, child: HeroPanel()),

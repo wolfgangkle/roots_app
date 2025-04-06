@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'config/firebase_options.dart';
 import 'package:roots_app/screens/auth/login_screen.dart';         // 👈 your login screen
 import 'package:roots_app/screens/auth/check_user_profile.dart';       // 👈 handles onboarding redirect
+import 'package:roots_app/screens/dev/map_editor_screen.dart'; //
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +31,11 @@ class MyApp extends StatelessWidget {
 
       // ✅ Force light mode here
       themeMode: ThemeMode.light,  // <--- 👈 Forces light mode, override system setting
+
+      // ⬇️ dev mode entry
+      routes: {
+        '/map_editor': (_) => const MapEditorScreen(),
+      },
 
       home: const LoginScreen(),
     );
