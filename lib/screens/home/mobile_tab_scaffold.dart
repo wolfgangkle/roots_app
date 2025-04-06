@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart'; // ✅ required for Text, Center, etc.
 import 'package:roots_app/screens/home/panels/chat_overlay.dart';
 import 'package:roots_app/screens/home/panels/chat_panel.dart';
-import 'package:roots_app/screens/home/panels/hero_panel.dart';
+import 'package:roots_app/modules/heroes/views/hero_panel.dart';
 import 'package:roots_app/screens/home/panels/main_content_panel.dart';
 import 'package:roots_app/screens/home/panels/navigation_drawer.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
