@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/modules/heroes/views/create_main_hero_screen.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
+
 
 class HeroPanel extends StatelessWidget {
   const HeroPanel({Key? key}) : super(key: key);
@@ -45,11 +49,12 @@ class HeroPanel extends StatelessWidget {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    // Navigate to the hero creation screen.
-                    Navigator.pushNamed(context, '/createHero');
+                    final controller = Provider.of<MainContentController>(context, listen: false);
+                    controller.setCustomContent(const CreateMainHeroScreen());
                   },
-                  child: const Text('Create Hero'),
+                  child: const Text('Create Main Hero'),
                 ),
+
               ],
             ),
           );

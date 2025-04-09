@@ -17,7 +17,7 @@ class VillageModel {
 
   final DateTime lastUpdated;
   final Map<String, BuildingModel> buildings;
-  final BuildJobModel? currentBuildJob;
+  BuildJobModel? currentBuildJob;
 
   VillageModel({
     required this.id,
@@ -162,5 +162,33 @@ class VillageModel {
       Duration(seconds: currentBuildJob!.durationSeconds),
     );
     return endTime.isAfter(now) ? endTime.difference(now) : Duration.zero;
+  }
+
+  /// 🚀 Optimistically simulate an upgrade start (for snappy UI)
+  void simulateUpgrade(String buildingType) {
+    final currentLevel = buildings[buildingType]?.level ?? 0;
+    final targetLevel = currentLevel + 1;
+
+    final def = buildingDefinitions[buildingType];
+    final estimatedDuration = def?.buildTimeFormula?.call(targetLevel) ?? const Duration(seconds: 10);
+    final durationSeconds = estimatedDuration.inSeconds;
+
+    final simulatedJob = BuildJobModel(
+      buildingType: buildingType,
+      targetLevel: targetLevel,
+      startedAt: DateTime.now(),
+      durationSeconds: durationSeconds,
+    );
+
+    buildings[buildingType] =
+        BuildingModel(type: buildingType, level: currentLevel);
+    currentBuildJob = simulatedJob;
+  }
+
+
+
+  /// 🔄 Optional rollback if backend fails
+  void cancelSimulatedUpgrade() {
+    currentBuildJob = null;
   }
 }

@@ -1,4 +1,5 @@
-import '../models/building_definition.dart';
+import 'package:roots_app/modules/village/models/building_definition.dart';
+import 'package:roots_app/modules/village/utils/building_formulas.dart';
 
 final buildingDefinitions = <String, BuildingDefinition>{
   'woodcutter': BuildingDefinition(
@@ -12,7 +13,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       'stone': 20,
     },
     costMultiplierFormula: (level) => level,
-    buildTimeFormula: (level) => Duration(seconds: 20 + level * 10),
+    buildTimeFormula: getUpgradeDuration, // ✅ unified
   ),
 
   'quarry': BuildingDefinition(
@@ -30,7 +31,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       requiredLevel: 1,
     ),
     costMultiplierFormula: (level) => level,
-    buildTimeFormula: (level) => Duration(seconds: 25 + level * 12),
+    buildTimeFormula: getUpgradeDuration, // ✅ unified
   ),
 
   'farm': BuildingDefinition(
@@ -48,7 +49,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       requiredLevel: 2,
     ),
     costMultiplierFormula: (level) => level,
-    buildTimeFormula: (level) => Duration(seconds: 22 + level * 11),
+    buildTimeFormula: getUpgradeDuration, // ✅ unified
   ),
 
   'mine': BuildingDefinition(
@@ -66,7 +67,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       requiredLevel: 2,
     ),
     costMultiplierFormula: (level) => level,
-    buildTimeFormula: (level) => Duration(seconds: 30 + level * 14),
+    buildTimeFormula: getUpgradeDuration, // ✅ unified
   ),
 
   'wood_storage': BuildingDefinition(
@@ -74,7 +75,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
     displayName: 'Wood Storage',
     description: 'Increases your maximum wood capacity.',
     maxLevel: 5,
-    baseProductionPerHour: 0, // Not a production building
+    baseProductionPerHour: 0,
     baseCost: {
       'wood': 150,
       'stone': 100,
@@ -84,6 +85,6 @@ final buildingDefinitions = <String, BuildingDefinition>{
       requiredLevel: 3,
     ),
     costMultiplierFormula: (level) => level + 1,
-    buildTimeFormula: (level) => Duration(seconds: 40 + level * 20),
+    buildTimeFormula: getUpgradeDuration, // ✅ unified
   ),
 };

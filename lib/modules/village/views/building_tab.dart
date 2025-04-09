@@ -21,14 +21,12 @@ class BuildingTab extends StatefulWidget {
 }
 
 class _BuildingTabState extends State<BuildingTab> {
-  // Global flag to lock all upgrade buttons.
   bool _globalUpgradeActive = false;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    // Set up a timer that fires every second to rebuild the widget.
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {});
@@ -48,7 +46,6 @@ class _BuildingTabState extends State<BuildingTab> {
     final currentUpgrade = widget.village.currentBuildJob;
     final resources = widget.village.simulatedResources;
 
-    // Filter buildings by selected tag.
     final filtered = widget.selectedFilter == 'All'
         ? allUnlocked
         : allUnlocked.where((type) {
@@ -73,7 +70,6 @@ class _BuildingTabState extends State<BuildingTab> {
         final level = widget.village.buildings[type]?.level ?? 0;
         final nextLevel = level + 1;
 
-        // Calculate the cost for the next level.
         final cost = def.getCostForLevel(nextLevel);
 
         final hasResources = (resources['wood'] ?? 0) >= (cost['wood'] ?? 0) &&
@@ -105,6 +101,11 @@ class _BuildingTabState extends State<BuildingTab> {
               setState(() {
                 _globalUpgradeActive = false;
               });
+            },
+            /// 💥 Optimistic update: instantly simulate building progress
+            onOptimisticUpgrade: () {
+              widget.village.simulateUpgrade(type); // You'll implement this
+              setState(() {});
             },
           )
               : null,

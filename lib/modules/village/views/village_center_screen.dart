@@ -21,23 +21,28 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Top tabs
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildTabButton(VillageTab.buildings, 'Buildings'),
-            _buildTabButton(VillageTab.equipment, 'Equipment'),
-            _buildTabButton(VillageTab.storage, 'Storage'),
-          ],
-        ),
-        const Divider(),
-        // Active tab content
-        Expanded(
-          child: _buildTabContent(),
-        ),
-      ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.village.name),
+      ),
+      body: Column(
+        children: [
+          // Top tabs
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildTabButton(VillageTab.buildings, 'Buildings'),
+              _buildTabButton(VillageTab.equipment, 'Equipment'),
+              _buildTabButton(VillageTab.storage, 'Storage'),
+            ],
+          ),
+          const Divider(),
+          // Active tab content
+          Expanded(
+            child: _buildTabContent(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -73,7 +78,7 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
             }
 
             final updatedVillage = snapshot.data!;
-            final _ = updatedVillage.simulatedResources; // ✅ Trigger simulation side-effect
+            final _ = updatedVillage.simulatedResources; // ✅ Trigger simulation
 
             return BuildingScreen(village: updatedVillage);
           },
@@ -82,8 +87,6 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
         return const Center(child: Text('⚔️ Equipment view coming soon!'));
       case VillageTab.storage:
         return const Center(child: Text('📦 Storage view coming soon!'));
-      default:
-        return const SizedBox.shrink();
     }
   }
 }

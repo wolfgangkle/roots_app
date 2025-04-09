@@ -28,6 +28,7 @@ export function getUpgradeCost(buildingType: string, level: number): ResourceCos
 
 /**
  * ⏱️ Returns duration in milliseconds
+ Formular for upgrade and building duration
  */
 export function getUpgradeDuration(buildingType: string, level: number): number {
   return 30 * Math.sqrt(level * level) * 1000; // e.g. L2 = ~1272s

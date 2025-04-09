@@ -16,50 +16,41 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
   @override
   void initState() {
     super.initState();
-    // Check immediately: if there's no user, redirect to the LoginScreen.
+
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
-      // Delay the navigation to allow the widget tree to build.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
+      });
+    } else {
+      final profileRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('profile');
+
+      profileRef.doc('main').get().then((doc) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (doc.exists) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const MainHomeScreen()),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const OnboardingEntry()),
+            );
+          }
+        });
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
-    // While waiting for redirection (or if user is null), show a loading indicator.
-    if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final profileRef =
-    FirebaseFirestore.instance.collection('users').doc(user.uid).collection('profile');
-
-    return FutureBuilder<DocumentSnapshot>(
-      future: profileRef.doc('main').get(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasData && snapshot.data!.exists) {
-          // User has already completed onboarding
-          return const MainHomeScreen();
-        } else {
-          // New player, go to onboarding
-          return const OnboardingEntry();
-        }
-      },
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

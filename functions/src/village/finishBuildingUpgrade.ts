@@ -36,10 +36,11 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
   }
 
   if (!buildJob) {
+    console.log(`👻 No active build job for ${villageId}, probably already finished.`);
     await villageRef.update({
       lastUpgradeCheck: admin.firestore.Timestamp.fromDate(now),
     });
-    return { message: 'No build job in progress.' };
+    return { message: 'No build job in progress (possibly already completed).' };
   }
 
   const startedAt = (buildJob.startedAt instanceof admin.firestore.Timestamp)
@@ -63,6 +64,7 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
     productionPerHour: newProduction,
     currentBuildJob: admin.firestore.FieldValue.delete(),
     lastUpgradeCheck: admin.firestore.Timestamp.fromDate(now),
+    lastUpgradeMethod: request.auth?.uid ? 'onCall' : 'scheduled',
   });
 
   console.log(`✅ Finished upgrade for ${villageId}: ${type} → Level ${targetLevel}`);

@@ -4,6 +4,7 @@
     "module": "NodeNext",                    // ✅ ESM with Node
     "moduleResolution": "nodenext",          // ✅ Required for Node ESM
     "esModuleInterop": true,                 // ✅ Allows clean imports from CJS modules
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,    // ✅ Helps avoid import warnings with Firebase packages
     "strict": true,                          // ✅ Good for type safety
     "noImplicitReturns": true,               // ✅ Prevents missing return bugs

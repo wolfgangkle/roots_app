@@ -1,16 +1,15 @@
-import 'package:flutter/material.dart'; // ✅ required for Text, Center, etc.
+import 'package:flutter/material.dart';
 import 'package:roots_app/screens/home/panels/chat_overlay.dart';
 import 'package:roots_app/screens/home/panels/chat_panel.dart';
 import 'package:roots_app/modules/heroes/views/hero_panel.dart';
-import 'package:roots_app/screens/home/panels/main_content_panel.dart';
 import 'package:roots_app/screens/home/panels/navigation_drawer.dart';
-import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/village/views/village_panel.dart';
+import 'package:roots_app/modules/village/views/village_center_screen.dart';
+import 'package:roots_app/modules/village/models/village_model.dart';
+
 
 class MobileTabScaffold extends StatefulWidget {
-  final MainContentController contentController;
-
-  const MobileTabScaffold({super.key, required this.contentController});
+  const MobileTabScaffold({super.key});
 
   @override
   State<MobileTabScaffold> createState() => _MobileTabScaffoldState();
@@ -24,8 +23,8 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: 1);
-    _pageController = PageController(initialPage: 1);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
+    _pageController = PageController(initialPage: 0);
   }
 
   @override
@@ -51,7 +50,6 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
           },
           tabs: const [
             Tab(text: '🧙 Heroes'),
-            Tab(text: '🗺️ Main'),
             Tab(text: '🏰 Villages'),
             Tab(text: '💬 Chat'),
           ],
@@ -65,8 +63,15 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
         },
         children: [
           const HeroPanel(),
-          MainContentPanel(controller: widget.contentController),
-          VillagePanel(onVillageTap: widget.contentController.showVillageCenter),
+          VillagePanel(
+            onVillageTap: (village) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => VillageCenterScreen(village: village),
+                ),
+              );
+            },
+          ),
           const ChatPanel(),
         ],
       ),

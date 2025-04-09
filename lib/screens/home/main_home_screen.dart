@@ -24,7 +24,7 @@ class MainHomeScreen extends StatelessWidget {
 
     // 🟦 MOBILE - Swipeable + Tappable Tab Layout
     if (isSmallScreen) {
-      return MobileTabScaffold(contentController: contentController);
+      return const MobileTabScaffold();
     }
 
     // 🟩 MEDIUM - 3-column layout with drawer

@@ -2,17 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
-
 class UpgradeProgressIndicator extends StatefulWidget {
   final DateTime startedAt;
   final DateTime endsAt;
-  final String? villageId; // 👈 We need this to trigger the function
+  final String? villageId;
 
   const UpgradeProgressIndicator({
     super.key,
     required this.startedAt,
     required this.endsAt,
-    this.villageId, // 👈 Optional but required to trigger function
+    this.villageId,
   });
 
   @override
@@ -21,14 +20,19 @@ class UpgradeProgressIndicator extends StatefulWidget {
 
 class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
   late Timer _timer;
-  late Duration totalDuration;
+  Duration totalDuration = const Duration(seconds: 10);
   Duration remaining = Duration.zero;
   bool _calledFinish = false;
 
   @override
   void initState() {
     super.initState();
-    totalDuration = widget.endsAt.difference(widget.startedAt);
+
+    final rawDuration = widget.endsAt.difference(widget.startedAt);
+    totalDuration = rawDuration > const Duration(days: 1)
+        ? const Duration(seconds: 10)
+        : rawDuration;
+
     _updateRemaining();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
   }
@@ -41,7 +45,6 @@ class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
       remaining = rem > Duration.zero ? rem : Duration.zero;
     });
 
-    // 🧠 When timer hits 0 AND we haven't called it yet...
     if (remaining <= Duration.zero &&
         !_calledFinish &&
         widget.villageId != null) {
@@ -52,7 +55,7 @@ class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
         debugPrint('✅ finishBuildingUpgrade success: ${result.data}');
       }).catchError((e) {
         debugPrint('❌ Error calling finishBuildingUpgrade: $e');
-        _calledFinish = false; // Allow retry on next tick if it failed
+        _calledFinish = false;
       });
     }
   }

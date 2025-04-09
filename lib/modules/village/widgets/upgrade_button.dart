@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
+
 class UpgradeButton extends StatefulWidget {
   final String buildingType;
   final int currentLevel;
   final String villageId;
   final String? label;
-  /// When true, this button (and others using the same global flag) are disabled.
   final bool isGloballyDisabled;
-  /// Callback to notify the parent that an upgrade is starting.
   final VoidCallback? onGlobalUpgradeStart;
-  /// Callback to notify the parent that the upgrade process has finished (success or failure).
   final VoidCallback? onUpgradeComplete;
+
+  /// 🔥 NEW: callback to perform optimistic UI update
+  final VoidCallback? onOptimisticUpgrade;
 
   const UpgradeButton({
     Key? key,
@@ -22,6 +23,7 @@ class UpgradeButton extends StatefulWidget {
     this.isGloballyDisabled = false,
     this.onGlobalUpgradeStart,
     this.onUpgradeComplete,
+    this.onOptimisticUpgrade, // NEW
   }) : super(key: key);
 
   @override
@@ -32,22 +34,22 @@ class _UpgradeButtonState extends State<UpgradeButton> {
   bool _isProcessing = false;
 
   Future<void> _handleUpgrade() async {
-    // Immediately lock the local button.
     if (mounted) {
       setState(() {
         _isProcessing = true;
       });
     }
-    // Tell the parent to lock all upgrade buttons.
+
     widget.onGlobalUpgradeStart?.call();
 
+    /// 🔥 NEW: do the optimistic update immediately
+    widget.onOptimisticUpgrade?.call();
+
     try {
-      // First, update the village resources in the database.
       await FirebaseFunctions.instance
           .httpsCallable('updateVillageResources')
           .call({'villageId': widget.villageId});
 
-      // Then, start the upgrade.
       await FirebaseFunctions.instance
           .httpsCallable('startBuildingUpgrade')
           .call({
@@ -69,22 +71,23 @@ class _UpgradeButtonState extends State<UpgradeButton> {
           _isProcessing = false;
         });
       }
-      // Clear global lock on error.
+
+      // ❗️You could call a `rollbackOptimisticUpgrade()` here if you add one
       widget.onUpgradeComplete?.call();
       return;
     }
+
     if (mounted) {
       setState(() {
         _isProcessing = false;
       });
     }
-    // When done (or in error), notify parent to clear the global lock.
+
     widget.onUpgradeComplete?.call();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Disable if this button is processing or if a global upgrade is active.
     final disabled = _isProcessing || widget.isGloballyDisabled;
     return ElevatedButton(
       onPressed: disabled ? null : _handleUpgrade,

@@ -1,7 +1,7 @@
-// functions/src/village/startBuildingUpgrade.ts
 import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { getUpgradeCost, getUpgradeDuration } from '../utils/buildingFormulas.js';
+import { scheduleUpgradeTask } from '../utils/scheduleUpgradeTask.js'; // 🔁 NEW import
 
 const db = admin.firestore();
 
@@ -35,6 +35,7 @@ export async function startBuildingUpgradeLogic(request: CallableRequest<any>) {
 
   const cost = getUpgradeCost(buildingType, targetLevel);
   const duration = getUpgradeDuration(buildingType, targetLevel);
+  const durationSeconds = Math.floor(duration / 1000);
   const now = new Date();
 
   // ✅ Check if enough resources
@@ -54,22 +55,30 @@ export async function startBuildingUpgradeLogic(request: CallableRequest<any>) {
     buildingType,
     targetLevel,
     startedAt: admin.firestore.Timestamp.fromDate(now),
-    durationSeconds: Math.floor(duration / 1000),
+    durationSeconds: durationSeconds,
   };
 
+  // 🔄 Update village with new job and resources
   await villageRef.update({
     resources: newResources,
     currentBuildJob: buildJobData,
     lastUpgradeCheck: admin.firestore.Timestamp.fromDate(now),
   });
 
-  console.log(`🚧 Started upgrade for ${buildingType} → L${targetLevel} (duration ${duration / 1000}s)`);
+  console.log(`🚧 Started upgrade for ${buildingType} → L${targetLevel} (duration ${durationSeconds}s)`);
+
+  // ⏰ Schedule backend upgrade
+  await scheduleUpgradeTask({
+    villageId,
+    userId,
+    delaySeconds: durationSeconds,
+  });
 
   return {
     started: true,
     buildingType,
     targetLevel,
-    durationSeconds: duration / 1000,
+    durationSeconds,
     newResources,
   };
 }

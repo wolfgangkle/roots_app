@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../services/auth_service.dart';
-import '../auth/check_user_profile.dart';
-import 'register_screen.dart'; // ✅ Your new screen!
+import 'check_user_profile.dart';
+import 'login_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String errorMessage = '';
@@ -31,14 +31,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => errorMessage = '');
 
     final auth = AuthService();
-    final user = await auth.signIn(email, password);
+    final user = await auth.register(email, password);
 
     if (user == null) {
       setState(() {
-        errorMessage = 'Authentication failed. Please check your credentials.';
+        errorMessage = 'Registration failed. Try again or use a different email.';
       });
     } else {
-      debugPrint('Logged in user: ${user.email}');
+      debugPrint('Registered user: ${user.email}');
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => const CheckUserProfile(),
@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: const Text('Create Account')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -70,42 +70,23 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _submit,
-              child: const Text('Login'),
+              child: const Text('Register'),
             ),
             const SizedBox(height: 12),
 
-            /// 🔗 Register link
+            /// 🔙 Link to go back to login
             TextButton(
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
                 );
               },
-              child: const Text("Don't have an account? Register here"),
+              child: const Text("Already have an account? Login here"),
             ),
 
             const SizedBox(height: 10),
             if (errorMessage.isNotEmpty)
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 20),
-
-            /// 🚀 Dev button
-            TextButton(
-              onPressed: () async {
-                final user = await AuthService().signIn("test@roots.dev", "123456");
-                if (user != null) {
-                  debugPrint('Auto-logged in user: ${user.email}');
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                  );
-                } else {
-                  setState(() {
-                    errorMessage = "Auto-login failed 😬";
-                  });
-                }
-              },
-              child: const Text("🚀 Dev Auto-Login (test@roots.dev)"),
-            ),
           ],
         ),
       ),
