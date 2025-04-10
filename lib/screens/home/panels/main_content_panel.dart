@@ -8,10 +8,12 @@ class MainContentPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[MainContentPanel] build() called');
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
         final content = controller.currentContent;
+        debugPrint('[MainContentPanel] currentContent is: ${content != null ? content.runtimeType : 'null'}');
 
         return Container(
           color: Colors.grey.shade100,

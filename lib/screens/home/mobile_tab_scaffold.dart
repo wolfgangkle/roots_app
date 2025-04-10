@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:roots_app/screens/home/panels/chat_overlay.dart';
-import 'package:roots_app/screens/home/panels/chat_panel.dart';
+import 'package:roots_app/modules/chat/chat_panel.dart';
 import 'package:roots_app/modules/heroes/views/hero_panel.dart';
 import 'package:roots_app/screens/home/panels/navigation_drawer.dart';
 import 'package:roots_app/modules/village/views/village_panel.dart';
 import 'package:roots_app/modules/village/views/village_center_screen.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/profile/models/user_profile_model.dart';
 
 class MobileTabScaffold extends StatefulWidget {
   const MobileTabScaffold({super.key});
@@ -76,8 +76,9 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
               );
             },
           ),
-          const ChatPanel(),
+          ChatPanel(currentUserName: Provider.of<UserProfileModel>(context, listen: false).heroName),
         ],
+
       ),
     );
   }

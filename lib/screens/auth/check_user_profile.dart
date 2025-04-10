@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/profile/models/user_profile_model.dart';
 import 'package:roots_app/screens/auth/login_screen.dart';
 import 'package:roots_app/screens/home/main_home_screen.dart';
 import 'package:roots_app/modules/onboard/views/onboarding_entry.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
 class CheckUserProfile extends StatefulWidget {
   const CheckUserProfile({super.key});
@@ -34,8 +37,22 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
       profileRef.doc('main').get().then((doc) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (doc.exists) {
+            final heroName = doc.data()?['heroName'] ?? '🧙 Nameless';
+
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const MainHomeScreen()),
+              MaterialPageRoute(
+                builder: (_) => MultiProvider(
+                  providers: [
+                    ChangeNotifierProvider(
+                      create: (_) => UserProfileModel(heroName: heroName),
+                    ),
+                    ChangeNotifierProvider(
+                      create: (_) => MainContentController(),
+                    ),
+                  ],
+                  child: const MainHomeScreen(),
+                ),
+              ),
             );
           } else {
             Navigator.of(context).pushReplacement(
