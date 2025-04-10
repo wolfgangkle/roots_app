@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:roots_app/screens/home/panels/chat_overlay.dart';
 import 'package:roots_app/screens/home/panels/chat_panel.dart';
 import 'package:roots_app/modules/heroes/views/hero_panel.dart';
@@ -6,7 +8,7 @@ import 'package:roots_app/screens/home/panels/navigation_drawer.dart';
 import 'package:roots_app/modules/village/views/village_panel.dart';
 import 'package:roots_app/modules/village/views/village_center_screen.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
-
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
 class MobileTabScaffold extends StatefulWidget {
   const MobileTabScaffold({super.key});
@@ -36,6 +38,8 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
 
   @override
   Widget build(BuildContext context) {
+    final contentController = Provider.of<MainContentController>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('ROOTS'),
@@ -62,7 +66,7 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
           _tabController.animateTo(index);
         },
         children: [
-          const HeroPanel(),
+          HeroPanel(controller: contentController),
           VillagePanel(
             onVillageTap: (village) {
               Navigator.of(context).push(

@@ -3,6 +3,9 @@ import * as admin from 'firebase-admin';
 import { onCall } from 'firebase-functions/v2/https';
 import * as functions from 'firebase-functions';
 
+import { createHeroLogic } from './heroes/createHero'; // ✅ Static import that works
+// ⬆️ this line replaces the problematic dynamic import for createHero
+
 admin.initializeApp();
 
 /**
@@ -40,10 +43,7 @@ export const finalizeOnboarding = onCall(async (request) => {
 /**
  * 🌱 createHero
  */
-export const createHero = onCall(async (request) => {
-  const { createHeroLogic } = await import(`${__dirname}/hero/createHero.js`);
-  return createHeroLogic(request);
-});
+export const createHero = onCall(createHeroLogic); // ✅ Clean and simple
 
 /**
  * 🏕️ foundVillage

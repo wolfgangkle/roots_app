@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
+
 import 'package:roots_app/modules/heroes/views/create_main_hero_screen.dart';
+import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
+import 'package:roots_app/modules/heroes/widgets/hero_card.dart';
+import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
-
 class HeroPanel extends StatelessWidget {
-  const HeroPanel({Key? key}) : super(key: key);
+  final MainContentController controller;
+
+  const HeroPanel({required this.controller, Key? key}) : super(key: key);
 
   Future<DocumentSnapshot?> _getMainHero() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -49,30 +53,34 @@ class HeroPanel extends StatelessWidget {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    final controller = Provider.of<MainContentController>(context, listen: false);
                     controller.setCustomContent(const CreateMainHeroScreen());
                   },
                   child: const Text('Create Main Hero'),
                 ),
-
               ],
             ),
           );
         }
 
-        // Hero exists: display the hero summary.
-        final heroData = snapshot.data!.data() as Map<String, dynamic>;
-        return Card(
-          margin: const EdgeInsets.all(16),
-          child: ListTile(
-            title: Text(heroData['heroName'] ?? 'Unnamed Hero'),
-            subtitle: Text('Level: ${heroData['level'] ?? 1}'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              // Optionally navigate to hero detail/update screen.
-              Navigator.pushNamed(context, '/heroDetails');
-            },
-          ),
+        // Convert Firestore data to HeroModel
+        final doc = snapshot.data!;
+        final hero = HeroModel.fromFirestore(doc.id, doc.data() as Map<String, dynamic>);
+
+        final isMobile = MediaQuery.of(context).size.width < 1024;
+
+        return HeroCard(
+          hero: hero,
+          onTap: () {
+            if (isMobile) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => HeroDetailsScreen(hero: hero),
+                ),
+              );
+            } else {
+              controller.setCustomContent(HeroDetailsScreen(hero: hero));
+            }
+          },
         );
       },
     );

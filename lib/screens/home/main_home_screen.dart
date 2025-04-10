@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart'; // ✅ required for Text, Center, etc.
+import 'package:provider/provider.dart';
 import 'package:roots_app/screens/home/panels/chat_overlay.dart';
 import 'package:roots_app/screens/home/panels/chat_panel.dart';
 import 'package:roots_app/modules/heroes/views/hero_panel.dart';
@@ -15,7 +16,7 @@ class MainHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final contentController = MainContentController();
+    final contentController = Provider.of<MainContentController>(context);
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 1024;
@@ -34,7 +35,7 @@ class MainHomeScreen extends StatelessWidget {
         drawer: NavigationDrawerPanel(), // (without const, since we'll pass state later)
         body: Row(
           children: [
-            const SizedBox(width: 400, child: HeroPanel()),
+            SizedBox(width: 400, child: HeroPanel(controller: contentController)),
             const VerticalDivider(width: 1),
             Expanded(
               flex: 2,
@@ -60,7 +61,7 @@ class MainHomeScreen extends StatelessWidget {
             children: [
               const SizedBox(width: 200, child: NavigationDrawerPanel()),
               const VerticalDivider(width: 1),
-              const SizedBox(width: 400, child: HeroPanel()),
+              SizedBox(width: 400, child: HeroPanel(controller: contentController)),
               const VerticalDivider(width: 1),
               Expanded(
                 flex: 2,

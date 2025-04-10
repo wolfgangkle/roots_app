@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 
 import 'package:roots_app/modules/heroes/functions/create_hero.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/modules/heroes/models/hero_model.dart';
+import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
 
 class CreateMainHeroScreen extends StatefulWidget {
   const CreateMainHeroScreen({Key? key}) : super(key: key);
@@ -72,10 +74,29 @@ class _CreateMainHeroScreenState extends State<CreateMainHeroScreen> {
     final controller = Provider.of<MainContentController>(context, listen: false);
 
     if (heroId != null) {
-      controller.reset(); // Clear the custom view
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Main hero created!')),
-      );
+      try {
+        final doc = await FirebaseFirestore.instance.collection('heroes').doc(heroId).get();
+        final data = doc.data();
+
+        if (data != null) {
+          final hero = HeroModel.fromFirestore(doc.id, data);
+
+          // Show hero detail screen
+          controller.setCustomContent(HeroDetailsScreen(hero: hero));
+
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Main hero created!')),
+          );
+        } else {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Hero created, but data not found.')),
+          );
+        }
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Error loading hero: $e')),
+        );
+      }
     } else {
       messenger.showSnackBar(
         const SnackBar(content: Text('Failed to create hero.')),
@@ -110,10 +131,10 @@ class _CreateMainHeroScreenState extends State<CreateMainHeroScreen> {
               items: _villages.map<DropdownMenuItem<String>>((village) {
                 return DropdownMenuItem<String>(
                   value: village['id'] as String,
-                  child: Text('${village['name']} (${village['tileX']}, ${village['tileY']})'),
+                  child: Text(
+                      '${village['name']} (${village['tileX']}, ${village['tileY']})'),
                 );
               }).toList(),
-
               onChanged: (value) => setState(() => _selectedVillageId = value),
             ),
             const SizedBox(height: 32),

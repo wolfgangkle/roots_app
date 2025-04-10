@@ -1,16 +1,10 @@
-// functions/src/hero/createHero.ts
+// functions/src/heroes/createHero.ts
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
-const db = admin.firestore();
-
-/**
- * Pure logic for creating a main hero (mage) during onboarding.
- * Validates the input, ensures the user is authenticated,
- * and checks that a main hero doesn't already exist before creating one.
- */
 export async function createHeroLogic(request: any) {
-  const { heroName, race, tileX, tileY } = request.data;
+  const db = admin.firestore();
+  const { race, tileX, tileY } = request.data;
   const userId = request.auth?.uid;
 
   // Ensure the user is authenticated.
@@ -18,10 +12,17 @@ export async function createHeroLogic(request: any) {
     throw new HttpsError('unauthenticated', 'User must be logged in.');
   }
 
-  // Validate input parameters.
-  if (!heroName || typeof heroName !== 'string' || heroName.trim().length < 3) {
-    throw new HttpsError('invalid-argument', 'heroName must be at least 3 characters long.');
+  // 🔥 Load hero name from user profile
+  const profileSnap = await db.doc(`users/${userId}/profile/main`).get();
+  const profileData = profileSnap.data();
+
+  if (!profileData || typeof profileData.heroName !== 'string' || profileData.heroName.trim().length < 3) {
+    throw new HttpsError('invalid-argument', 'Main hero name not set or invalid in user profile.');
   }
+
+  const heroName = profileData.heroName.trim();
+
+  // Validate other parameters
   if (!race || typeof race !== 'string' || race.trim().length === 0) {
     throw new HttpsError('invalid-argument', 'race is required.');
   }
@@ -44,8 +45,8 @@ export async function createHeroLogic(request: any) {
   // Define the new hero data.
   const heroData = {
     ownerId: userId,
-    heroName: heroName.trim(),
-    type: 'mage',  // Main hero is always a mage.
+    heroName,
+    type: 'mage',
     race: race.trim(),
     level: 1,
     experience: 0,
@@ -62,15 +63,21 @@ export async function createHeroLogic(request: any) {
     manaMax: 50,
     tileX,
     tileY,
-    state: 'idle', // Other states: 'moving', 'exploring', 'fighting', etc.
+    state: 'idle',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+
+    // ✅ Add these
+    hpRegen: 300,        // e.g. 5 minutes
+    manaRegen: 60,       // 1 mana every 60 seconds
+    foodDuration: 3600,  // 1 hour before hunger drains
   };
+
 
   // Create the new hero document.
   const newHeroRef = heroesRef.doc();
   await newHeroRef.set(heroData);
 
-  console.log(`🚀 Created main hero (mage) with id ${newHeroRef.id} for user ${userId}`);
+  console.log(`🚀 Created main hero "${heroName}" with id ${newHeroRef.id} for user ${userId}`);
   return {
     heroId: newHeroRef.id,
     message: 'Hero created successfully.',
