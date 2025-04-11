@@ -1,9 +1,9 @@
-// functions/src/index.ts
 import * as admin from 'firebase-admin';
 import { onCall } from 'firebase-functions/v2/https';
 import * as functions from 'firebase-functions';
 
-import { createHeroLogic } from './heroes/createHero';
+import { createHeroLogic } from './heroes/createHero.js';
+import { startHeroMovements } from './heroes/startHeroMovements.js'; // ✅ Newly added function
 
 admin.initializeApp();
 
@@ -43,6 +43,11 @@ export const finalizeOnboarding = onCall(async (request) => {
  * 🌱 createHero
  */
 export const createHero = onCall(createHeroLogic);
+
+/**
+ * 🚶 startHeroMovements (NEW)
+ */
+export const startHeroMovementsFunction = onCall(startHeroMovements);
 
 /**
  * 🏕️ foundVillage
@@ -100,11 +105,10 @@ export const processHeroArrival = functions.https.onRequest(async (req, res) => 
       return;
     }
 
-    const { processHeroArrival } = await import('./heroes/processHeroArrival.js'); // ✅ Fixed: added .js
+    const { processHeroArrival } = await import('./heroes/processHeroArrival.js');
     return processHeroArrival(req, res);
   } catch (error: any) {
     console.error('❌ Scheduled hero arrival error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
-

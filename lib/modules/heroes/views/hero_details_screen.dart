@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
+import 'package:roots_app/modules/heroes/views/hero_movement_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
+
 
 class HeroDetailsScreen extends StatelessWidget {
   final HeroModel hero;
@@ -49,6 +53,26 @@ class HeroDetailsScreen extends StatelessWidget {
             _statRow("Food Duration", _formatDuration(hero.foodDuration)),
 
             const SizedBox(height: 32),
+
+            if (hero.state == 'idle') ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.directions_walk),
+                label: const Text('Move Hero'),
+                onPressed: () {
+                  final controller = Provider.of<MainContentController>(context, listen: false);
+                  controller.setCustomContent(HeroMovementScreen(hero: hero));
+                },
+              ),
+            ] else ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.hourglass_top),
+                label: const Text('Hero is busy'),
+                onPressed: null,
+              ),
+            ]
+
           ],
         ),
       ),
