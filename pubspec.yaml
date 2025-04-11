@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.1.1
+  intl: ^0.18.1
   cupertino_icons: ^1.0.6
 
   # ✅ Firebase packages - web compatible combo

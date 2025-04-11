@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chat_message_model.dart';
+import 'package:roots_app/utils/firestore_logger.dart'; // ✅ Import your logger
 
 class ChatService {
   static final _messagesRef = FirebaseFirestore.instance
@@ -9,29 +10,35 @@ class ChatService {
 
   /// Stream the latest [limit] messages (default: 100)
   static Stream<List<ChatMessage>> getMessageStream({int limit = 100}) {
+    FirestoreLogger.read("getMessageStream (limit: $limit)");
+
     return _messagesRef
         .orderBy('timestamp', descending: true)
         .limit(limit)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => ChatMessage.fromDoc(doc))
-        .toList()
-        .reversed
-        .toList()); // newest at bottom
+        .map((snapshot) {
+      FirestoreLogger.read("getMessageStream → snapshot (${snapshot.docs.length} docs)");
+      return snapshot.docs
+          .map((doc) => ChatMessage.fromDoc(doc))
+          .toList()
+          .reversed
+          .toList(); // newest at bottom
+    });
   }
 
   /// Send a new message
   static Future<void> sendMessage(String sender, String content) async {
-    if (content.trim().isEmpty) return;
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return;
 
-    // Add the new message
+    FirestoreLogger.write('sendMessage from $sender');
+
     await _messagesRef.add({
       'sender': sender,
-      'content': content.trim(),
+      'content': trimmed,
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // Prune old messages (keep only the latest 100)
     await _pruneOldMessages(maxMessages: 100);
   }
 
@@ -41,10 +48,17 @@ class ChatService {
         .orderBy('timestamp', descending: true)
         .get();
 
+    FirestoreLogger.read("prune - total messages: ${allMessages.docs.length}");
+
     final docsToDelete = allMessages.docs.skip(maxMessages).toList();
+
+    if (docsToDelete.isNotEmpty) {
+      FirestoreLogger.delete("prune - deleting ${docsToDelete.length} message(s)");
+    }
 
     for (final doc in docsToDelete) {
       await doc.reference.delete();
+      FirestoreLogger.delete("prune - deleted doc ${doc.id}");
     }
   }
 }

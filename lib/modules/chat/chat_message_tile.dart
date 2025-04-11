@@ -1,6 +1,5 @@
-// lib/modules/chat/chat_message_tile.dart
-
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'chat_message_model.dart';
 
 class ChatMessageTile extends StatelessWidget {
@@ -10,17 +9,35 @@ class ChatMessageTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final date = DateFormat('dd.MM.yyyy').format(message.timestamp);
+    final time = DateFormat.Hm().format(message.timestamp); // HH:mm
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            message.sender,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            '[$date $time] ',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+            ),
           ),
-          const SizedBox(width: 6),
-          Expanded(child: Text(message.content)),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 13, color: Colors.black),
+                children: [
+                  TextSpan(
+                    text: '${message.sender}: ',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: message.content),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
