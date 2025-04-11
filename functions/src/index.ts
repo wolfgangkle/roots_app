@@ -3,8 +3,7 @@ import * as admin from 'firebase-admin';
 import { onCall } from 'firebase-functions/v2/https';
 import * as functions from 'firebase-functions';
 
-import { createHeroLogic } from './heroes/createHero'; // ✅ Static import that works
-// ⬆️ this line replaces the problematic dynamic import for createHero
+import { createHeroLogic } from './heroes/createHero';
 
 admin.initializeApp();
 
@@ -43,7 +42,7 @@ export const finalizeOnboarding = onCall(async (request) => {
 /**
  * 🌱 createHero
  */
-export const createHero = onCall(createHeroLogic); // ✅ Clean and simple
+export const createHero = onCall(createHeroLogic);
 
 /**
  * 🏕️ foundVillage
@@ -64,15 +63,12 @@ export const finishBuildingUpgradeScheduled = functions.https.onRequest(async (r
     }
 
     const { userId, villageId } = req.body;
-
     if (!userId || !villageId) {
       res.status(400).send('Missing userId or villageId in request body.');
       return;
     }
 
     const { finishBuildingUpgradeLogic } = await import('./village/finishBuildingUpgrade.js');
-
-    // Fake CallableRequest to reuse existing logic
     const fakeRequest = {
       data: { villageId },
       auth: { uid: userId },
@@ -87,3 +83,28 @@ export const finishBuildingUpgradeScheduled = functions.https.onRequest(async (r
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+/**
+ * 🧙 processHeroArrival (Cloud Task HTTP endpoint)
+ */
+export const processHeroArrival = functions.https.onRequest(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      res.status(405).send('Method Not Allowed');
+      return;
+    }
+
+    const { heroId } = req.body;
+    if (!heroId) {
+      res.status(400).send('Missing heroId in request body.');
+      return;
+    }
+
+    const { processHeroArrival } = await import('./heroes/processHeroArrival.js'); // ✅ Fixed: added .js
+    return processHeroArrival(req, res);
+  } catch (error: any) {
+    console.error('❌ Scheduled hero arrival error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
