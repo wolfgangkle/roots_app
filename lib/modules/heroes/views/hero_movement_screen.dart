@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
 
-
 class HeroMovementScreen extends StatefulWidget {
   final HeroModel hero;
 
@@ -18,6 +17,8 @@ class HeroMovementScreen extends StatefulWidget {
 class _HeroMovementScreenState extends State<HeroMovementScreen> {
   final List<Offset> _waypoints = [];
   late Offset _cursorPos;
+
+  bool _isSending = false; // ✅ NEW
 
   Offset get heroStart => Offset(widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble());
 
@@ -54,7 +55,9 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
   }
 
   void _confirmMovement() async {
-    if (_waypoints.isEmpty) return;
+    if (_waypoints.isEmpty || _isSending) return;
+
+    setState(() => _isSending = true);
 
     final first = _waypoints.first;
     final queue = _waypoints.skip(1).map((wp) => {
@@ -78,8 +81,14 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
         );
 
         final controller = Provider.of<MainContentController>(context, listen: false);
-        controller.setCustomContent(HeroDetailsScreen(hero: widget.hero));
+        final updatedDoc = await widget.hero.ref.get();
+        final updatedHero = HeroModel.fromFirestore(
+          updatedDoc.id,
+          updatedDoc.data()! as Map<String, dynamic>,
+        );
+        controller.setCustomContent(HeroDetailsScreen(hero: updatedHero));
       } else {
+        setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('❌ Failed to start movement')),
         );
@@ -88,13 +97,13 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
       print('🧨 Exception in startHeroMovements: $e');
       print(stackTrace);
 
+      setState(() => _isSending = false);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🔥 Error: $e')),
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +177,7 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
             child: Row(
               children: [
                 ElevatedButton.icon(
-                  onPressed: _waypoints.isEmpty ? null : _confirmMovement,
+                  onPressed: (_waypoints.isEmpty || _isSending) ? null : _confirmMovement,
                   icon: const Icon(Icons.check),
                   label: const Text("Start Journey"),
                 ),

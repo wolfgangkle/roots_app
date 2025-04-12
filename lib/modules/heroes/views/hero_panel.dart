@@ -13,25 +13,23 @@ class HeroPanel extends StatelessWidget {
 
   const HeroPanel({required this.controller, Key? key}) : super(key: key);
 
-  Future<DocumentSnapshot?> _getMainHero() async {
+  Stream<List<HeroModel>> _heroStream() {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    final query = await FirebaseFirestore.instance
+    if (user == null) return const Stream.empty();
+
+    return FirebaseFirestore.instance
         .collection('heroes')
         .where('ownerId', isEqualTo: user.uid)
-        .where('type', isEqualTo: 'mage')
-        .limit(1)
-        .get();
-    if (query.docs.isNotEmpty) {
-      return query.docs.first;
-    }
-    return null;
+        .snapshots()
+        .map((query) => query.docs.map((doc) {
+      return HeroModel.fromFirestore(doc.id, doc.data() as Map<String, dynamic>);
+    }).toList());
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot?>(
-      future: _getMainHero(),
+    return StreamBuilder<List<HeroModel>>(
+      stream: _heroStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -39,8 +37,9 @@ class HeroPanel extends StatelessWidget {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
-        if (!snapshot.hasData || snapshot.data == null) {
-          // No hero exists yet: prompt the user to create one.
+        final heroes = snapshot.data;
+
+        if (heroes == null || heroes.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -62,24 +61,27 @@ class HeroPanel extends StatelessWidget {
           );
         }
 
-        // Convert Firestore data to HeroModel
-        final doc = snapshot.data!;
-        final hero = HeroModel.fromFirestore(doc.id, doc.data() as Map<String, dynamic>);
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: heroes.length,
+          itemBuilder: (context, index) {
+            final hero = heroes[index];
+            final isMobile = MediaQuery.of(context).size.width < 1024;
 
-        final isMobile = MediaQuery.of(context).size.width < 1024;
-
-        return HeroCard(
-          hero: hero,
-          onTap: () {
-            if (isMobile) {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => HeroDetailsScreen(hero: hero),
-                ),
-              );
-            } else {
-              controller.setCustomContent(HeroDetailsScreen(hero: hero));
-            }
+            return HeroCard(
+              hero: hero,
+              onTap: () {
+                if (isMobile) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => HeroDetailsScreen(hero: hero),
+                    ),
+                  );
+                } else {
+                  controller.setCustomContent(HeroDetailsScreen(hero: hero));
+                }
+              },
+            );
           },
         );
       },

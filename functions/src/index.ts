@@ -3,7 +3,9 @@ import { onCall } from 'firebase-functions/v2/https';
 import * as functions from 'firebase-functions';
 
 import { createHeroLogic } from './heroes/createHero.js';
-import { startHeroMovements } from './heroes/startHeroMovements.js'; // ✅ Newly added function
+import { startHeroMovements } from './heroes/startHeroMovements.js';
+import { processHeroArrivalCallableLogic } from './heroes/processHeroArrival.js';
+import { processCombatTick } from './combat/processCombatTick.js'; // ⚔️ New combat tick logic
 
 admin.initializeApp();
 
@@ -90,6 +92,11 @@ export const finishBuildingUpgradeScheduled = functions.https.onRequest(async (r
 });
 
 /**
+ * 🧙 processHeroArrival (Dart fallback)
+ */
+export const processHeroArrivalCallable = onCall(processHeroArrivalCallableLogic);
+
+/**
  * 🧙 processHeroArrival (Cloud Task HTTP endpoint)
  */
 export const processHeroArrival = functions.https.onRequest(async (req, res) => {
@@ -112,3 +119,8 @@ export const processHeroArrival = functions.https.onRequest(async (req, res) => 
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+/**
+ * ⚔️ processCombatTick (Cloud Task HTTP endpoint)
+ */
+export const processCombatTickScheduled = functions.https.onRequest(processCombatTick);

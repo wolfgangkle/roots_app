@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class HeroModel {
   final String id;
   final String ownerId;
@@ -15,11 +17,16 @@ class HeroModel {
   final int tileX;
   final int tileY;
   final String state;
+  final int? destinationX;
+  final int? destinationY;
+  final List<Map<String, dynamic>>? movementQueue;
 
-  // 🆕 new fields
   final int hpRegen;
   final int manaRegen;
   final int foodDuration;
+
+  final DateTime? arrivesAt; // ⏱️ for movement fallback logic
+  final DocumentReference ref; // 🔗 to re-fetch/refresh hero doc
 
   HeroModel({
     required this.id,
@@ -41,6 +48,12 @@ class HeroModel {
     required this.hpRegen,
     required this.manaRegen,
     required this.foodDuration,
+    required this.arrivesAt,
+    required this.ref,
+    this.destinationX,
+    this.destinationY,
+    this.movementQueue,
+
   });
 
   factory HeroModel.fromFirestore(String id, Map<String, dynamic> data) {
@@ -66,11 +79,16 @@ class HeroModel {
       tileX: data['tileX'] ?? 0,
       tileY: data['tileY'] ?? 0,
       state: data['state'] ?? 'idle',
-
-      // 🧙 pull new values from Firestore
       hpRegen: data['hpRegen'] ?? 300,
       manaRegen: data['manaRegen'] ?? 60,
       foodDuration: data['foodDuration'] ?? 3600,
+      arrivesAt: data['arrivesAt']?.toDate(),
+      destinationX: data['destinationX'],
+      destinationY: data['destinationY'],
+      movementQueue: (data['movementQueue'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e))
+          .toList(),
+      ref: FirebaseFirestore.instance.collection('heroes').doc(id),
     );
   }
 }

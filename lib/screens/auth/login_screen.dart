@@ -92,6 +92,54 @@ class _LoginScreenState extends State<LoginScreen> {
             /// 🚀 Dev button
             TextButton(
               onPressed: () async {
+                final user = await AuthService().signIn("testacount37@roots.dev", "123456");
+                if (user != null) {
+                  debugPrint('Auto-logged in user: ${user.email}');
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                  );
+                } else {
+                  setState(() {
+                    errorMessage = "Auto-login failed 😬";
+                  });
+                }
+              },
+              child: const Text("🚀 Dev Auto-Login (testacount37@roots.dev)"),
+            ),
+            TextButton(
+              onPressed: () async {
+                final user = await AuthService().signIn("test@rootsaccount.com", "123456");
+                if (user != null) {
+                  debugPrint('Auto-logged in user: ${user.email}');
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                  );
+                } else {
+                  setState(() {
+                    errorMessage = "Auto-login failed 😬";
+                  });
+                }
+              },
+              child: const Text("🔁 Dev Auto-Login (test@rootsaccount.com)"),
+            ),
+            TextButton(
+              onPressed: () async {
+                final user = await AuthService().signIn("ivanna@roots.com", "123456");
+                if (user != null) {
+                  debugPrint('Auto-logged in user: ${user.email}');
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                  );
+                } else {
+                  setState(() {
+                    errorMessage = "Auto-login failed 😬";
+                  });
+                }
+              },
+              child: const Text("🧪 Dev Auto-Login (ivanna@roots.com)"),
+            ),
+            TextButton(
+              onPressed: () async {
                 final user = await AuthService().signIn("test@roots.dev", "123456");
                 if (user != null) {
                   debugPrint('Auto-logged in user: ${user.email}');
@@ -104,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   });
                 }
               },
-              child: const Text("🚀 Dev Auto-Login (test@roots.dev)"),
+              child: const Text("🧙 Dev Auto-Login (test@roots.dev)"),
             ),
           ],
         ),

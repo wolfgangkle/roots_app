@@ -50,6 +50,7 @@ export async function createHeroLogic(request: any) {
     race: race.trim(),
     level: 1,
     experience: 0,
+    groupId: null, // <-- NEW: future group support
     stats: {
       strength: 10,
       dexterity: 10,
@@ -61,6 +62,14 @@ export async function createHeroLogic(request: any) {
     hpMax: 100,
     mana: 50,
     manaMax: 50,
+    combat: {
+      combatLevel: 1,
+      attackMin: 5,
+      attackMax: 9,
+      defense: 1,
+      regenPerTick: 1,
+      attackSpeedMs: 150000, // 2 minutes 30 seconds
+    },
     tileX,
     tileY,
     state: 'idle',
@@ -71,6 +80,7 @@ export async function createHeroLogic(request: any) {
     manaRegen: 60,       // 1 mana every 60 seconds
     foodDuration: 3600,  // 1 hour before hunger drains
   };
+
 
 
   // Create the new hero document.
