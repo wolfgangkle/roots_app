@@ -1,13 +1,13 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
-Future<bool> startHeroMovement({
+Future<bool> startHeroMovements({
   required String heroId,
   required int destinationX,
   required int destinationY,
   required List<Map<String, int>> movementQueue,
 }) async {
   try {
-    final callable = FirebaseFunctions.instance.httpsCallable('startHeroMovement');
+    final callable = FirebaseFunctions.instance.httpsCallable('startHeroMovementsFunction');
     final result = await callable.call({
       'heroId': heroId,
       'destinationX': destinationX,

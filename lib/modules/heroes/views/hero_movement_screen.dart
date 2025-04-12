@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/functions/start_hero_movement.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
+
 
 class HeroMovementScreen extends StatefulWidget {
   final HeroModel hero;
@@ -13,7 +17,7 @@ class HeroMovementScreen extends StatefulWidget {
 
 class _HeroMovementScreenState extends State<HeroMovementScreen> {
   final List<Offset> _waypoints = [];
-  late Offset _cursorPos; // 🧭 Current center of the grid
+  late Offset _cursorPos;
 
   Offset get heroStart => Offset(widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble());
 
@@ -29,12 +33,12 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
   void _addWaypoint(int x, int y) {
     final pos = Offset(x.toDouble(), y.toDouble());
 
-    if (pos == _cursorPos) return; // Don't add current cursor tile
-    if (_waypoints.contains(pos)) return; // Avoid duplicates
+    if (pos == _cursorPos) return;
+    if (_waypoints.contains(pos)) return;
 
     setState(() {
       _waypoints.add(pos);
-      _cursorPos = pos; // 🔄 Shift grid center
+      _cursorPos = pos;
     });
   }
 
@@ -58,26 +62,39 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
       'y': wp.dy.toInt(),
     }).toList();
 
-    final success = await startHeroMovement(
-      heroId: widget.hero.id,
-      destinationX: first.dx.toInt(),
-      destinationY: first.dy.toInt(),
-      movementQueue: queue,
-    );
-
-    if (!mounted) return;
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🚶‍♂️ Hero is on the move!')),
+    try {
+      final success = await startHeroMovements(
+        heroId: widget.hero.id,
+        destinationX: first.dx.toInt(),
+        destinationY: first.dy.toInt(),
+        movementQueue: queue,
       );
-      Navigator.of(context).pop(); // Or use setCustomContent if you're on desktop
-    } else {
+
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🚶‍♂️ Hero is on the move!')),
+        );
+
+        final controller = Provider.of<MainContentController>(context, listen: false);
+        controller.setCustomContent(HeroDetailsScreen(hero: widget.hero));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Failed to start movement')),
+        );
+      }
+    } catch (e, stackTrace) {
+      print('🧨 Exception in startHeroMovements: $e');
+      print(stackTrace);
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Failed to start movement')),
+        SnackBar(content: Text('🔥 Error: $e')),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
