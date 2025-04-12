@@ -53,6 +53,7 @@ class ReportDetailScreen extends StatelessWidget {
               children: [
                 Text(title, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
+
                 if (type == 'combat') ...[
                   Text("Type: Combat"),
                   const SizedBox(height: 8),
@@ -70,7 +71,7 @@ class ReportDetailScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text("Gained XP: $xp"),
                   ]
-                ]
+                ],
               ],
             ),
           );

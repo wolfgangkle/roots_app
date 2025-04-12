@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/profile/models/user_profile_model.dart';
+import 'package:roots_app/screens/home/main_home_screen.dart';
+
 
 class OnboardSummaryScreen extends StatelessWidget {
   final String heroName;
   final String race;
   final String villageName;
   final String startZone;
-  final VoidCallback onConfirm;
+  final VoidCallback onConfirm; // ✅ Keep this
   final VoidCallback onEdit;
 
   const OnboardSummaryScreen({
@@ -26,6 +30,25 @@ class OnboardSummaryScreen extends StatelessWidget {
           Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
           Text(value),
         ],
+      ),
+    );
+  }
+
+  void _handleConfirm(BuildContext context) {
+    // 🧠 Step 1: Finalize onboarding (e.g. Firestore write)
+    onConfirm();
+
+    // 🧠 Step 2: Create and provide the profile model
+    final userProfile = UserProfileModel(heroName: heroName);
+
+    // 🧠 Step 3: Navigate to main screen with provider in scope
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider<UserProfileModel>.value(
+          value: userProfile,
+          child: const MainHomeScreen(), // replace if needed
+        ),
       ),
     );
   }
@@ -59,7 +82,7 @@ class OnboardSummaryScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: onConfirm,
+                    onPressed: () => _handleConfirm(context),
                     child: const Text("Confirm"),
                   ),
                 ),

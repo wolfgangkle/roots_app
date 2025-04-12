@@ -3,8 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:roots_app/modules/reports/views/report_detail_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/screens/helpers/layout_helper.dart';
 import 'package:provider/provider.dart';
-
 
 class ReportsListScreen extends StatelessWidget {
   const ReportsListScreen({super.key});
@@ -15,6 +15,9 @@ class ReportsListScreen extends StatelessWidget {
     if (user == null) {
       return const Center(child: Text("Not logged in."));
     }
+
+    final screenSize = LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+    final isMobile = screenSize == ScreenSizeCategory.small;
 
     final reportsRef = FirebaseFirestore.instance
         .collection('heroes')
@@ -32,7 +35,6 @@ class ReportsListScreen extends StatelessWidget {
           return const Center(child: Text("No heroes found."));
         }
 
-        // Assume only one hero for now (main mage)
         final heroId = heroDocs.first.id;
 
         final reportStream = FirebaseFirestore.instance
@@ -74,10 +76,20 @@ class ReportsListScreen extends StatelessWidget {
                         : const Text('No date'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      final controller = Provider.of<MainContentController>(context, listen: false);
-                      controller.setCustomContent(
-                        ReportDetailScreen(heroId: heroId, reportId: id),
+                      final detailScreen = ReportDetailScreen(
+                        heroId: heroId,
+                        reportId: id,
                       );
+
+                      if (isMobile) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => detailScreen),
+                        );
+                      } else {
+                        final controller = Provider.of<MainContentController>(context, listen: false);
+                        controller.setCustomContent(detailScreen);
+                      }
                     },
                   ),
                 );
@@ -92,7 +104,7 @@ class ReportsListScreen extends StatelessWidget {
   IconData _iconForType(String type) {
     switch (type) {
       case 'combat':
-        return Icons.sports_martial_arts; // or Icons.flash_on, Icons.security
+        return Icons.sports_martial_arts;
       case 'combat_xp':
         return Icons.star;
       case 'peaceful':

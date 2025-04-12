@@ -6,7 +6,6 @@ import 'package:roots_app/modules/heroes/views/hero_panel.dart';
 import 'package:roots_app/screens/home/panels/navigation_drawer.dart';
 import 'package:roots_app/modules/village/views/village_panel.dart';
 import 'package:roots_app/modules/village/views/village_center_screen.dart';
-import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/profile/models/user_profile_model.dart';
 
@@ -18,15 +17,42 @@ class MobileTabScaffold extends StatefulWidget {
 }
 
 class _MobileTabScaffoldState extends State<MobileTabScaffold>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-  late final PageController _pageController;
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+  late PageController _pageController;
+
+  Widget? _dynamicTabContent;
+  String? _dynamicTabTitle;
+
+  int get _tabCount => _dynamicTabContent != null ? 4 : 3;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
+    _tabController = TabController(length: _tabCount, vsync: this, initialIndex: 0);
     _pageController = PageController(initialPage: 0);
+  }
+
+  void _recreateControllers({int initialIndex = 0}) {
+    _tabController.dispose();
+    _tabController = TabController(length: _tabCount, vsync: this, initialIndex: initialIndex);
+    _pageController.jumpToPage(initialIndex);
+  }
+
+  void setDynamicTab({required String title, required Widget content}) {
+    setState(() {
+      _dynamicTabTitle = title;
+      _dynamicTabContent = content;
+      _recreateControllers(initialIndex: 0);
+    });
+  }
+
+  void clearDynamicTab() {
+    setState(() {
+      _dynamicTabTitle = null;
+      _dynamicTabContent = null;
+      _recreateControllers(initialIndex: 0);
+    });
   }
 
   @override
@@ -52,20 +78,22 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
               curve: Curves.easeInOut,
             );
           },
-          tabs: const [
-            Tab(text: '🧙 Heroes'),
-            Tab(text: '🏰 Villages'),
-            Tab(text: '💬 Chat'),
+          tabs: [
+            if (_dynamicTabContent != null) Tab(text: _dynamicTabTitle),
+            const Tab(text: '🧙 Heroes'),
+            const Tab(text: '🏰 Villages'),
+            const Tab(text: '💬 Chat'),
           ],
         ),
       ),
-      drawer: const NavigationDrawerPanel(),
+      drawer: NavigationDrawerPanel(onSelectDynamicTab: setDynamicTab),
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {
           _tabController.animateTo(index);
         },
         children: [
+          if (_dynamicTabContent != null) _dynamicTabContent!,
           HeroPanel(controller: contentController),
           VillagePanel(
             onVillageTap: (village) {
@@ -76,9 +104,11 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
               );
             },
           ),
-          ChatPanel(currentUserName: Provider.of<UserProfileModel>(context, listen: false).heroName),
+          Consumer<UserProfileModel>(
+            builder: (context, user, _) =>
+                ChatPanel(currentUserName: user.heroName),
+          ),
         ],
-
       ),
     );
   }
