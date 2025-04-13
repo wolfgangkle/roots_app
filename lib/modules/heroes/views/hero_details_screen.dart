@@ -7,6 +7,7 @@ import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:async';
 import 'package:roots_app/modules/combat/views/combat_log_screen.dart';
+import 'package:roots_app/screens/helpers/responsive_push.dart';
 
 
 
@@ -161,8 +162,12 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
                 icon: const Icon(Icons.directions_walk),
                 label: const Text('Move Hero'),
                 onPressed: () {
-                  final controller = Provider.of<MainContentController>(context, listen: false);
-                  controller.setCustomContent(HeroMovementScreen(hero: hero));
+                  if (isMobile) {
+                    pushResponsiveScreen(context, HeroMovementScreen(hero: hero));
+                  } else {
+                    final controller = Provider.of<MainContentController>(context, listen: false);
+                    controller.setCustomContent(HeroMovementScreen(hero: hero));
+                  }
                 },
               ),
             ] else ...[

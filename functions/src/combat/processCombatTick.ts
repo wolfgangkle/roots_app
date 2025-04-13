@@ -72,12 +72,15 @@ export const processCombatTick = onRequest(async (req, res) => {
     }
 
     let totalEnemyAttack = 0;
+    const enemyAttacks: { index: number, damage: number }[] = [];
+
     enemies.forEach((enemy, index) => {
       if (enemy.hp <= 0) return;
       if (now >= (enemy.nextAttackAt ?? 0)) {
         const attack = Math.floor(minEnemyDamage + Math.random() * (maxEnemyDamage - minEnemyDamage + 1));
         totalEnemyAttack += attack;
         enemy.nextAttackAt = now + (enemy.attackSpeedMs ?? 30000);
+        enemyAttacks.push({ index, damage: attack });
       }
     });
 
@@ -98,6 +101,7 @@ export const processCombatTick = onRequest(async (req, res) => {
       heroAttack,
       targetEnemyIndex: targetIndex,
       enemyAttack: totalEnemyAttack,
+      enemyAttacks,
       heroHpAfter: newHeroHp,
       enemiesHpAfter: enemies.map(e => e.hp),
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -105,10 +109,26 @@ export const processCombatTick = onRequest(async (req, res) => {
 
     console.log(`🌀 Tick ${tick} | Hero → Enemy[${targetIndex}] for ${heroAttack} | Enemies → Hero for ${totalEnemyAttack}`);
 
+    const finalHeroState = newHeroHp <= 0 ? 'dead' : (newState === 'ended' ? 'idle' : 'in_combat');
+
     await heroRef.update({
       hp: newHeroHp,
-      state: newState === 'ended' ? 'idle' : 'in_combat',
+      state: finalHeroState,
     });
+
+    if (finalHeroState === 'dead') {
+      console.log(`☠️ Hero ${heroId} died during combat ${combatId}`);
+
+      // Clear movement queue
+      await heroRef.update({
+        movementQueue: [],
+        destinationX: admin.firestore.FieldValue.delete(),
+        destinationY: admin.firestore.FieldValue.delete(),
+        nextMoveAt: admin.firestore.FieldValue.delete(),
+      });
+
+      console.log(`🚫 Cleared movement queue for dead hero ${heroId}`);
+    }
 
     await combatRef.update({
       tick,
@@ -125,13 +145,10 @@ export const processCombatTick = onRequest(async (req, res) => {
         experience: admin.firestore.FieldValue.increment(gainedXp),
       });
 
-      const xpLogRef = heroRef.collection('eventReports').doc();
-      await xpLogRef.set({
-        type: 'combat_xp',
-        eventId: combat.eventId ?? null,
+      await combatRef.update({
         xp: gainedXp,
+        reward: ['gold'], // or whatever reward was defined in encounterEvents
         message: `You defeated ${combat.enemyCount} ${combat.enemyName}(s) and gained ${gainedXp} XP.`,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       console.log(`🎉 Hero ${heroId} won and gained ${gainedXp} XP`);
@@ -146,10 +163,43 @@ export const processCombatTick = onRequest(async (req, res) => {
         .get();
 
       if (!reportSnap.empty) {
-        await reportSnap.docs[0].ref.update({
+        const reportRef = reportSnap.docs[0].ref;
+
+        await reportRef.update({
           state: 'completed',
+          hiddenForUserIds: admin.firestore.FieldValue.arrayUnion(),
         });
+
         console.log(`📘 Marked report as completed for combat ${combatId}`);
+      }
+
+      // 🧭 Resume movement if hero survived and has waypoints
+      if (
+        finalHeroState === 'idle' &&
+        Array.isArray(hero.movementQueue) &&
+        hero.movementQueue.length > 0
+      ) {
+        const nextStep = hero.movementQueue[0];
+        const remainingQueue = hero.movementQueue.slice(1);
+
+        const movementSpeed = 20 * 60 * 1000; // 20 minutes
+        const nextArrivesAt = new Date(Date.now() + movementSpeed);
+
+        await heroRef.update({
+          state: 'moving',
+          destinationX: nextStep.x,
+          destinationY: nextStep.y,
+          arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
+          movementQueue: remainingQueue,
+        });
+
+        const { scheduleHeroArrivalTask } = await import('../heroes/scheduleHeroArrivalTask.js');
+        await scheduleHeroArrivalTask({
+          heroId,
+          delaySeconds: Math.floor(movementSpeed / 1000),
+        });
+
+        console.log(`🔁 Hero ${heroId} survived combat and continues to (${nextStep.x}, ${nextStep.y})`);
       }
     }
 

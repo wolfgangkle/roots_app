@@ -1,8 +1,8 @@
 import * as admin from 'firebase-admin';
 import { onRequest, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 
-const COMBAT_CHANCE = 0.5;
-const PEACEFUL_CHANCE = 0.3;
+const COMBAT_CHANCE = 0.8;
+const PEACEFUL_CHANCE = 0.1;
 const MAX_RETRY_COUNT = 5;
 
 export async function processArrivalCore(heroId: string): Promise<string> {
@@ -133,7 +133,6 @@ export async function processArrivalCore(heroId: string): Promise<string> {
             delaySeconds: 3,
           });
 
-          // ✅ Create combat report
           const reportRef = db.collection('heroes').doc(heroId).collection('eventReports').doc();
           await reportRef.set({
             type: 'combat',
@@ -183,29 +182,39 @@ export async function processArrivalCore(heroId: string): Promise<string> {
 
   await heroRef.update(updates);
 
-  if (hero.movementQueue && Array.isArray(hero.movementQueue) && hero.movementQueue.length > 0) {
-    const nextStep = hero.movementQueue[0];
-    const remainingQueue = hero.movementQueue.slice(1);
-
-    const movementSpeed = 20 * 60 * 1000;
-    const nextArrivesAt = new Date(Date.now() + movementSpeed);
-
-    await heroRef.update({
-      state: 'moving',
-      destinationX: nextStep.x,
-      destinationY: nextStep.y,
-      arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
-      movementQueue: remainingQueue,
-    });
-
-    const { scheduleHeroArrivalTask } = await import('./scheduleHeroArrivalTask.js');
-    await scheduleHeroArrivalTask({
-      heroId,
-      delaySeconds: Math.floor(movementSpeed / 1000),
-    });
-
-    console.log(`🔁 Continued movement to (${nextStep.x}, ${nextStep.y})`);
+  // ✅ Don't move a dead hero or one who shouldn't travel
+  if (
+    hero.hp <= 0 ||
+    hero.state === 'dead' ||
+    !hero.movementQueue ||
+    !Array.isArray(hero.movementQueue) ||
+    hero.movementQueue.length === 0
+  ) {
+    console.warn(`🛑 Not scheduling movement for hero ${heroId} — state: ${hero.state}, hp: ${hero.hp}, queue: ${hero.movementQueue?.length ?? 0}`);
+    return 'Hero not eligible for further movement.';
   }
+
+  const nextStep = hero.movementQueue[0];
+  const remainingQueue = hero.movementQueue.slice(1);
+
+  const movementSpeed = 20 * 60 * 1000;
+  const nextArrivesAt = new Date(Date.now() + movementSpeed);
+
+  await heroRef.update({
+    state: 'moving',
+    destinationX: nextStep.x,
+    destinationY: nextStep.y,
+    arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
+    movementQueue: remainingQueue,
+  });
+
+  const { scheduleHeroArrivalTask } = await import('./scheduleHeroArrivalTask.js');
+  await scheduleHeroArrivalTask({
+    heroId,
+    delaySeconds: Math.floor(movementSpeed / 1000),
+  });
+
+  console.log(`🔁 Continued movement to (${nextStep.x}, ${nextStep.y})`);
 
   return 'Hero arrival processed.';
 }

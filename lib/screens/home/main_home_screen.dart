@@ -45,7 +45,7 @@ class MainHomeScreen extends StatelessWidget {
               ),
             ],
           ),
-          floatingActionButton: const ChatOverlay(),
+          floatingActionButton: const ChatOverlay(usePositioned: false), // 👈 FIXED
         );
 
       case ScreenSizeCategory.large:
@@ -58,7 +58,6 @@ class MainHomeScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     const NavigationSidebarPanel(),
-
                     const VerticalDivider(width: 1),
                     SizedBox(width: 400, child: HeroPanel(controller: contentController)),
                     const VerticalDivider(width: 1),
@@ -74,7 +73,7 @@ class MainHomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const ChatOverlay(),
+              const ChatOverlay(usePositioned: true), // 👈 FIXED
             ],
           ),
         );

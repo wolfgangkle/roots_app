@@ -51,46 +51,64 @@ class ReportsListScreen extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final reports = snapshot.data!.docs;
+            final userId = user.uid;
+            final allDocs = snapshot.data!.docs;
 
-            if (reports.isEmpty) {
-              return const Center(child: Text("No reports yet."));
+            final visibleReports = allDocs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final hiddenList = List<String>.from(data['hiddenForUserIds'] ?? []);
+              final type = data['type'] ?? 'unknown';
+              if (type == 'combat_xp') return false;
+              return !hiddenList.contains(userId);
+            }).toList();
+
+            if (visibleReports.isEmpty) {
+              return const Center(child: Text("No visible reports."));
             }
 
             return ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: reports.length,
+              itemCount: visibleReports.length,
               itemBuilder: (context, index) {
-                final data = reports[index].data() as Map<String, dynamic>;
-                final id = reports[index].id;
+                final doc = visibleReports[index];
+                final data = doc.data() as Map<String, dynamic>;
+                final id = doc.id;
                 final type = data['type'] ?? 'unknown';
                 final title = data['title'] ?? 'Untitled Event';
                 final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+                final formattedTime = createdAt != null ? _formatDate(createdAt) : 'No date';
+                final isCombat = type == 'combat';
 
                 return Card(
-                  child: ListTile(
+                  child: isCombat && data['combatId'] != null
+                      ? FutureBuilder<DocumentSnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('combats')
+                        .doc(data['combatId'])
+                        .get(),
+                    builder: (context, combatSnapshot) {
+                      final combatData = combatSnapshot.data?.data() as Map<String, dynamic>?;
+                      final combatState = combatData?['state'] ?? 'unknown';
+                      final isOngoing = combatState == 'ongoing';
+                      final subtitle = isOngoing
+                          ? "$formattedTime • Ongoing"
+                          : "$formattedTime • Completed";
+
+                      return ListTile(
+                        leading: Icon(_iconForType(type)),
+                        title: Text(title),
+                        subtitle: Text(subtitle),
+                        trailing: _reportMenu(userId, doc),
+                        onTap: () => _openDetail(context, isMobile, heroId, id),
+                      );
+                    },
+                  )
+                      : ListTile(
                     leading: Icon(_iconForType(type)),
                     title: Text(title),
-                    subtitle: createdAt != null
-                        ? Text(_formatDate(createdAt))
-                        : const Text('No date'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      final detailScreen = ReportDetailScreen(
-                        heroId: heroId,
-                        reportId: id,
-                      );
-
-                      if (isMobile) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => detailScreen),
-                        );
-                      } else {
-                        final controller = Provider.of<MainContentController>(context, listen: false);
-                        controller.setCustomContent(detailScreen);
-                      }
-                    },
+                    subtitle: Text(formattedTime),
+                    trailing: _reportMenu(userId, doc),
+                    onTap: () => _openDetail(context, isMobile, heroId, id),
                   ),
                 );
               },
@@ -99,6 +117,41 @@ class ReportsListScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _reportMenu(String userId, DocumentSnapshot doc) {
+    return PopupMenuButton<String>(
+      onSelected: (value) async {
+        if (value == 'hide') {
+          await doc.reference.update({
+            'hiddenForUserIds': FieldValue.arrayUnion([userId])
+          });
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: 'hide',
+          child: Text('Hide from my view'),
+        ),
+      ],
+    );
+  }
+
+  void _openDetail(BuildContext context, bool isMobile, String heroId, String reportId) {
+    final detailScreen = ReportDetailScreen(
+      heroId: heroId,
+      reportId: reportId,
+    );
+
+    if (isMobile) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => detailScreen),
+      );
+    } else {
+      final controller = Provider.of<MainContentController>(context, listen: false);
+      controller.setCustomContent(detailScreen);
+    }
   }
 
   IconData _iconForType(String type) {

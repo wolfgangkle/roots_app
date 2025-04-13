@@ -31,14 +31,28 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Roots',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.light(),
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFFDFCF9), // soft parchment background
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        cardTheme: CardTheme(
+          color: Colors.white,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        textTheme: ThemeData.light().textTheme.apply(
+          fontFamily: 'Inter', // swap if you use another font
+        ),
+        fontFamily: 'Inter',
+      ),
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.light,
       routes: {
         '/map_editor': (_) => const MapEditorScreen(),
-        '/village': (_) => const MainHomeScreen(), // ✅ Already has access to the controller now
+        '/village': (_) => const MainHomeScreen(),
       },
-      // Start with login/profile check
       home: const CheckUserProfile(),
     );
   }

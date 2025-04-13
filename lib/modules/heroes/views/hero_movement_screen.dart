@@ -4,6 +4,7 @@ import 'package:roots_app/modules/heroes/functions/start_hero_movement.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
+import 'package:roots_app/screens/helpers/responsive_push.dart'; // ✅ new import
 
 class HeroMovementScreen extends StatefulWidget {
   final HeroModel hero;
@@ -18,7 +19,7 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
   final List<Offset> _waypoints = [];
   late Offset _cursorPos;
 
-  bool _isSending = false; // ✅ NEW
+  bool _isSending = false;
 
   Offset get heroStart => Offset(widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble());
 
@@ -33,9 +34,7 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
 
   void _addWaypoint(int x, int y) {
     final pos = Offset(x.toDouble(), y.toDouble());
-
-    if (pos == _cursorPos) return;
-    if (_waypoints.contains(pos)) return;
+    if (pos == _cursorPos || _waypoints.contains(pos)) return;
 
     setState(() {
       _waypoints.add(pos);
@@ -80,13 +79,22 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
           const SnackBar(content: Text('🚶‍♂️ Hero is on the move!')),
         );
 
-        final controller = Provider.of<MainContentController>(context, listen: false);
         final updatedDoc = await widget.hero.ref.get();
         final updatedHero = HeroModel.fromFirestore(
           updatedDoc.id,
           updatedDoc.data()! as Map<String, dynamic>,
         );
-        controller.setCustomContent(HeroDetailsScreen(hero: updatedHero));
+
+        if (isMobile(context)) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => HeroDetailsScreen(hero: updatedHero),
+            ),
+          );
+        } else {
+          final controller = Provider.of<MainContentController>(context, listen: false);
+          controller.setCustomContent(HeroDetailsScreen(hero: updatedHero));
+        }
       } else {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,9 +117,13 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
   Widget build(BuildContext context) {
     final tileX = _cursorPos.dx.toInt();
     final tileY = _cursorPos.dy.toInt();
+    final isMobileLayout = isMobile(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Select Waypoints')),
+      appBar: AppBar(
+        title: const Text('Select Waypoints'),
+        automaticallyImplyLeading: isMobileLayout, // ✅ Back arrow only on mobile
+      ),
       body: Column(
         children: [
           const SizedBox(height: 16),

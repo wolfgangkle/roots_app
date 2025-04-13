@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/combat/views/combat_log_screen.dart';
+import 'package:roots_app/screens/helpers/layout_helper.dart';
 
 class ReportDetailScreen extends StatelessWidget {
   final String heroId;
@@ -14,7 +15,8 @@ class ReportDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 1024;
+    final screenSize = LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+    final isMobile = screenSize == ScreenSizeCategory.small;
 
     final reportRef = FirebaseFirestore.instance
         .collection('heroes')
@@ -24,8 +26,18 @@ class ReportDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: isMobile,
-        title: const Text("Report Details"),
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            if (isMobile && Navigator.canPop(context))
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            const SizedBox(width: 8),
+            const Text("Report Details"),
+          ],
+        ),
       ),
       body: FutureBuilder<DocumentSnapshot>(
         future: reportRef.get(),
@@ -44,7 +56,14 @@ class ReportDetailScreen extends StatelessWidget {
           final message = data['message'] ?? 'No message provided.';
           final xp = data['xp'];
           final combatId = data['combatId'];
-          final state = data['state'] ?? 'completed';
+
+          if (type == 'combat') {
+            if (combatId != null) {
+              return CombatLogScreen(combatId: combatId);
+            } else {
+              return const Center(child: Text("⚠️ No combat ID found in report."));
+            }
+          }
 
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -53,25 +72,11 @@ class ReportDetailScreen extends StatelessWidget {
               children: [
                 Text(title, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
-
-                if (type == 'combat') ...[
-                  Text("Type: Combat"),
-                  const SizedBox(height: 8),
-                  Text("Status: ${state == 'ongoing' ? 'Ongoing' : 'Completed'}"),
+                Text(message),
+                if (xp != null) ...[
                   const SizedBox(height: 12),
-                  if (combatId != null)
-                    Expanded(
-                      child: CombatLogScreen(combatId: combatId),
-                    )
-                  else
-                    const Text("⚠️ No combat ID found in report."),
-                ] else ...[
-                  Text(message),
-                  if (xp != null) ...[
-                    const SizedBox(height: 12),
-                    Text("Gained XP: $xp"),
-                  ]
-                ],
+                  Text("⭐ Gained XP: $xp"),
+                ]
               ],
             ),
           );
