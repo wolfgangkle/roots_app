@@ -4,7 +4,7 @@ import 'package:roots_app/modules/heroes/functions/start_hero_movement.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
-import 'package:roots_app/screens/helpers/responsive_push.dart'; // ✅ new import
+import 'package:roots_app/screens/helpers/responsive_push.dart';
 
 class HeroMovementScreen extends StatefulWidget {
   final HeroModel hero;
@@ -18,7 +18,6 @@ class HeroMovementScreen extends StatefulWidget {
 class _HeroMovementScreenState extends State<HeroMovementScreen> {
   final List<Offset> _waypoints = [];
   late Offset _cursorPos;
-
   bool _isSending = false;
 
   Offset get heroStart => Offset(widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble());
@@ -27,6 +26,15 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
   void initState() {
     super.initState();
     _cursorPos = heroStart;
+
+    // Optional: Pre-fill existing movement if editing
+    if (widget.hero.destinationX != null && widget.hero.destinationY != null) {
+      _waypoints.add(Offset(widget.hero.destinationX!.toDouble(), widget.hero.destinationY!.toDouble()));
+    }
+    if (widget.hero.movementQueue != null) {
+      _waypoints.addAll(widget.hero.movementQueue!.map((wp) =>
+          Offset((wp['x'] as num).toDouble(), (wp['y'] as num).toDouble())));
+    }
   }
 
   bool isHeroTile(int x, int y) => x == widget.hero.tileX && y == widget.hero.tileY;
@@ -51,6 +59,13 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
         _waypoints.removeLast();
       });
     }
+  }
+
+  void _clearAllWaypoints() {
+    setState(() {
+      _waypoints.clear();
+      _cursorPos = heroStart;
+    });
   }
 
   void _confirmMovement() async {
@@ -122,7 +137,7 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Waypoints'),
-        automaticallyImplyLeading: isMobileLayout, // ✅ Back arrow only on mobile
+        automaticallyImplyLeading: isMobileLayout,
       ),
       body: Column(
         children: [
@@ -191,13 +206,19 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
                 ElevatedButton.icon(
                   onPressed: (_waypoints.isEmpty || _isSending) ? null : _confirmMovement,
                   icon: const Icon(Icons.check),
-                  label: const Text("Start Journey"),
+                  label: Text(widget.hero.state == 'moving' ? "Update Journey" : "Start Journey"),
                 ),
                 const SizedBox(width: 16),
                 TextButton.icon(
                   onPressed: _waypoints.isEmpty ? null : _removeLastWaypoint,
                   icon: const Icon(Icons.undo),
                   label: const Text("Undo"),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: _waypoints.isEmpty ? null : _clearAllWaypoints,
+                  icon: const Icon(Icons.clear_all),
+                  label: const Text("Clear All"),
                 ),
               ],
             ),

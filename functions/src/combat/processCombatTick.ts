@@ -53,7 +53,7 @@ export const processCombatTick = onRequest(async (req, res) => {
           // Choose a random attacker from the alive heroes.
           const attackerIndex = Math.floor(Math.random() * aliveHeroes.length);
           const attacker = aliveHeroes[attackerIndex];
-          const attackerData = attacker.data!; // non-null asserted
+          const attackerData = attacker.data; // already ensured non-null
 
           // Use attack stats from the attacker (with fallbacks).
           const heroMin = attackerData.combat?.attackMin ?? 5;
@@ -147,26 +147,33 @@ export const processCombatTick = onRequest(async (req, res) => {
         let finalHeroState: 'dead' | 'moving' | 'idle' | 'in_combat';
         if (hero.data.hp <= 0) {
           finalHeroState = 'dead';
+          // For dead heroes, clear movement fields.
           await hero.ref.update({
             hp: hero.data.hp,
             state: finalHeroState,
             movementQueue: [],
             destinationX: admin.firestore.FieldValue.delete(),
             destinationY: admin.firestore.FieldValue.delete(),
+            arrivesAt: admin.firestore.FieldValue.delete(),
             nextMoveAt: admin.firestore.FieldValue.delete(),
           });
           console.log(`☠️ Hero ${hero.id} died in PvP combat ${combatId}`);
         } else if (newState === 'ended') {
+          // If combat ended, decide based on movementQueue.
           finalHeroState = (hero.data.movementQueue && hero.data.movementQueue.length > 0) ? 'moving' : 'idle';
           await hero.ref.update({
             hp: hero.data.hp,
             state: finalHeroState,
           });
         } else {
+          // While combat is ongoing, force state to 'in_combat' and clear movement fields.
           finalHeroState = 'in_combat';
           await hero.ref.update({
             hp: hero.data.hp,
             state: finalHeroState,
+            destinationX: admin.firestore.FieldValue.delete(),
+            destinationY: admin.firestore.FieldValue.delete(),
+            arrivesAt: admin.firestore.FieldValue.delete(),
           });
         }
       }
@@ -325,10 +332,22 @@ export const processCombatTick = onRequest(async (req, res) => {
     });
     console.log(`🌀 Tick ${tick} | Hero → Enemy[${targetIndex}] for ${heroAttack} | Enemies → Hero for ${totalEnemyAttack}`);
 
-    await heroRef.update({
-      hp: newHeroHp,
-      state: finalHeroState,
-    });
+    // In non-PvP, update hero with final state.
+    if (finalHeroState === 'in_combat') {
+      // Clear movement fields while in combat.
+      await heroRef.update({
+        hp: newHeroHp,
+        state: finalHeroState,
+        destinationX: admin.firestore.FieldValue.delete(),
+        destinationY: admin.firestore.FieldValue.delete(),
+        arrivesAt: admin.firestore.FieldValue.delete(),
+      });
+    } else {
+      await heroRef.update({
+        hp: newHeroHp,
+        state: finalHeroState,
+      });
+    }
 
     if (finalHeroState === 'dead') {
       console.log(`☠️ Hero ${heroId} died during combat ${combatId}`);
@@ -377,7 +396,7 @@ export const processCombatTick = onRequest(async (req, res) => {
         });
         console.log(`📘 Marked report as completed for combat ${combatId}`);
       }
-      // Resume movement if hero is set to 'moving'
+      // Resume movement only if combat ended and hero state was set to 'moving'
       if (
         finalHeroState === 'moving' &&
         Array.isArray(hero.movementQueue) &&

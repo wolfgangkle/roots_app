@@ -71,7 +71,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
           final createdAt = (combatData['createdAt'] as Timestamp?)?.toDate();
           final endedAt = (combatData['endedAt'] as Timestamp?)?.toDate();
           final rewards = List<String>.from(combatData['reward'] ?? []);
-
+          final enemyName = combatData['enemyName'] ?? 'Enemy';
 
           return FutureBuilder<DocumentSnapshot>(
             future: eventId != null
@@ -154,7 +154,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                               children: [
                                 if (message != null) Text(message),
                                 if (xp != null) Text("⭐ Gained XP: $xp"),
-                                if (rewards != null && rewards.isNotEmpty)
+                                if (rewards.isNotEmpty)
                                   Text("💰 Loot gained: ${rewards.join(', ')}"),
                                 if (finalHp != null) Text("❤️ Final HP: $finalHp"),
                               ],
@@ -162,7 +162,6 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                           ),
                         ),
                       ],
-
 
                       Container(
                         width: double.infinity,
@@ -185,7 +184,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                                 else
                                   ...List.generate(latestEnemiesHp.length, (i) {
                                     final hp = latestEnemiesHp[i];
-                                    return Text("Bandit #$i (${hp} HP remaining)");
+                                    return Text("$enemyName #$i (${hp} HP remaining)");
                                   }),
                               ],
                             ),
@@ -250,7 +249,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                                               ),
                                               const TextSpan(text: " hits "),
                                               TextSpan(
-                                                text: "Bandit #$targetEnemy",
+                                                text: "$enemyName #$targetEnemy",
                                                 style: const TextStyle(fontWeight: FontWeight.bold),
                                               ),
                                               TextSpan(
@@ -269,7 +268,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                                               children: [
                                                 const TextSpan(text: "👹 "),
                                                 TextSpan(
-                                                  text: "Bandit #${attack['index']}",
+                                                  text: "$enemyName #${attack['index']}",
                                                   style: const TextStyle(fontWeight: FontWeight.bold),
                                                 ),
                                                 const TextSpan(text: " strikes "),
