@@ -100,8 +100,12 @@ export async function processArrivalCore(heroId: string): Promise<string> {
           const enemyCount = Math.max(1, Math.floor(heroLevel / enemyLevel));
 
           const enemies = Array.from({ length: enemyCount }, () => ({
-            hp: enemy.hp,
+            hp: enemy.hp ?? 10,
+            minDamage: enemy.minDamage ?? 1,
+            maxDamage: enemy.maxDamage ?? 3,
+            attackSpeedMs: enemy.attackSpeedMs ?? 30000,
             nextAttackAt: now + (enemy.attackSpeedMs ?? 30000),
+            combatLevel: enemy.combatLevel,
           }));
 
           const nextHeroAttackAt = now + (hero.combat?.attackSpeedMs ?? 150000);
@@ -182,7 +186,6 @@ export async function processArrivalCore(heroId: string): Promise<string> {
 
   await heroRef.update(updates);
 
-  // ✅ Don't move a dead hero or one who shouldn't travel
   if (
     hero.hp <= 0 ||
     hero.state === 'dead' ||

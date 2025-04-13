@@ -31,22 +31,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Roots',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFFDFCF9), // soft parchment background
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        cardTheme: CardTheme(
-          color: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        textTheme: ThemeData.light().textTheme.apply(
-          fontFamily: 'Inter', // swap if you use another font
-        ),
-        fontFamily: 'Inter',
-      ),
+      theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.light,
       routes: {

@@ -13,7 +13,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       'stone': 20,
     },
     costMultiplierFormula: (level) => level,
-    buildTimeFormula: getUpgradeDuration, // ✅ unified
+    buildTimeFormula: getUpgradeDuration,
   ),
 
   'quarry': BuildingDefinition(
@@ -31,7 +31,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       requiredLevel: 1,
     ),
     costMultiplierFormula: (level) => level,
-    buildTimeFormula: getUpgradeDuration, // ✅ unified
+    buildTimeFormula: getUpgradeDuration,
   ),
 
   'farm': BuildingDefinition(
@@ -49,7 +49,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       requiredLevel: 2,
     ),
     costMultiplierFormula: (level) => level,
-    buildTimeFormula: getUpgradeDuration, // ✅ unified
+    buildTimeFormula: getUpgradeDuration,
   ),
 
   'mine': BuildingDefinition(
@@ -67,7 +67,7 @@ final buildingDefinitions = <String, BuildingDefinition>{
       requiredLevel: 2,
     ),
     costMultiplierFormula: (level) => level,
-    buildTimeFormula: getUpgradeDuration, // ✅ unified
+    buildTimeFormula: getUpgradeDuration,
   ),
 
   'wood_storage': BuildingDefinition(
@@ -85,6 +85,6 @@ final buildingDefinitions = <String, BuildingDefinition>{
       requiredLevel: 3,
     ),
     costMultiplierFormula: (level) => level + 1,
-    buildTimeFormula: getUpgradeDuration, // ✅ unified
+    buildTimeFormula: getUpgradeDuration,
   ),
 };
