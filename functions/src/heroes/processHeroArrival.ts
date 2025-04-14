@@ -13,7 +13,7 @@ const MAX_RETRY_COUNT = 5;
  * 2. Check whether the destination tile (hero.destinationX/destinationY) is already occupied.
  *    - If so, check if there is an ongoing combat there.
  *       a. If an ongoing combat is found, update the hero's position to the destination and add this hero to that combat
- *          (joining a hybrid PvP/PvE fight).
+ *          (joining a hybrid PvP/PvE fight). Additionally, create a combat report for the joining hero.
  *       b. Otherwise, update the hero's position and trigger a new PvP combat between the arriving hero and one of the heroes already on the tile.
  *    In either case the function returns immediately so that movement is paused.
  * 3. If no conflict is detected at the destination, teleport the hero from his origin tile to the destination.
@@ -106,14 +106,25 @@ export async function processArrivalCore(heroId: string): Promise<string> {
       });
       await heroRef.update({ state: 'in_combat' });
       console.log(`🌀 Hero ${heroId} joined existing combat on tile (${destinationX}, ${destinationY}).`);
+      // Create a combat report for the joining hero.
+      const reportRef = db.collection('heroes').doc(heroId).collection('eventReports').doc();
+      await reportRef.set({
+        type: 'combat',
+        title: 'Hero vs Hero Battle',
+        state: 'ongoing',
+        combatId: combatDoc.id,
+        heroId: heroId,
+        // If the combat is hybrid (has an eventId), add that as well.
+        ...(combatDoc.data()?.eventId ? { eventId: combatDoc.data()?.eventId } : {}),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
       return 'Joined existing combat; movement paused at destination.';
     } else {
       // No ongoing combat exists; trigger a new PvP combat.
-      // Update the hero's position to the destination before entering combat.
       await heroRef.update({ tileX: destinationX, tileY: destinationY });
       await heroRef.update({ state: 'in_combat' });
       console.log(`🌀 PvP condition triggered for hero ${heroId} upon arriving at destination (${destinationX}, ${destinationY}).`);
-      // For simplicity, take the first conflicting hero as the opponent.
+
       const existingHeroId = conflictingHeroes[0].id;
       const newCombatDoc = {
         groupId: null,
@@ -130,8 +141,26 @@ export async function processArrivalCore(heroId: string): Promise<string> {
         pvp: true,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
-      await db.collection('combats').add(newCombatDoc);
+
+      const combatSnapshot = await db.collection('combats').add(newCombatDoc);
       console.log(`⚔️ New PvP combat created between hero ${existingHeroId} and hero ${heroId} at tile (${destinationX}, ${destinationY}).`);
+
+      // Create combat reports for both heroes.
+      for (const reportHeroId of [existingHeroId, heroId]) {
+        const reportRef = db.collection('heroes').doc(reportHeroId).collection('eventReports').doc();
+        await reportRef.set({
+          type: 'combat',
+          title: 'Hero vs Hero Battle',
+          state: 'ongoing',
+          combatId: combatSnapshot.id,
+          heroId: reportHeroId,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Schedule the first tick for the newly created PvP combat.
+      const { scheduleCombatTick } = await import('../combat/scheduleCombatTick.js');
+      await scheduleCombatTick({ combatId: combatSnapshot.id, delaySeconds: 3 });
       return 'PvP combat triggered; movement paused at destination.';
     }
   }
@@ -157,25 +186,16 @@ export async function processArrivalCore(heroId: string): Promise<string> {
 
   if (roll < COMBAT_CHANCE) {
     // ► PvE Combat event triggered.
-    //
-    // IMPORTANT: Instead of storing the current arrival tile (which is destinationX/destinationY)
-    // we now check if there is something in the movementQueue.
-    // If there is, we reserve the next queued waypoint as the reservedDestination
-    // and remove it from the movementQueue so that after combat the hero moves to that new tile.
     let reserved: { x: number; y: number } | undefined;
     let updatedQueue = movementQueue;
     if (movementQueue.length > 0) {
-      // Use the first queued waypoint.
       reserved = movementQueue[0];
-      // Remove that waypoint so that the hero will move to the next one.
       updatedQueue = movementQueue.slice(1);
     }
-    // Update the hero: if there is a reserved destination, store it; if not, clear any previous reservedDestination.
     await heroRef.update({
       state: 'in_combat',
       reservedDestination: reserved ? reserved : admin.firestore.FieldValue.delete(),
       movementQueue: updatedQueue
-      // Note: We intentionally leave destinationX, destinationY, and arrivesAt intact for later resume logic.
     });
     console.log(`⚔️ Combat event triggered at tile (${destinationX}, ${destinationY}) for hero ${heroId}.`);
     const combatLevel = hero.combat?.combatLevel ?? 1;
@@ -252,7 +272,6 @@ export async function processArrivalCore(heroId: string): Promise<string> {
     return 'Combat event triggered; movement paused at arrival.';
   } else if (roll < COMBAT_CHANCE + PEACEFUL_CHANCE) {
     // ► Peaceful event triggered.
-    // Clear destination fields since combat is not triggered.
     await heroRef.update({
       destinationX: admin.firestore.FieldValue.delete(),
       destinationY: admin.firestore.FieldValue.delete(),
@@ -280,7 +299,6 @@ export async function processArrivalCore(heroId: string): Promise<string> {
       });
       console.log(`📜 Peaceful event report created for hero ${heroId}.`);
     }
-    // Since peaceful events do not interrupt movement, consume (remove) the reached waypoint.
     movementQueue.shift();
     await heroRef.update({ movementQueue, state: movementQueue.length > 0 ? 'moving' : 'idle' });
     if (movementQueue.length > 0) {
@@ -300,13 +318,11 @@ export async function processArrivalCore(heroId: string): Promise<string> {
     // ► No event triggered.
     await heroRef.update({ state: 'idle' });
     console.log(`✅ No event triggered at tile (${destinationX}, ${destinationY}) for hero ${heroId}.`);
-    // Clear destination fields.
     await heroRef.update({
       destinationX: admin.firestore.FieldValue.delete(),
       destinationY: admin.firestore.FieldValue.delete(),
       arrivesAt: admin.firestore.FieldValue.delete()
     });
-    // Consume the reached waypoint.
     movementQueue.shift();
     await heroRef.update({ movementQueue, state: movementQueue.length > 0 ? 'moving' : 'idle' });
     if (movementQueue.length > 0) {

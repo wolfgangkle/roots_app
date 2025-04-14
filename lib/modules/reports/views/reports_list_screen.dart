@@ -16,7 +16,8 @@ class ReportsListScreen extends StatelessWidget {
       return const Center(child: Text("Not logged in."));
     }
 
-    final screenSize = LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+    final screenSize =
+    LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
     final isMobile = screenSize == ScreenSizeCategory.small;
 
     final reportsRef = FirebaseFirestore.instance
@@ -75,8 +76,10 @@ class ReportsListScreen extends StatelessWidget {
                 final id = doc.id;
                 final type = data['type'] ?? 'unknown';
                 final title = data['title'] ?? 'Untitled Event';
-                final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
-                final formattedTime = createdAt != null ? _formatDate(createdAt) : 'No date';
+                final createdAt =
+                (data['createdAt'] as Timestamp?)?.toDate();
+                final formattedTime =
+                createdAt != null ? _formatDate(createdAt) : 'No date';
                 final isCombat = type == 'combat';
 
                 return Card(
@@ -87,13 +90,16 @@ class ReportsListScreen extends StatelessWidget {
                         .doc(data['combatId'])
                         .get(),
                     builder: (context, combatSnapshot) {
-                      final combatData = combatSnapshot.data?.data() as Map<String, dynamic>?;
+                      final combatData = combatSnapshot.data?.data()
+                      as Map<String, dynamic>?;
                       final combatState = combatData?['state'] ?? 'unknown';
                       final isOngoing = combatState == 'ongoing';
-                      final subtitle = isOngoing
-                          ? "$formattedTime • Ongoing"
-                          : "$formattedTime • Completed";
-
+                      // Optionally add a combat message (e.g. a summary or XP info)
+                      final combatMessage = combatData?['message'];
+                      final subtitle = "$formattedTime • ${isOngoing ? 'Ongoing' : 'Completed'}" +
+                          (combatMessage != null && combatMessage.toString().isNotEmpty
+                              ? " • $combatMessage"
+                              : "");
                       return ListTile(
                         leading: Icon(_iconForType(type)),
                         title: Text(title),

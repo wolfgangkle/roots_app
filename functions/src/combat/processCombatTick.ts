@@ -25,73 +25,85 @@ export const processCombatTick = onRequest(async (req, res) => {
     const now = Date.now();
 
     // ──────────────── PvP/HCV Mode Branch ────────────────
-    // Either if the combat document was flagged as PvP
-    // or if there is more than one hero and no NPC event (eventId is null)
+    // This branch applies if combat.pvp === true or if there is more than one hero and no NPC event.
     if ((combat.pvp === true) || (combat.heroIds && combat.heroIds.length > 1 && !combat.eventId)) {
-      // Get all hero IDs participating in this combat.
+      // Get all hero IDs from the combat document.
       const heroIds: string[] = combat.heroIds || [];
       if (heroIds.length === 0) {
         throw new HttpsError('invalid-argument', 'No heroes found in combat document.');
       }
 
-      // Fetch all hero documents.
+      // Fetch hero documents.
       const heroDocs = await Promise.all(
         heroIds.map(id => db.collection('heroes').doc(id).get())
       );
       const heroes = heroDocs
         .map(doc => doc.data() ? { id: doc.id, data: doc.data()!, ref: doc.ref } : null)
         .filter((h): h is { id: string; data: any; ref: FirebaseFirestore.DocumentReference } => h !== null);
-
       if (heroes.length === 0) {
         throw new HttpsError('not-found', 'No valid heroes found in combat.');
       }
 
-      // Filter alive heroes.
+      // Filter alive heroes based on their hp.
       let aliveHeroes = heroes.filter(h => h.data.hp !== undefined && h.data.hp > 0);
 
-      // ── HERO ATTACK PHASE ──
-      if (now >= (combat.nextHeroAttackAt ?? 0) && aliveHeroes.length > 0) {
-        // Choose a random attacker.
-        const attackerIndex = Math.floor(Math.random() * aliveHeroes.length);
-        const attacker = aliveHeroes[attackerIndex];
-        const attackerData = attacker.data;
-        const heroMin = attackerData.combat?.attackMin ?? 5;
-        const heroMax = attackerData.combat?.attackMax ?? 9;
-        const heroAttack = Math.floor(heroMin + Math.random() * (heroMax - heroMin + 1));
+      // Copy the enemies array from the combat document.
+      let enemies = [...combat.enemies];
 
-        // Build potential targets from both enemies and other heroes.
-        const potentialTargets: { type: 'enemy' | 'hero'; index?: number; heroId?: string }[] = [];
-        const enemies = [...combat.enemies]; // make a copy
-        for (let i = 0; i < enemies.length; i++) {
-          if (enemies[i].hp > 0) {
-            potentialTargets.push({ type: 'enemy', index: i });
-          }
-        }
-        // Add other heroes as possible targets, skipping the attacker.
-        for (const h of aliveHeroes) {
-          if (h.id !== attacker.id) {
-            potentialTargets.push({ type: 'hero', heroId: h.id });
-          }
-        }
-        if (potentialTargets.length > 0) {
-          const choice = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
-          if (choice.type === 'enemy' && choice.index !== undefined) {
-            enemies[choice.index].hp = Math.max(0, enemies[choice.index].hp - heroAttack);
-            console.log(`🌀 PvP/HCV: Hero ${attacker.id} attacked enemy[${choice.index}] for ${heroAttack}`);
-          } else if (choice.type === 'hero' && choice.heroId) {
-            const targetHero = aliveHeroes.find(h => h.id === choice.heroId);
-            if (targetHero) {
-              targetHero.data.hp = Math.max(0, targetHero.data.hp - heroAttack);
-              console.log(`🌀 PvP/HCV: Hero ${attacker.id} attacked hero ${targetHero.id} for ${heroAttack}`);
+      // Initialize an array to collect detailed hero attack logs.
+      const heroAttackLogs: Array<{ attackerId: string; targetType: 'enemy' | 'hero'; target: string | number; damage: number }> = [];
+
+      // ── HERO ATTACK PHASE (Individual Attack Timers) ──
+      // Instead of a single global timer, loop through each hero and check their own nextAttackAt timestamp.
+      for (const hero of aliveHeroes) {
+        const heroNextAttackAt = hero.data.combat?.nextAttackAt ?? 0;
+        if (now >= heroNextAttackAt) {
+          const heroMin = hero.data.combat?.attackMin ?? 5;
+          const heroMax = hero.data.combat?.attackMax ?? 9;
+          const damage = Math.floor(heroMin + Math.random() * (heroMax - heroMin + 1));
+
+          // Build potential targets (NPC enemies and other heroes, excluding self).
+          const potentialTargets: Array<{ type: 'enemy' | 'hero'; index?: number; heroId?: string }> = [];
+          for (let i = 0; i < enemies.length; i++) {
+            if (enemies[i].hp > 0) {
+              potentialTargets.push({ type: 'enemy', index: i });
             }
           }
-          combat.nextHeroAttackAt = now + (attackerData.combat?.attackSpeedMs ?? 150000);
+          for (const otherHero of aliveHeroes) {
+            if (otherHero.id !== hero.id) {
+              potentialTargets.push({ type: 'hero', heroId: otherHero.id });
+            }
+          }
+          if (potentialTargets.length > 0) {
+            const choice = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
+            if (choice.type === 'enemy' && choice.index !== undefined) {
+              enemies[choice.index].hp = Math.max(0, enemies[choice.index].hp - damage);
+              heroAttackLogs.push({ attackerId: hero.id, targetType: 'enemy', target: choice.index, damage });
+              console.log(`🌀 PvP/HCV: Hero ${hero.id} attacked enemy[${choice.index}] for ${damage}`);
+            } else if (choice.type === 'hero' && choice.heroId) {
+              const targetHero = aliveHeroes.find(h => h.id === choice.heroId);
+              if (targetHero) {
+                targetHero.data.hp = Math.max(0, targetHero.data.hp - damage);
+                heroAttackLogs.push({ attackerId: hero.id, targetType: 'hero', target: targetHero.id, damage });
+                console.log(`🌀 PvP/HCV: Hero ${hero.id} attacked hero ${targetHero.id} for ${damage}`);
+              }
+            }
+          }
+          // Update the hero's next attack time individually.
+          const attackSpeed = hero.data.combat?.attackSpeedMs ?? 150000;
+          const newNextAttackAt = now + attackSpeed;
+          hero.data.combat = { ...hero.data.combat, nextAttackAt: newNextAttackAt };
+          await hero.ref.update({ "combat.nextAttackAt": newNextAttackAt });
         }
       }
 
-      // ── ENEMY ATTACK PHASE ──
-      const enemyAttacksLog: { enemyIndex: number; heroId: string; damage: number }[] = [];
-      const enemies = [...combat.enemies];
+      // ── ENEMY ATTACK PHASE (Simultaneous Targeting) ──
+      // Instead of updating hp after each enemy attack, we capture a snapshot of targets at the beginning
+      // and accumulate damage per hero. This simulates simultaneous attacks.
+      const enemyAttacksLog: Array<{ enemyIndex: number; heroId: string; damage: number }> = [];
+      // Snapshot of alive heroes before enemy attacks.
+      const targetHeroesSnapshot = heroes.filter(h => h.data.hp !== undefined && h.data.hp > 0);
+      const heroDamageMap: { [heroId: string]: number } = {}; // Accumulator for each hero's damage.
       for (let i = 0; i < enemies.length; i++) {
         const enemy = enemies[i];
         if (enemy.hp <= 0) continue;
@@ -100,32 +112,68 @@ export const processCombatTick = onRequest(async (req, res) => {
         const minDamage = enemy.minDamage ?? 1;
         const maxDamage = enemy.maxDamage ?? 3;
         const attackSpeed = enemy.attackSpeedMs ?? 90000;
-        const attack = Math.floor(minDamage + Math.random() * (maxDamage - minDamage + 1));
-        // Refresh alive heroes list in case HP changed.
-        aliveHeroes = heroes.filter(h => h.data.hp !== undefined && h.data.hp > 0);
-        if (aliveHeroes.length > 0) {
-          const targetHero = aliveHeroes[Math.floor(Math.random() * aliveHeroes.length)];
-          targetHero.data.hp = Math.max(0, targetHero.data.hp - attack);
+        const attackDamage = Math.floor(minDamage + Math.random() * (maxDamage - minDamage + 1));
+        if (targetHeroesSnapshot.length > 0) {
+          // Choose a target from the snapshot (same snapshot used for all enemy attacks this tick)
+          const targetHero = targetHeroesSnapshot[Math.floor(Math.random() * targetHeroesSnapshot.length)];
+          // Accumulate damage for that hero.
+          heroDamageMap[targetHero.id] = (heroDamageMap[targetHero.id] || 0) + attackDamage;
           enemy.nextAttackAt = now + attackSpeed;
-          enemyAttacksLog.push({ enemyIndex: i, heroId: targetHero.id, damage: attack });
-          console.log(`🌀 PvP/HCV: Enemy[${i}] attacked hero ${targetHero.id} for ${attack}`);
+          enemyAttacksLog.push({ enemyIndex: i, heroId: targetHero.id, damage: attackDamage });
+          console.log(`🌀 PvP/HCV: Enemy[${i}] attacked hero ${targetHero.id} for ${attackDamage}`);
+        }
+      }
+      // After processing all enemy attacks, update each targeted hero's hp with the accumulated damage.
+      for (const hero of heroes) {
+        if (heroDamageMap[hero.id]) {
+          hero.data.hp = Math.max(0, hero.data.hp - heroDamageMap[hero.id]);
         }
       }
 
       // ── Tick & Win Conditions ──
       const tick = (combat.tick ?? 0) + 1;
-      const allEnemiesDead = enemies.every(e => e.hp <= 0);
+      // Refresh list of living heroes.
       aliveHeroes = heroes.filter(h => h.data.hp !== undefined && h.data.hp > 0);
-      const allHeroesDead = (aliveHeroes.length === 0);
       let newState = 'ongoing';
-      if (allEnemiesDead || allHeroesDead || tick >= MAX_TICKS) {
+      const npcAliveCount = combat.eventId ? enemies.filter(e => e.hp > 0).length : 0;
+      if (tick >= MAX_TICKS) {
         newState = 'ended';
+      } else if (combat.eventId) {
+        if (npcAliveCount > 0) {
+          if (aliveHeroes.length === 0) newState = 'ended';
+        } else {
+          if (aliveHeroes.length < 2) newState = 'ended';
+        }
+      } else {
+        if (aliveHeroes.length < 2) newState = 'ended';
       }
-      // Log tick data.
+
+      const allEnemiesDead = combat.eventId
+        ? (enemies.length > 0 ? enemies.every(e => e.hp <= 0) : false)
+        : false;
+
+      // ── Award XP for Defeated NPC Enemies if Combat Ended ──
+      if (!combat.pvp && combat.eventId && newState === 'ended' && allEnemiesDead && combat.enemyXpTotal) {
+        const survivors = heroes.filter(h => h.data.hp > 0);
+        const xpPerHero = Math.floor(combat.enemyXpTotal / (survivors.length || 1));
+        for (const h of survivors) {
+          await h.ref.update({
+            experience: admin.firestore.FieldValue.increment(xpPerHero)
+          });
+          console.log(`🎉 Hero ${h.id} gained ${xpPerHero} XP`);
+        }
+        await combatRef.update({
+          xp: combat.enemyXpTotal,
+          reward: ['gold'],
+          message: `Defeated ${combat.enemyCount} ${combat.enemyName}(s) for ${combat.enemyXpTotal} XP.`
+        });
+      }
+
+      // ── Log Tick Data with Detailed Attack Info ──
       const logRef = combatRef.collection('combatLog').doc(`tick_${tick}`);
       await logRef.set({
         tick,
-        heroAttack: 'various',
+        heroAttacks: heroAttackLogs,
         enemyAttacks: enemyAttacksLog,
         heroesHpAfter: heroes.reduce((acc: Record<string, number>, h) => {
           acc[h.id] = h.data.hp;
@@ -152,7 +200,6 @@ export const processCombatTick = onRequest(async (req, res) => {
           });
           console.log(`☠️ Hero ${h.id} died in combat ${combatId}`);
         } else if (newState === 'ended') {
-          // Allow heroes to resume movement if they have a queued waypoint.
           finalHeroState = (h.data.movementQueue && h.data.movementQueue.length > 0) ? 'moving' : 'idle';
           await h.ref.update({ hp: h.data.hp, state: finalHeroState });
         } else {
@@ -167,34 +214,16 @@ export const processCombatTick = onRequest(async (req, res) => {
         }
       }
 
-      // ── Award XP for Defeated NPC Enemies if Combat Ended ──
-      if (newState === 'ended' && allEnemiesDead && combat.enemyXpTotal) {
-        const survivors = heroes.filter(h => h.data.hp > 0);
-        const xpPerHero = Math.floor(combat.enemyXpTotal / (survivors.length || 1));
-        for (const h of survivors) {
-          await h.ref.update({
-            experience: admin.firestore.FieldValue.increment(xpPerHero)
-          });
-          console.log(`🎉 Hero ${h.id} gained ${xpPerHero} XP`);
-        }
-        await combatRef.update({
-          xp: combat.enemyXpTotal,
-          reward: ['gold'],
-          message: `Defeated ${combat.enemyCount} ${combat.enemyName}(s) for ${combat.enemyXpTotal} XP.`,
-        });
-      }
-
       await combatRef.update({
         tick,
         state: newState,
         enemies,
-        nextHeroAttackAt: combat.nextHeroAttackAt,
+        // For the PvP/HCV branch, we no longer use a global nextHeroAttackAt.
         ...(newState === 'ended' && { endedAt: admin.firestore.FieldValue.serverTimestamp() }),
       });
 
       // ── Resume Movement for Surviving Heroes if Combat Ended ──
       if (newState === 'ended') {
-        // Re-read each hero document to get up-to-date data before resuming movement.
         for (const heroId of heroIds) {
           const heroSnap = await db.collection('heroes').doc(heroId).get();
           const heroData = heroSnap.data();
@@ -228,7 +257,6 @@ export const processCombatTick = onRequest(async (req, res) => {
         }
       }
 
-      // ── Schedule Next Tick if Combat Still Ongoing ──
       if (newState === 'ongoing') {
         const { scheduleCombatTick } = await import('./scheduleCombatTick.js');
         await scheduleCombatTick({ combatId, delaySeconds: TICK_INTERVAL_SECONDS });
@@ -266,7 +294,7 @@ export const processCombatTick = onRequest(async (req, res) => {
       return;
     }
 
-    // Hero attacks
+    // Hero attacks (global timer for single-hero branch is acceptable)
     if (now >= (combat.nextHeroAttackAt ?? 0)) {
       heroAttack = Math.floor(heroMin + Math.random() * (heroMax - heroMin + 1));
       targetIndex = aliveIndexes[Math.floor(Math.random() * aliveIndexes.length)];
@@ -274,9 +302,9 @@ export const processCombatTick = onRequest(async (req, res) => {
       combat.nextHeroAttackAt = now + (singleHero.combat?.attackSpeedMs ?? 150000);
     }
 
-    // Enemies attack
+    // Enemies attack for single-hero branch.
     let totalEnemyAttack = 0;
-    const enemyAttacks: { index: number; damage: number }[] = [];
+    const enemyAttacks: Array<{ index: number; damage: number }> = [];
     enemies.forEach((enemy, index) => {
       if (enemy.hp <= 0) return;
       const attackReady = now >= (enemy.nextAttackAt ?? 0);
@@ -348,7 +376,7 @@ export const processCombatTick = onRequest(async (req, res) => {
       await combatRef.update({
         xp: combat.enemyXpTotal,
         reward: ['gold'],
-        message: `Defeated ${combat.enemyCount} ${combat.enemyName}(s) for ${gainedXp} XP.`,
+        message: `Defeated ${combat.enemyCount} ${combat.enemyName}(s) for ${gainedXp} XP.`
       });
       console.log(`🎉 Hero ${singleHeroId} won and gained ${gainedXp} XP`);
     }
@@ -362,7 +390,6 @@ export const processCombatTick = onRequest(async (req, res) => {
     });
 
     if (newState === 'ended') {
-      // For single-hero non-PvP branch, re-read the hero document to get fresh data.
       const freshHeroSnap = await db.collection('heroes').doc(singleHeroId).get();
       const freshHero = freshHeroSnap.data();
       if (freshHero && finalHeroState === 'moving') {

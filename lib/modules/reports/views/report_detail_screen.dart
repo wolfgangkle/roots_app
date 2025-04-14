@@ -15,7 +15,8 @@ class ReportDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+    final screenSize =
+    LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
     final isMobile = screenSize == ScreenSizeCategory.small;
 
     final reportRef = FirebaseFirestore.instance
@@ -42,35 +43,52 @@ class ReportDetailScreen extends StatelessWidget {
       body: FutureBuilder<DocumentSnapshot>(
         future: reportRef.get(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          // Check the connection state
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          // Check for errors
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          // Check if the document exists and is non-null
+          if (!snapshot.hasData ||
+              snapshot.data == null ||
+              !snapshot.data!.exists) {
+            return const Center(child: Text("No report found."));
+          }
 
-          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          // Now try to retrieve the document data as a Map
+          final data =
+          snapshot.data!.data() as Map<String, dynamic>?;
           if (data == null) {
-            return const Center(child: Text("Report not found."));
+            return const Center(child: Text("Report data is empty."));
           }
 
           final type = data['type'] ?? 'unknown';
           final title = data['title'] ?? 'Event';
           final message = data['message'] ?? 'No message provided.';
           final xp = data['xp'];
-          final combatId = data['combatId'];
+          final combatIdValue = data['combatId'];
 
+          // For combat reports, display the CombatLogScreen with detailed logs.
           if (type == 'combat') {
-            if (combatId != null) {
-              return CombatLogScreen(combatId: combatId);
+            if (combatIdValue != null) {
+              return CombatLogScreen(combatId: combatIdValue);
             } else {
-              return const Center(child: Text("⚠️ No combat ID found in report."));
+              return const Center(
+                  child: Text("⚠️ No combat ID found in report."));
             }
           }
 
+          // For non-combat reports, display the event details.
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.headlineSmall),
+                Text(title,
+                    style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
                 Text(message),
                 if (xp != null) ...[
