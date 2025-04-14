@@ -2,15 +2,13 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { scheduleHeroArrivalTask } from './scheduleHeroArrivalTask.js';
 
-const MOVEMENT_SPEED_PER_TILE = 20 * 60 * 1000; // 20 minutes
-
 export async function startHeroMovements(request: any) {
-  const db = admin.firestore(); // ✅ moved inside the function
+  const db = admin.firestore();
   const { heroId, destinationX, destinationY, movementQueue } = request.data;
   const userId = request.auth?.uid;
 
   if (!userId) {
-    throw new HttpsError('unauthenticated', 'You must be logged in.');
+    throw new HttpsError('unauthenticated', 'User must be logged in.');
   }
 
   if (
@@ -46,7 +44,13 @@ export async function startHeroMovements(request: any) {
   }
 
   const now = Date.now();
-  const travelDuration = MOVEMENT_SPEED_PER_TILE;
+
+  // Convert hero.movementSpeed from seconds to milliseconds.
+  const heroMovementSpeed = typeof hero.movementSpeed === 'number'
+    ? hero.movementSpeed * 1000
+    : 20 * 60 * 1000; // fallback to 20 minutes in milliseconds
+
+  const travelDuration = heroMovementSpeed;
   const arrivesAt = new Date(now + travelDuration);
 
   const updateData: any = {
@@ -65,7 +69,7 @@ export async function startHeroMovements(request: any) {
   const delaySeconds = Math.floor((arrivesAt.getTime() - Date.now()) / 1000);
   await scheduleHeroArrivalTask({ heroId, delaySeconds });
 
-  console.log(`🧙 Hero ${heroId} started moving to (${destinationX}, ${destinationY})`);
+  console.log(`🧙 Hero ${heroId} started moving to (${destinationX}, ${destinationY}). Movement speed set to ${heroMovementSpeed} ms per tile.`);
   if (movementQueue?.length) {
     console.log(`📜 Waypoints queued: ${JSON.stringify(movementQueue)}`);
   }

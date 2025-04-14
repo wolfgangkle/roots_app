@@ -1,56 +1,67 @@
-// functions/src/heroes/createHero.ts
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
 export async function createHeroLogic(request: any) {
   const db = admin.firestore();
-  const { race, tileX, tileY } = request.data;
+  // Remove race from request.data—we'll fetch it from the user profile.
+  const { tileX, tileY } = request.data;
   const userId = request.auth?.uid;
 
-  // Ensure the user is authenticated.
   if (!userId) {
     throw new HttpsError('unauthenticated', 'User must be logged in.');
   }
 
-  // 🔥 Load hero name from user profile
+  // Load hero data from the user profile
   const profileSnap = await db.doc(`users/${userId}/profile/main`).get();
   const profileData = profileSnap.data();
 
+  // Ensure heroName is valid.
   if (!profileData || typeof profileData.heroName !== 'string' || profileData.heroName.trim().length < 3) {
     throw new HttpsError('invalid-argument', 'Main hero name not set or invalid in user profile.');
   }
-
   const heroName = profileData.heroName.trim();
 
-  // Validate other parameters
-  if (!race || typeof race !== 'string' || race.trim().length === 0) {
-    throw new HttpsError('invalid-argument', 'race is required.');
+  // Now, get the race from the profile data.
+  if (!profileData.race || typeof profileData.race !== 'string' || profileData.race.trim().length === 0) {
+    throw new HttpsError('invalid-argument', 'Race is required in your profile.');
   }
+  const normalizedRace = profileData.race.trim().toLowerCase();
+
+  // Check that tileX and tileY are numbers.
   if (typeof tileX !== 'number' || typeof tileY !== 'number') {
     throw new HttpsError('invalid-argument', 'tileX and tileY must be numbers.');
   }
 
   const heroesRef = db.collection('heroes');
 
-  // Check that a main hero (mage) does not already exist for this user.
+  // Ensure the user does not already have a main hero (mage).
   const existingSnapshot = await heroesRef
     .where('ownerId', '==', userId)
     .where('type', '==', 'mage')
     .get();
-
   if (!existingSnapshot.empty) {
     throw new HttpsError('already-exists', 'Main hero already exists for this user.');
   }
 
-  // Define the new hero data.
+  // 🐎 Define default movement speed per race (in seconds per tile)
+  const defaultMovementSpeeds: Record<string, number> = {
+    human: 300, // 20 minutes in seconds; right now reduced to 300 for testing
+    drawf: 600, // 10 minutes in seconds; right now reduced to 600 for testing
+    // elf: 900,  // maybe faster in the future
+    // dwarf: 1500, // slower
+    // etc.
+  };
+
+  const movementSpeed = defaultMovementSpeeds[normalizedRace] ?? 1200; // fallback to 20 minutes if unknown
+
   const heroData = {
     ownerId: userId,
     heroName,
     type: 'mage',
-    race: race.trim(),
+    race: normalizedRace,
     level: 1,
     experience: 0,
-    groupId: null, // <-- NEW: future group support
+    groupId: null,
     stats: {
       strength: 10,
       dexterity: 10,
@@ -68,26 +79,26 @@ export async function createHeroLogic(request: any) {
       attackMax: 9,
       defense: 1,
       regenPerTick: 1,
-      attackSpeedMs: 150000, // 2 minutes 30 seconds
+      attackSpeedMs: 100000,
     },
     tileX,
     tileY,
     state: 'idle',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
 
-    // ✅ Add these
-    hpRegen: 300,        // e.g. 5 minutes
-    manaRegen: 60,       // 1 mana every 60 seconds
-    foodDuration: 3600,  // 1 hour before hunger drains
+    // Regen and hunger settings
+    hpRegen: 300,
+    manaRegen: 60,
+    foodDuration: 3600,
+
+    // 🆕 movement speed in seconds per tile
+    movementSpeed,
   };
 
-
-
-  // Create the new hero document.
   const newHeroRef = heroesRef.doc();
   await newHeroRef.set(heroData);
 
-  console.log(`🚀 Created main hero "${heroName}" with id ${newHeroRef.id} for user ${userId}`);
+  console.log(`🚀 Created main hero "${heroName}" with id ${newHeroRef.id} for user ${userId}, race=${normalizedRace}, movementSpeed=${movementSpeed}s`);
   return {
     heroId: newHeroRef.id,
     message: 'Hero created successfully.',

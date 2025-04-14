@@ -40,8 +40,10 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
 
         final hero = HeroModel.fromFirestore(heroId, data);
 
-        final hasMovement = hero.arrivesAt != null ||
-            (hero.movementQueue != null && hero.movementQueue!.isNotEmpty);
+        // Check if the hero is actively moving or if there are queued waypoints.
+        final bool isMoving = hero.state == 'moving' && hero.arrivesAt != null;
+        final bool hasQueuedWaypoints = hero.movementQueue != null && hero.movementQueue!.isNotEmpty;
+        final bool hasMovement = isMoving || hasQueuedWaypoints;
 
         return Scaffold(
           appBar: AppBar(
@@ -63,20 +65,31 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
                 if (hasMovement) ...[
                   const SizedBox(height: 12),
                   _sectionTitle("🧭 Movement Status"),
-                  if (hero.arrivesAt != null) _liveCountdown(hero.arrivesAt!),
-                  if (hero.arrivesAt != null)
+                  if (isMoving) ...[
+                    _liveCountdown(hero.arrivesAt!),
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text("Arrives at: ${_formatTimestamp(hero.arrivesAt!)}"),
                     ),
-                  if (hero.movementQueue != null && hero.movementQueue!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        "Moving to: (${hero.movementQueue!.first['x']}, ${hero.movementQueue!.first['y']})",
+                    // Show the current destination from destination fields if available.
+                    if (hero.destinationX != null && hero.destinationY != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          "Moving to: (${hero.destinationX}, ${hero.destinationY})",
+                        ),
+                      )
+                    // Otherwise, fallback to the first waypoint in the queue.
+                    else if (hasQueuedWaypoints)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          "Moving to: (${hero.movementQueue!.first['x']}, ${hero.movementQueue!.first['y']})",
+                        ),
                       ),
-                    ),
-                  if (hero.movementQueue != null && hero.movementQueue!.isNotEmpty)
+                  ],
+                  // Always show the full list of queued waypoints.
+                  if (hasQueuedWaypoints)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -152,7 +165,6 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
                 _statRow("Food Duration", _formatDuration(hero.foodDuration)),
 
                 const SizedBox(height: 32),
-
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.edit_location_alt),
