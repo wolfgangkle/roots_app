@@ -152,7 +152,7 @@ export const processCombatTick = onRequest(async (req, res) => {
           });
           console.log(`☠️ Hero ${h.id} died in combat ${combatId}`);
         } else if (newState === 'ended') {
-          // Change condition to allow heroes in combat to resume movement if they have a queued waypoint.
+          // Allow heroes to resume movement if they have a queued waypoint.
           finalHeroState = (h.data.movementQueue && h.data.movementQueue.length > 0) ? 'moving' : 'idle';
           await h.ref.update({ hp: h.data.hp, state: finalHeroState });
         } else {
@@ -193,32 +193,37 @@ export const processCombatTick = onRequest(async (req, res) => {
       });
 
       // ── Resume Movement for Surviving Heroes if Combat Ended ──
-      // Updated condition: check for heroes that have a non-empty movementQueue regardless if state is 'moving' or 'in_combat'
       if (newState === 'ended') {
-        for (const h of heroes) {
-          if (
-            h.data.hp > 0 &&
-            (h.data.state === 'moving' || h.data.state === 'in_combat') &&
-            Array.isArray(h.data.movementQueue) &&
-            h.data.movementQueue.length > 0
-          ) {
-            const nextStep = h.data.movementQueue[0];
-            const remainingQueue = h.data.movementQueue.slice(1);
-            // Use the hero's movementSpeed if available (assuming it's stored in seconds, convert if needed)
-            const moveSpeed = typeof h.data.movementSpeed === 'number'
-              ? h.data.movementSpeed * 1000 // converting seconds to ms
-              : 20 * 60 * 1000;
-            const nextArrivesAt = new Date(Date.now() + moveSpeed);
-            await h.ref.update({
-              state: 'moving', // set state to moving for resumption
-              destinationX: nextStep.x,
-              destinationY: nextStep.y,
-              arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
-              movementQueue: remainingQueue,
-            });
-            const { scheduleHeroArrivalTask } = await import('../heroes/scheduleHeroArrivalTask.js');
-            await scheduleHeroArrivalTask({ heroId: h.id, delaySeconds: Math.floor(moveSpeed / 1000) });
-            console.log(`🔁 Hero ${h.id} resumed movement to (${nextStep.x}, ${nextStep.y})`);
+        // Re-read each hero document to get up-to-date data before resuming movement.
+        for (const heroId of heroIds) {
+          const heroSnap = await db.collection('heroes').doc(heroId).get();
+          const heroData = heroSnap.data();
+          if (heroData && heroData.hp > 0 && (heroData.state === 'moving' || heroData.state === 'in_combat')) {
+            let nextStep: { x: number; y: number } | null = null;
+            let remainingQueue = Array.isArray(heroData.movementQueue) ? heroData.movementQueue : [];
+            if (heroData.reservedDestination) {
+              nextStep = heroData.reservedDestination;
+            } else if (remainingQueue.length > 0) {
+              nextStep = remainingQueue[0];
+              remainingQueue = remainingQueue.slice(1);
+            }
+            if (nextStep) {
+              const moveSpeed = typeof heroData.movementSpeed === 'number'
+                ? heroData.movementSpeed * 1000
+                : 20 * 60 * 1000;
+              const nextArrivesAt = new Date(Date.now() + moveSpeed);
+              await db.collection('heroes').doc(heroId).update({
+                state: 'moving',
+                destinationX: nextStep.x,
+                destinationY: nextStep.y,
+                arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
+                movementQueue: remainingQueue,
+                reservedDestination: admin.firestore.FieldValue.delete(),
+              });
+              const { scheduleHeroArrivalTask } = await import('../heroes/scheduleHeroArrivalTask.js');
+              await scheduleHeroArrivalTask({ heroId, delaySeconds: Math.floor(moveSpeed / 1000) });
+              console.log(`🔁 Hero ${heroId} resumed movement to (${nextStep.x}, ${nextStep.y})`);
+            }
           }
         }
       }
@@ -234,7 +239,7 @@ export const processCombatTick = onRequest(async (req, res) => {
 
       res.status(200).send('Tick complete (PvP/HCV mode).');
       return;
-    } // End PvP branch
+    } // End PvP/HCV branch
 
     // ──────────────── Non-PvP (Original Single-Hero) Branch ────────────────
     const singleHeroId = combat.heroIds?.[0];
@@ -322,7 +327,7 @@ export const processCombatTick = onRequest(async (req, res) => {
       });
       console.log(`☠️ Hero ${singleHeroId} died during combat ${combatId}`);
     } else if (newState === 'ended') {
-      finalHeroState = (singleHero.movementQueue && singleHero.movementQueue.length > 0) ? 'moving' : 'idle';
+      finalHeroState = ((singleHero.movementQueue && singleHero.movementQueue.length > 0) || singleHero.reservedDestination) ? 'moving' : 'idle';
       await singleHeroRef.update({ hp: newHeroHp, state: finalHeroState });
     } else {
       finalHeroState = 'in_combat';
@@ -341,7 +346,7 @@ export const processCombatTick = onRequest(async (req, res) => {
         experience: admin.firestore.FieldValue.increment(gainedXp)
       });
       await combatRef.update({
-        xp: gainedXp,
+        xp: combat.enemyXpTotal,
         reward: ['gold'],
         message: `Defeated ${combat.enemyCount} ${combat.enemyName}(s) for ${gainedXp} XP.`,
       });
@@ -357,37 +362,34 @@ export const processCombatTick = onRequest(async (req, res) => {
     });
 
     if (newState === 'ended') {
-      const reportSnap = await db.collection('heroes')
-        .doc(singleHeroId)
-        .collection('eventReports')
-        .where('combatId', '==', combatId)
-        .limit(1)
-        .get();
-      if (!reportSnap.empty) {
-        const reportRef = reportSnap.docs[0].ref;
-        await reportRef.update({
-          state: 'completed',
-          hiddenForUserIds: admin.firestore.FieldValue.arrayUnion(),
-        });
-        console.log(`📘 Marked report as completed for combat ${combatId}`);
-      }
-      if (finalHeroState === 'moving' && Array.isArray(singleHero.movementQueue) && singleHero.movementQueue.length > 0) {
-        const nextStep = singleHero.movementQueue[0];
-        const remainingQueue = singleHero.movementQueue.slice(1);
-        // Convert movementSpeed from seconds to milliseconds when resuming.
-        const moveSpeed = typeof singleHero.movementSpeed === 'number'
-          ? singleHero.movementSpeed * 1000
-          : 20 * 60 * 1000;
-        const nextArrivesAt = new Date(Date.now() + moveSpeed);
-        await singleHeroRef.update({
-          destinationX: nextStep.x,
-          destinationY: nextStep.y,
-          arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
-          movementQueue: remainingQueue,
-        });
-        const { scheduleHeroArrivalTask } = await import('../heroes/scheduleHeroArrivalTask.js');
-        await scheduleHeroArrivalTask({ heroId: singleHeroId, delaySeconds: Math.floor(moveSpeed / 1000) });
-        console.log(`🔁 Hero ${singleHeroId} resumed movement to (${nextStep.x}, ${nextStep.y})`);
+      // For single-hero non-PvP branch, re-read the hero document to get fresh data.
+      const freshHeroSnap = await db.collection('heroes').doc(singleHeroId).get();
+      const freshHero = freshHeroSnap.data();
+      if (freshHero && finalHeroState === 'moving') {
+        let nextStep: { x: number; y: number } | null = null;
+        let remainingQueue = Array.isArray(freshHero.movementQueue) ? freshHero.movementQueue : [];
+        if (freshHero.reservedDestination) {
+          nextStep = freshHero.reservedDestination;
+        } else if (remainingQueue.length > 0) {
+          nextStep = remainingQueue[0];
+          remainingQueue = remainingQueue.slice(1);
+        }
+        if (nextStep) {
+          const moveSpeed = typeof freshHero.movementSpeed === 'number'
+            ? freshHero.movementSpeed * 1000
+            : 20 * 60 * 1000;
+          const nextArrivesAt = new Date(Date.now() + moveSpeed);
+          await singleHeroRef.update({
+            destinationX: nextStep.x,
+            destinationY: nextStep.y,
+            arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
+            movementQueue: remainingQueue,
+            reservedDestination: admin.firestore.FieldValue.delete(),
+          });
+          const { scheduleHeroArrivalTask } = await import('../heroes/scheduleHeroArrivalTask.js');
+          await scheduleHeroArrivalTask({ heroId: singleHeroId, delaySeconds: Math.floor(moveSpeed / 1000) });
+          console.log(`🔁 Hero ${singleHeroId} resumed movement to (${nextStep.x}, ${nextStep.y})`);
+        }
       }
     }
 

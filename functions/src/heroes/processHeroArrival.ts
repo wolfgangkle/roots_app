@@ -19,7 +19,8 @@ const MAX_RETRY_COUNT = 5;
  * 3. If no conflict is detected at the destination, teleport the hero from his origin tile to the destination.
  * 4. Then perform an event roll at the arrival tile:
  *    - In case of a combat event (PvE), set the hero to in_combat and create a combat encounter from encounterEvents.
- *      (Note: In this case the reached waypoint is not consumed so that after combat the hero can re‐attempt arrival.)
+ *      (Note: In this case the reached waypoint is not simply reattempted on the same tile –
+ *       if a movementQueue exists, we reserve the next queued tile as the hero's reservedDestination.)
  *    - In case of a peaceful event or no event, the reached waypoint is removed from the movementQueue and, if more waypoints exist,
  *      the next movement is scheduled using the hero’s movementSpeed.
  */
@@ -137,13 +138,10 @@ export async function processArrivalCore(heroId: string): Promise<string> {
   // End of destination conflict check.
   // **************************************
 
-  // No conflict found at the destination tile: proceed with teleporting the hero.
+  // Teleport the hero by updating the tile coordinates.
   await heroRef.update({
     tileX: destinationX,
     tileY: destinationY,
-    destinationX: admin.firestore.FieldValue.delete(),
-    destinationY: admin.firestore.FieldValue.delete(),
-    arrivesAt: admin.firestore.FieldValue.delete(),
     retryCount: admin.firestore.FieldValue.delete(),
   });
   console.log(`🚀 Teleported hero ${heroId} from (${originX}, ${originY}) to (${destinationX}, ${destinationY}).`);
@@ -159,7 +157,26 @@ export async function processArrivalCore(heroId: string): Promise<string> {
 
   if (roll < COMBAT_CHANCE) {
     // ► PvE Combat event triggered.
-    await heroRef.update({ state: 'in_combat' });
+    //
+    // IMPORTANT: Instead of storing the current arrival tile (which is destinationX/destinationY)
+    // we now check if there is something in the movementQueue.
+    // If there is, we reserve the next queued waypoint as the reservedDestination
+    // and remove it from the movementQueue so that after combat the hero moves to that new tile.
+    let reserved: { x: number; y: number } | undefined;
+    let updatedQueue = movementQueue;
+    if (movementQueue.length > 0) {
+      // Use the first queued waypoint.
+      reserved = movementQueue[0];
+      // Remove that waypoint so that the hero will move to the next one.
+      updatedQueue = movementQueue.slice(1);
+    }
+    // Update the hero: if there is a reserved destination, store it; if not, clear any previous reservedDestination.
+    await heroRef.update({
+      state: 'in_combat',
+      reservedDestination: reserved ? reserved : admin.firestore.FieldValue.delete(),
+      movementQueue: updatedQueue
+      // Note: We intentionally leave destinationX, destinationY, and arrivesAt intact for later resume logic.
+    });
     console.log(`⚔️ Combat event triggered at tile (${destinationX}, ${destinationY}) for hero ${heroId}.`);
     const combatLevel = hero.combat?.combatLevel ?? 1;
     const eventSnap = await db.collection('encounterEvents')
@@ -231,10 +248,16 @@ export async function processArrivalCore(heroId: string): Promise<string> {
         }
       }
     }
-    // For PvE events, do not remove the waypoint so that after combat the hero can reattempt arrival.
+    // For PvE events, do not consume the reached waypoint (we have already consumed one if available)
     return 'Combat event triggered; movement paused at arrival.';
   } else if (roll < COMBAT_CHANCE + PEACEFUL_CHANCE) {
     // ► Peaceful event triggered.
+    // Clear destination fields since combat is not triggered.
+    await heroRef.update({
+      destinationX: admin.firestore.FieldValue.delete(),
+      destinationY: admin.firestore.FieldValue.delete(),
+      arrivesAt: admin.firestore.FieldValue.delete()
+    });
     await heroRef.update({ state: 'idle' });
     console.log(`📜 Peaceful event triggered at tile (${destinationX}, ${destinationY}) for hero ${heroId}.`);
     const combatLevel = hero.combat?.combatLevel ?? 1;
@@ -257,7 +280,7 @@ export async function processArrivalCore(heroId: string): Promise<string> {
       });
       console.log(`📜 Peaceful event report created for hero ${heroId}.`);
     }
-    // Since peaceful events do not interrupt, consume (remove) the reached waypoint.
+    // Since peaceful events do not interrupt movement, consume (remove) the reached waypoint.
     movementQueue.shift();
     await heroRef.update({ movementQueue, state: movementQueue.length > 0 ? 'moving' : 'idle' });
     if (movementQueue.length > 0) {
@@ -277,6 +300,12 @@ export async function processArrivalCore(heroId: string): Promise<string> {
     // ► No event triggered.
     await heroRef.update({ state: 'idle' });
     console.log(`✅ No event triggered at tile (${destinationX}, ${destinationY}) for hero ${heroId}.`);
+    // Clear destination fields.
+    await heroRef.update({
+      destinationX: admin.firestore.FieldValue.delete(),
+      destinationY: admin.firestore.FieldValue.delete(),
+      arrivesAt: admin.firestore.FieldValue.delete()
+    });
     // Consume the reached waypoint.
     movementQueue.shift();
     await heroRef.update({ movementQueue, state: movementQueue.length > 0 ? 'moving' : 'idle' });
