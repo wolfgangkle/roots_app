@@ -15,6 +15,8 @@ const MAX_RETRY_COUNT = 5;
  *       a. If an ongoing combat is found, update the hero's position to the destination and add this hero to that combat
  *          (joining a hybrid PvP/PvE fight). Additionally, create a combat report for the joining hero.
  *       b. Otherwise, update the hero's position and trigger a new PvP combat between the arriving hero and one of the heroes already on the tile.
+ *          In this scenario, ONLY the hero or heroes already present (the interrupted ones) should have their current destination
+ *          saved to 'reservedDestination', so they can resume their planned movement later.
  *    In either case the function returns immediately so that movement is paused.
  * 3. If no conflict is detected at the destination, teleport the hero from his origin tile to the destination.
  * 4. Then perform an event roll at the arrival tile:
@@ -86,7 +88,23 @@ export async function processArrivalCore(heroId: string): Promise<string> {
     .get();
   // Filter out our own hero.
   const conflictingHeroes = destConflictSnap.docs.filter(doc => doc.id !== heroId);
+
   if (conflictingHeroes.length > 0) {
+    // For all heroes already on this destination tile (i.e. the ones getting interrupted),
+    // update their record to store their current destination tile into 'reservedDestination'.
+    for (const conflictDoc of conflictingHeroes) {
+      const conflictHero = conflictDoc.data();
+      // Only update those whose state is "moving", implying they were planning further movement.
+      if (conflictHero.state === 'moving') {
+        const reserved = (conflictHero.destinationX !== undefined && conflictHero.destinationY !== undefined)
+          ? { x: conflictHero.destinationX, y: conflictHero.destinationY }
+          : null;
+        await conflictDoc.ref.update({
+          reservedDestination: reserved ? reserved : admin.firestore.FieldValue.delete()
+        });
+      }
+    }
+
     // There is at least one other hero on the destination tile.
     // First, see if there is an ongoing combat on this tile.
     const combatSnap = await db.collection('combats')
@@ -97,7 +115,7 @@ export async function processArrivalCore(heroId: string): Promise<string> {
       .get();
     if (!combatSnap.empty) {
       // An ongoing combat exists.
-      // Update the hero's position to the destination before joining.
+      // Update the arriving hero's position to the destination before joining.
       await heroRef.update({ tileX: destinationX, tileY: destinationY });
       // Join that fight (creating a hybrid PvP/PvE combat).
       const combatDoc = combatSnap.docs[0];
