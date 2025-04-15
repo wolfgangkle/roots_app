@@ -10,6 +10,7 @@ import 'package:roots_app/screens/home/mobile_tab_scaffold.dart';
 import 'package:roots_app/modules/village/views/village_panel.dart';
 import 'package:roots_app/screens/home/panels/navigation_sidebar_panel.dart';
 import 'package:roots_app/screens/helpers/layout_helper.dart';
+import 'package:roots_app/modules/settings/models/user_settings_model.dart'; // ✅ added this
 
 class MainHomeScreen extends StatelessWidget {
   const MainHomeScreen({super.key});
@@ -19,6 +20,8 @@ class MainHomeScreen extends StatelessWidget {
     final contentController = Provider.of<MainContentController>(context, listen: false);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenSize = LayoutHelper.getSizeCategory(screenWidth);
+
+    final showChat = context.watch<UserSettingsModel>().showChatOverlay; // ✅ watch toggle
 
     switch (screenSize) {
       case ScreenSizeCategory.small:
@@ -45,7 +48,7 @@ class MainHomeScreen extends StatelessWidget {
               ),
             ],
           ),
-          floatingActionButton: const ChatOverlay(usePositioned: false), // 👈 FIXED
+          floatingActionButton: showChat ? const ChatOverlay(usePositioned: false) : null, // ✅ toggle here
         );
 
       case ScreenSizeCategory.large:
@@ -73,7 +76,7 @@ class MainHomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const ChatOverlay(usePositioned: true), // 👈 FIXED
+              if (showChat) const ChatOverlay(usePositioned: true), // ✅ toggle here
             ],
           ),
         );

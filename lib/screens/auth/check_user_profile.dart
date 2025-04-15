@@ -7,6 +7,10 @@ import 'package:roots_app/screens/auth/login_screen.dart';
 import 'package:roots_app/screens/home/main_home_screen.dart';
 import 'package:roots_app/modules/onboard/views/onboarding_entry.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/modules/settings/models/user_settings_model.dart';
+import 'package:roots_app/modules/map/providers/terrain_provider.dart';
+
+
 
 class CheckUserProfile extends StatefulWidget {
   const CheckUserProfile({super.key});
@@ -49,7 +53,14 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
                     ChangeNotifierProvider(
                       create: (_) => MainContentController(),
                     ),
+                    ChangeNotifierProvider(
+                      create: (_) => UserSettingsModel(),
+                    ),
+                    ChangeNotifierProvider(
+                      create: (_) => TerrainProvider(),
+                    ),
                   ],
+
                   child: const MainHomeScreen(),
                 ),
               ),

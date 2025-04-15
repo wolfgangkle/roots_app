@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/functions/start_hero_movement.dart';
-import 'package:provider/provider.dart';
-import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
+import 'package:roots_app/modules/heroes/widgets/hero_mini_map_overlay.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
 
 class HeroMovementScreen extends StatefulWidget {
@@ -27,7 +28,6 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
     super.initState();
     _cursorPos = heroStart;
 
-    // Optional: Pre-fill existing movement if editing
     if (widget.hero.destinationX != null && widget.hero.destinationY != null) {
       _waypoints.add(Offset(widget.hero.destinationX!.toDouble(), widget.hero.destinationY!.toDouble()));
     }
@@ -53,9 +53,7 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
   void _removeLastWaypoint() {
     if (_waypoints.isNotEmpty) {
       setState(() {
-        _cursorPos = _waypoints.length == 1
-            ? heroStart
-            : _waypoints[_waypoints.length - 2];
+        _cursorPos = _waypoints.length == 1 ? heroStart : _waypoints[_waypoints.length - 2];
         _waypoints.removeLast();
       });
     }
@@ -141,11 +139,19 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
       ),
       body: Column(
         children: [
+          const SizedBox(height: 8),
+
+          /// 🗺️ Tactical Mini Map (readonly)
+          HeroMiniMapOverlay(
+            hero: widget.hero,
+            waypoints: _waypoints,
+          ),
+
           const SizedBox(height: 16),
           Center(child: Text("Current Grid Center: ($tileX, $tileY)")),
           const SizedBox(height: 8),
 
-          /// 🗺️ 3x3 Grid
+          /// 🧭 3x3 Movement Grid
           Table(
             defaultColumnWidth: const FixedColumnWidth(60),
             children: List.generate(3, (row) {
@@ -182,23 +188,23 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
 
           const SizedBox(height: 24),
 
-          /// 📜 Waypoint List
+          /// 📜 Waypoint List in a scrollable container
           if (_waypoints.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Waypoints:", style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  ..._waypoints.map((wp) => Text("• (${wp.dx.toInt()}, ${wp.dy.toInt()})")),
-                ],
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    const Text("Waypoints:", style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    ..._waypoints.map((wp) => Text("• (${wp.dx.toInt()}, ${wp.dy.toInt()})")),
+                  ],
+                ),
               ),
             ),
 
-          const Spacer(),
-
-          /// 🧭 Buttons
+          /// 🧭 Buttons (always visible)
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(

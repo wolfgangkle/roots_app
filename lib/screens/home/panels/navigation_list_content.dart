@@ -7,6 +7,9 @@ import 'package:roots_app/screens/auth/login_screen.dart';
 import 'package:roots_app/screens/dev/dev_mode.dart';
 import 'package:roots_app/modules/reports/views/reports_list_screen.dart';
 import 'package:roots_app/screens/helpers/layout_helper.dart';
+import 'package:roots_app/modules/settings/views/settings_screen.dart';
+import 'package:roots_app/modules/map/screens/map_grid_view.dart';
+
 
 class NavigationListContent extends StatelessWidget {
   final void Function({required String title, required Widget content})? onSelectDynamicTab;
@@ -36,8 +39,32 @@ class NavigationListContent extends StatelessWidget {
       children: [
         const Text('🏠 Home'),
         const SizedBox(height: 12),
-        const Text('🗺️ Map'),
+        ListTile(
+          leading: const Icon(Icons.map),
+          title: const Text('🌍 World Map'),
+          onTap: () {
+            debugPrint('[NavigationListContent] 🌍 World Map tapped');
+
+            if (isInDrawer) {
+              debugPrint('[NavigationListContent] -> Closing drawer via Navigator.pop(context)');
+              Navigator.pop(context);
+            }
+
+            if (isMobile && onSelectDynamicTab != null) {
+              debugPrint('[NavigationListContent] -> Using DYNAMIC TAB for MOBILE');
+              onSelectDynamicTab!(
+                title: '🌍 Map',
+                content: const MapGridView(),
+              );
+            } else {
+              debugPrint('[NavigationListContent] -> Using setCustomContent for DESKTOP');
+              final controller = Provider.of<MainContentController>(context, listen: false);
+              controller.setCustomContent(const MapGridView());
+            }
+          },
+        ),
         const SizedBox(height: 12),
+
         const Text('🏡 Village'),
         const SizedBox(height: 12),
         const Text('🧙 Hero'),
@@ -80,7 +107,31 @@ class NavigationListContent extends StatelessWidget {
           ),
 
         if (!isMobile) const SizedBox(height: 12),
-        const Text('⚙️ Settings'),
+
+        ListTile(
+          leading: const Icon(Icons.settings),
+          title: const Text('⚙️ Settings'),
+          onTap: () {
+            debugPrint('[NavigationListContent] ⚙️ Settings tapped');
+
+            if (isInDrawer) {
+              debugPrint('[NavigationListContent] -> Closing drawer via Navigator.pop(context)');
+              Navigator.pop(context);
+            }
+
+            if (isMobile && onSelectDynamicTab != null) {
+              debugPrint('[NavigationListContent] -> Using DYNAMIC TAB for MOBILE');
+              onSelectDynamicTab!(
+                title: '⚙️ Settings',
+                content: const SettingsScreen(),
+              );
+            } else {
+              debugPrint('[NavigationListContent] -> Using setCustomContent for DESKTOP');
+              final controller = Provider.of<MainContentController>(context, listen: false);
+              controller.setCustomContent(const SettingsScreen());
+            }
+          },
+        ),
         const SizedBox(height: 24),
 
         const Divider(),
