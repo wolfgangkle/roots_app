@@ -71,14 +71,14 @@ export async function foundVillageLogic(request: any) {
         ownerId: uid,
         createdAt: now,
         resources: {
-          wood: 100,
-          stone: 100,
-          food: 100,
-          iron: 50,
-          gold: 10,
+          wood: 0,
+          stone: 0,
+          food: 0,
+          iron: 0,
+          gold: 0,
         },
         buildings: {
-          townHall: { level: 1 }
+          woodcutter: { level: 1 }
         },
         productionPerHour: {
           wood: 50,

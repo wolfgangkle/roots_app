@@ -95,14 +95,14 @@ export async function finalizeOnboardingLogic(request: any) {
         tileKey: `${tile.x}_${tile.y}`,
         ownerId: uid,
         resources: {
-          wood: 100,
-          stone: 100,
-          food: 100,
-          iron: 50,
-          gold: 10,
+          wood: 500,
+          stone: 250,
+          food: 50,
+          iron: 250,
+          gold: 0,
         },
         buildings: {
-          townHall: { level: 1 }
+          woodcutter: { level: 1 }
         },
         productionPerHour: {
           wood: 50,

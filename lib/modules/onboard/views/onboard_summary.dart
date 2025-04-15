@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/profile/models/user_profile_model.dart';
+import 'package:roots_app/screens/auth/check_user_profile.dart';
 import 'package:roots_app/screens/home/main_home_screen.dart';
 
 
@@ -35,23 +36,16 @@ class OnboardSummaryScreen extends StatelessWidget {
   }
 
   void _handleConfirm(BuildContext context) {
-    // 🧠 Step 1: Finalize onboarding (e.g. Firestore write)
+    // Step 1: Fire your onboarding finalization logic (usually writes to Firestore)
     onConfirm();
 
-    // 🧠 Step 2: Create and provide the profile model
-    final userProfile = UserProfileModel(heroName: heroName);
-
-    // 🧠 Step 3: Navigate to main screen with provider in scope
+    // Step 2: Push to CheckUserProfile instead of MainHomeScreen directly
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider<UserProfileModel>.value(
-          value: userProfile,
-          child: const MainHomeScreen(), // replace if needed
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const CheckUserProfile()),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
