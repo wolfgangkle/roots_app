@@ -9,6 +9,17 @@ import { processCombatTick } from './combat/processCombatTick.js'; // ⚔️ New
 
 admin.initializeApp();
 
+
+/**
+ * 🏰 createVillage (New callable for founding a village from hero position)
+ */
+export const createVillage = onCall(async (request) => {
+  const { createVillageLogic } = await import('./village/createVillage.js');
+  return createVillageLogic(request);
+});
+
+
+
 /**
  * 📦 updateVillageResources
  */

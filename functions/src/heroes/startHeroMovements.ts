@@ -58,6 +58,7 @@ export async function startHeroMovements(request: any) {
     destinationX,
     destinationY,
     arrivesAt: admin.firestore.Timestamp.fromDate(arrivesAt),
+    nextTileKey: `${destinationX}_${destinationY}`, // Optional, for movement previews
   };
 
   if (movementQueue && movementQueue.length > 0) {

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/views/hero_movement_screen.dart';
-import 'package:provider/provider.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/combat/views/combat_log_screen.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
+
+import 'package:roots_app/modules/map/constants/tier1_map.dart'; // ← make sure this is imported
+import 'package:roots_app/modules/heroes/views/found_village_screen.dart'; // ← create this screen next
 
 class HeroDetailsScreen extends StatefulWidget {
   final HeroModel hero;
@@ -17,6 +21,39 @@ class HeroDetailsScreen extends StatefulWidget {
 }
 
 class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
+  bool _checkingTile = false;
+
+  Future<void> _handleFoundVillage(HeroModel hero) async {
+    setState(() => _checkingTile = true);
+
+    final tileKey = '${hero.tileX}_${hero.tileY}';
+    final snapshot = await FirebaseFirestore.instance
+        .collectionGroup('villages')
+        .where('tileKey', isEqualTo: tileKey)
+        .limit(1)
+        .get();
+
+    final occupied = snapshot.docs.isNotEmpty;
+    setState(() => _checkingTile = false);
+
+    if (occupied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A village already exists on this tile!')),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => FoundVillageScreen(hero: hero),
+    ));
+  }
+
+  bool _canFoundVillage(HeroModel hero) {
+    final tileKey = '${hero.tileX}_${hero.tileY}';
+    final terrain = tier1Map[tileKey];
+    return hero.state == 'idle' && terrain == 'plains';
+  }
+
   @override
   Widget build(BuildContext context) {
     final heroId = widget.hero.id;
@@ -39,8 +76,6 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
         }
 
         final hero = HeroModel.fromFirestore(heroId, data);
-
-        // Check if the hero is actively moving or if there are queued waypoints.
         final bool isMoving = hero.state == 'moving' && hero.arrivesAt != null;
         final bool hasQueuedWaypoints = hero.movementQueue != null && hero.movementQueue!.isNotEmpty;
         final bool hasMovement = isMoving || hasQueuedWaypoints;
@@ -71,33 +106,24 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text("Arrives at: ${_formatTimestamp(hero.arrivesAt!)}"),
                     ),
-                    // Show the current destination from destination fields if available.
                     if (hero.destinationX != null && hero.destinationY != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          "Moving to: (${hero.destinationX}, ${hero.destinationY})",
-                        ),
+                        child: Text("Moving to: (${hero.destinationX}, ${hero.destinationY})"),
                       )
-                    // Otherwise, fallback to the first waypoint in the queue.
                     else if (hasQueuedWaypoints)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          "Moving to: (${hero.movementQueue!.first['x']}, ${hero.movementQueue!.first['y']})",
-                        ),
+                        child: Text("Moving to: (${hero.movementQueue!.first['x']}, ${hero.movementQueue!.first['y']})"),
                       ),
                   ],
-                  // Always show the full list of queued waypoints.
                   if (hasQueuedWaypoints)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 8),
                         const Text("Waypoints:"),
-                        ...hero.movementQueue!.map((wp) {
-                          return Text("• (${wp['x']}, ${wp['y']})", style: const TextStyle(fontSize: 12));
-                        }),
+                        ...hero.movementQueue!.map((wp) => Text("• (${wp['x']}, ${wp['y']})", style: const TextStyle(fontSize: 12))),
                       ],
                     ),
                 ],
@@ -130,11 +156,9 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
                             icon: const Icon(Icons.remove_red_eye),
                             label: const Text('View Combat'),
                             onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => CombatLogScreen(combatId: docs.first.id),
-                                ),
-                              );
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => CombatLogScreen(combatId: docs.first.id),
+                              ));
                             },
                           ),
                         ],
@@ -165,7 +189,6 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
                 _statRow("Food Duration", _formatDuration(hero.foodDuration)),
 
                 const SizedBox(height: 32),
-                const SizedBox(height: 16),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.edit_location_alt),
                   label: Text(hero.state == 'idle' ? 'Move Hero' : 'Edit Movement'),
@@ -177,6 +200,14 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
                       controller.setCustomContent(HeroMovementScreen(hero: hero));
                     }
                   },
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.location_city),
+                  label: const Text("Found New Village"),
+                  onPressed: _checkingTile || !_canFoundVillage(hero)
+                      ? null
+                      : () => _handleFoundVillage(hero),
                 ),
               ],
             ),
@@ -195,7 +226,6 @@ class _HeroDetailsScreenState extends State<HeroDetailsScreen> {
         final duration = remaining.isNegative ? Duration.zero : remaining;
         final mm = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
         final ss = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-
         return Text("🕒 $mm:$ss until arrival", style: const TextStyle(fontSize: 12));
       },
     );

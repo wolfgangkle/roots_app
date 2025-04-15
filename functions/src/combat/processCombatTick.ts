@@ -197,6 +197,8 @@ export const processCombatTick = onRequest(async (req, res) => {
             destinationY: admin.firestore.FieldValue.delete(),
             arrivesAt: admin.firestore.FieldValue.delete(),
             nextMoveAt: admin.firestore.FieldValue.delete(),
+            nextTileKey: admin.firestore.FieldValue.delete(),
+            reservedDestination: admin.firestore.FieldValue.delete(),
           });
           console.log(`☠️ Hero ${h.id} died in combat ${combatId}`);
         } else if (newState === 'ended') {
@@ -245,6 +247,7 @@ export const processCombatTick = onRequest(async (req, res) => {
                 state: 'moving',
                 destinationX: nextStep.x,
                 destinationY: nextStep.y,
+                nextTileKey: `${nextStep.x}_${nextStep.y}`,
                 arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
                 movementQueue: remainingQueue,
                 reservedDestination: admin.firestore.FieldValue.delete(),
@@ -409,6 +412,7 @@ export const processCombatTick = onRequest(async (req, res) => {
           await singleHeroRef.update({
             destinationX: nextStep.x,
             destinationY: nextStep.y,
+            nextTileKey: `${nextStep.x}_${nextStep.y}`,
             arrivesAt: admin.firestore.Timestamp.fromDate(nextArrivesAt),
             movementQueue: remainingQueue,
             reservedDestination: admin.firestore.FieldValue.delete(),

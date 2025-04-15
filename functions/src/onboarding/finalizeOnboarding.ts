@@ -37,12 +37,13 @@ export async function finalizeOnboardingLogic(request: any) {
 
   // 3. Define zone coordinate bounds.
   const zoneBounds: Record<string, { minX: number; maxX: number; minY: number; maxY: number }> = {
-    north: { minX: 0, maxX: 100, minY: 300, maxY: 400 },
-    south: { minX: 0, maxX: 100, minY: 0,   maxY: 100 },
-    east:  { minX: 300, maxX: 400, minY: 150, maxY: 250 },
-    west:  { minX: 0, maxX: 100, minY: 150, maxY: 250 },
-    center:{ minX: 100, maxX: 200, minY: 150, maxY: 250 },
+    north: { minX: 20, maxX: 80, minY: 0,  maxY: 20 },
+    south: { minX: 20, maxX: 80, minY: 80, maxY: 99 },
+    east:  { minX: 80, maxX: 99, minY: 20, maxY: 80 },
+    west:  { minX: 0,  maxX: 20, minY: 20, maxY: 80 },
+    center:{ minX: 40, maxX: 60, minY: 40, maxY: 60 },
   };
+
 
   const zone = zoneBounds[startZone];
   if (!zone) {
@@ -52,28 +53,25 @@ export async function finalizeOnboardingLogic(request: any) {
   // 4. Helper: find an available tile within the specified zone.
   async function findAvailableTile(
     bounds: { minX: number; maxX: number; minY: number; maxY: number },
-    minDistance = 5
+    maxTries = 50
   ): Promise<{ x: number; y: number } | null> {
-    const maxTries = 50;
     for (let i = 0; i < maxTries; i++) {
       const x = Math.floor(Math.random() * (bounds.maxX - bounds.minX)) + bounds.minX;
       const y = Math.floor(Math.random() * (bounds.maxY - bounds.minY)) + bounds.minY;
-      const tileId = `tile_${x}_${y}`;
-      const tileRef = db.collection('tiles').doc(tileId);
+      const tileId = `${x}_${y}`;
+      const tileRef = db.collection('mapTiles').doc(tileId);
       const tileDoc = await tileRef.get();
 
-      // If tile exists and its terrain is disallowed, skip.
-      if (tileDoc.exists) {
-        const tileData = tileDoc.data();
-        if (tileData && ['water', 'mountain', 'ice', 'forest'].includes(tileData.terrain)) {
-          continue;
-        }
-        // Skip if tile is already occupied.
-        if (tileData && tileData.occupiedBy) {
-          continue;
-        }
+      const tileData = tileDoc.data();
+
+      // Only allow spawning on plains and unoccupied tiles
+      if (
+        tileData &&
+        tileData.terrain === 'plains' &&
+        !tileData.villageId
+      ) {
+        return { x, y };
       }
-      return { x, y };
     }
     return null;
   }
@@ -94,6 +92,7 @@ export async function finalizeOnboardingLogic(request: any) {
         name: villageName.trim(),
         tileX: tile.x,
         tileY: tile.y,
+        tileKey: `${tile.x}_${tile.y}`,
         ownerId: uid,
         resources: {
           wood: 100,
@@ -118,16 +117,16 @@ export async function finalizeOnboardingLogic(request: any) {
       transaction.set(newVillageRef, villageData);
 
       // Mark the tile as occupied.
-      const tileRef = db.collection('tiles').doc(`tile_${tile.x}_${tile.y}`);
-      transaction.set(tileRef, { occupiedBy: newVillageRef.id }, { merge: true });
+      const tileRef = db.collection('mapTiles').doc(`${tile.x}_${tile.y}`);
+      transaction.update(tileRef, { villageId: newVillageRef.id });
 
       // Create (or update) the user profile in the user's profile subcollection.
       const profileRef = db.collection('users').doc(uid).collection('profile').doc('main');
       const profileData = {
-        heroName: heroName.trim(), // Now matching your Firestore field.
+        heroName: heroName.trim(),
         race: race.trim(),
         villageId: newVillageRef.id,
-        zone: startZone, // Optionally store the chosen zone.
+        zone: startZone,
         createdAt: now,
       };
       transaction.set(profileRef, profileData);

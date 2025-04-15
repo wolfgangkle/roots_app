@@ -116,7 +116,12 @@ export async function processArrivalCore(heroId: string): Promise<string> {
     if (!combatSnap.empty) {
       // An ongoing combat exists.
       // Update the arriving hero's position to the destination before joining.
-      await heroRef.update({ tileX: destinationX, tileY: destinationY });
+      await heroRef.update({
+        tileX: destinationX,
+        tileY: destinationY,
+        tileKey: `${destinationX}_${destinationY}`,
+      });
+
       // Join that fight (creating a hybrid PvP/PvE combat).
       const combatDoc = combatSnap.docs[0];
       await combatDoc.ref.update({
@@ -139,7 +144,12 @@ export async function processArrivalCore(heroId: string): Promise<string> {
       return 'Joined existing combat; movement paused at destination.';
     } else {
       // No ongoing combat exists; trigger a new PvP combat.
-      await heroRef.update({ tileX: destinationX, tileY: destinationY });
+      await heroRef.update({
+        tileX: destinationX,
+        tileY: destinationY,
+        tileKey: `${destinationX}_${destinationY}`,
+      });
+
       await heroRef.update({ state: 'in_combat' });
       console.log(`🌀 PvP condition triggered for hero ${heroId} upon arriving at destination (${destinationX}, ${destinationY}).`);
 
@@ -189,6 +199,8 @@ export async function processArrivalCore(heroId: string): Promise<string> {
   await heroRef.update({
     tileX: destinationX,
     tileY: destinationY,
+    tileKey: `${destinationX}_${destinationY}`,
+    nextTileKey: admin.firestore.FieldValue.delete(),
     retryCount: admin.firestore.FieldValue.delete(),
   });
   console.log(`🚀 Teleported hero ${heroId} from (${originX}, ${originY}) to (${destinationX}, ${destinationY}).`);
