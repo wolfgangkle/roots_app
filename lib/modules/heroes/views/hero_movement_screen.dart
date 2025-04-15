@@ -6,6 +6,9 @@ import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_mini_map_overlay.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
+import 'package:roots_app/modules/map/constants/terrain_definitions.dart';
+import 'package:roots_app/modules/map/models/terrain_type_model.dart';
+import 'package:roots_app/modules/map/constants/tier1_map.dart';
 
 class HeroMovementScreen extends StatefulWidget {
   final HeroModel hero;
@@ -42,7 +45,7 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
 
   void _addWaypoint(int x, int y) {
     final pos = Offset(x.toDouble(), y.toDouble());
-    if (pos == _cursorPos || _waypoints.contains(pos)) return;
+    if (pos == _cursorPos) return;
 
     setState(() {
       _waypoints.add(pos);
@@ -140,55 +143,114 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
       body: Column(
         children: [
           const SizedBox(height: 8),
-
-          /// 🗺️ Tactical Mini Map (readonly)
           HeroMiniMapOverlay(
             hero: widget.hero,
             waypoints: _waypoints,
           ),
-
           const SizedBox(height: 16),
           Center(child: Text("Current Grid Center: ($tileX, $tileY)")),
           const SizedBox(height: 8),
 
-          /// 🧭 3x3 Movement Grid
-          Table(
-            defaultColumnWidth: const FixedColumnWidth(60),
-            children: List.generate(3, (row) {
-              return TableRow(
-                children: List.generate(3, (col) {
-                  final x = tileX - 1 + col;
-                  final y = tileY - 1 + row;
-                  final isHero = isHeroTile(x, y);
-                  final isSelected = isWaypoint(x, y);
+          /// 🧭 Responsive 3x3 Movement Grid with terrain info
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final maxWidth = constraints.maxWidth;
+                final calculatedTileSize = (maxWidth - 32) / 3;
+                final tileSize = calculatedTileSize.clamp(60.0, 100.0);
 
-                  return GestureDetector(
-                    onTap: () => _addWaypoint(x, y),
-                    child: Container(
-                      margin: const EdgeInsets.all(4),
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: isHero
-                            ? Colors.blueAccent
-                            : isSelected
-                            ? Colors.green
-                            : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black45),
-                      ),
-                      child: Center(
-                        child: Text(isHero ? "🧙" : "($x, $y)"),
-                      ),
-                    ),
-                  );
-                }),
-              );
-            }),
+                TerrainTypeModel? getTerrain(int x, int y) {
+                  final key = '${x}_${y}';
+                  final terrainId = tier1Map[key];
+                  if (terrainId == null) return null;
+                  return terrainDefinitions[terrainId];
+                }
+
+                return Column(
+                  children: List.generate(3, (row) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(3, (col) {
+                        final x = tileX - 1 + col;
+                        final y = tileY - 1 + row;
+                        final isHero = isHeroTile(x, y);
+                        final isSelected = isWaypoint(x, y);
+                        final terrain = getTerrain(x, y);
+                        final isWalkable = terrain?.walkable ?? false;
+
+                        return GestureDetector(
+                          onTap: isWalkable ? () => _addWaypoint(x, y) : null,
+                          child: Container(
+                            width: tileSize,
+                            height: tileSize,
+                            margin: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: terrain?.color ?? Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: !isWalkable ? Colors.redAccent : Colors.black45,
+                                width: !isWalkable ? 2 : 1,
+                              ),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                if (terrain?.icon != null)
+                                  Icon(terrain!.icon, size: 28, color: Colors.black87),
+
+                                // 📍 Coordinates
+                                Positioned(
+                                  top: 4,
+                                  left: 0,
+                                  right: 0,
+                                  child: Text(
+                                    "($x, $y)",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+
+                                // 🧙 Hero icon
+                                if (isHero)
+                                  const Positioned(
+                                    bottom: 4,
+                                    child: Text("🧙", style: TextStyle(fontSize: 20)),
+                                  ),
+
+                                // 📌 Waypoint marker
+                                if (isSelected && !isHero)
+                                  const Positioned(
+                                    bottom: 4,
+                                    child: Icon(Icons.location_on, size: 20, color: Colors.redAccent),
+                                  ),
+
+                                // 🔒 Lock icon
+                                if (!isWalkable)
+                                  const Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: Icon(Icons.lock, size: 16, color: Colors.redAccent),
+                                  ),
+                              ],
+                            ),
+
+                          ),
+                        );
+                      }),
+                    );
+                  }),
+                );
+              },
+            ),
           ),
 
           const SizedBox(height: 24),
 
-          /// 📜 Waypoint List in a scrollable container
           if (_waypoints.isNotEmpty)
             Flexible(
               child: Padding(
@@ -204,7 +266,6 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
               ),
             ),
 
-          /// 🧭 Buttons (always visible)
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
