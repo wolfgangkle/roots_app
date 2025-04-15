@@ -7,6 +7,7 @@ import 'package:roots_app/screens/auth/check_user_profile.dart';
 import 'package:roots_app/screens/dev/map_editor_screen.dart';
 import 'package:roots_app/screens/home/main_home_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/modules/map/providers/terrain_provider.dart'; // 👈 Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +17,11 @@ void main() async {
   print('✅ Firebase initialized successfully');
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => MainContentController(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => MainContentController()),
+        ChangeNotifierProvider(create: (_) => TerrainProvider()), // 👈 TerrainProvider added here
+      ],
       child: const MyApp(),
     ),
   );

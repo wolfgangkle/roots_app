@@ -77,9 +77,7 @@ export async function foundVillageLogic(request: any) {
           iron: 0,
           gold: 0,
         },
-        buildings: {
-          woodcutter: { level: 1 }
-        },
+
         productionPerHour: {
           wood: 50,
           stone: 40,

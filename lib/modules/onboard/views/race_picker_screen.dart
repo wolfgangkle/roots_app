@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 
 class RacePickerScreen extends StatelessWidget {
@@ -23,7 +21,7 @@ class RacePickerScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // 👤 Human is the only visible/available option for now
+            /// 👤 Human
             Card(
               color: Colors.blue.shade50,
               child: ListTile(
@@ -34,9 +32,22 @@ class RacePickerScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            /// 🪓 Dwarf
+            Card(
+              color: Colors.brown.shade100,
+              child: ListTile(
+                leading: const Icon(Icons.construction),
+                title: const Text('Dwarf'),
+                subtitle: const Text('Sturdy, industrious — excels in mining and defense'),
+                onTap: () => onNext('Dwarf'),
+              ),
+            ),
+
+            const SizedBox(height: 24),
             const Text(
-              'Other races will be available in future updates. 👀',
+              'More races coming in future updates. 👀',
               style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
               textAlign: TextAlign.center,
             ),

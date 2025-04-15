@@ -101,9 +101,7 @@ export async function finalizeOnboardingLogic(request: any) {
           iron: 250,
           gold: 0,
         },
-        buildings: {
-          woodcutter: { level: 1 }
-        },
+
         productionPerHour: {
           wood: 50,
           stone: 40,

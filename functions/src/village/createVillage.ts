@@ -72,9 +72,7 @@ export async function createVillageLogic(request: any) {
         iron: 50,
         gold: 10,
       },
-      buildings: {
-        townHall: { level: 1 }
-      },
+
       productionPerHour: {
         wood: 50,
         stone: 40,

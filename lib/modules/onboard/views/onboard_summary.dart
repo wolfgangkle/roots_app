@@ -10,7 +10,7 @@ class OnboardSummaryScreen extends StatelessWidget {
   final String race;
   final String villageName;
   final String startZone;
-  final VoidCallback onConfirm; // ✅ Keep this
+  final Future<void> Function() onConfirm;
   final VoidCallback onEdit;
 
   const OnboardSummaryScreen({
@@ -35,16 +35,22 @@ class OnboardSummaryScreen extends StatelessWidget {
     );
   }
 
-  void _handleConfirm(BuildContext context) {
-    // Step 1: Fire your onboarding finalization logic (usually writes to Firestore)
-    onConfirm();
+  void _handleConfirm(BuildContext context) async {
+    try {
+      await onConfirm(); // Wait for Firestore update to finish
 
-    // Step 2: Push to CheckUserProfile instead of MainHomeScreen directly
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-    );
+      // Only after it's done, navigate to profile check (or even directly to MainHomeScreen)
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error finalizing onboarding: $e")),
+      );
+    }
   }
+
 
 
   @override

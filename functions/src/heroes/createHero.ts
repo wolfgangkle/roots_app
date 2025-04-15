@@ -46,7 +46,7 @@ export async function createHeroLogic(request: any) {
   // 🐎 Define default movement speed per race (in seconds per tile)
   const defaultMovementSpeeds: Record<string, number> = {
     human: 300, // 20 minutes in seconds; right now reduced to 300 for testing
-    drawf: 600, // 10 minutes in seconds; right now reduced to 600 for testing
+    dwarf: 600, // 10 minutes in seconds; right now reduced to 600 for testing
     // elf: 900,  // maybe faster in the future
     // dwarf: 1500, // slower
     // etc.

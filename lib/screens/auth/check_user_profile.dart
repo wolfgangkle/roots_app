@@ -51,13 +51,7 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
                       create: (_) => UserProfileModel(heroName: heroName),
                     ),
                     ChangeNotifierProvider(
-                      create: (_) => MainContentController(),
-                    ),
-                    ChangeNotifierProvider(
                       create: (_) => UserSettingsModel(),
-                    ),
-                    ChangeNotifierProvider(
-                      create: (_) => TerrainProvider(),
                     ),
                   ],
 

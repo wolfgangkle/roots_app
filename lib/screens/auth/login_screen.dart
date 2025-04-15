@@ -104,11 +104,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   });
                 }
               },
-              child: const Text("🚀 Dev Auto-Login (testacount37@roots.dev)"),
+              child: const Text("🚀 Dev Auto-Login (FREE)"),
             ),
             TextButton(
               onPressed: () async {
-                final user = await AuthService().signIn("test@rootsaccount.com", "123456");
+                final user = await AuthService().signIn("test2@roots.dev", "123456");
                 if (user != null) {
                   debugPrint('Auto-logged in user: ${user.email}');
                   Navigator.of(context).pushReplacement(
@@ -120,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   });
                 }
               },
-              child: const Text("🔁 Dev Auto-Login (test@rootsaccount.com)"),
+              child: const Text("🔁 Dev Auto-Login (test2@roots.dev)"),
             ),
             TextButton(
               onPressed: () async {

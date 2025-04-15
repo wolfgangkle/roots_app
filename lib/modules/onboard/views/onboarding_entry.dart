@@ -47,23 +47,16 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
   }
 
   /// Finalizes onboarding by calling the Cloud Function.
-  void _finalizeOnboarding() async {
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
-      final result = await callable.call({
-        'heroName': heroName!,
-        'villageName': villageName!,
-        'startZone': startZone!,
-        'race': selectedRace!,
-      });
-      // Process result.data if necessary.
-      Navigator.of(context).pushReplacementNamed('/village');
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error finalizing onboarding: $error')),
-      );
-    }
+  Future<void> _finalizeOnboarding() async {
+    final callable = FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
+    await callable.call({
+      'heroName': heroName!,
+      'villageName': villageName!,
+      'startZone': startZone!,
+      'race': selectedRace!,
+    });
   }
+
 
   /// Allows the user to edit their choices. Here we simply restart the flow.
   void _editOnboarding() {
