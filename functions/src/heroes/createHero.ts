@@ -84,6 +84,7 @@ export async function createHeroLogic(request: any) {
     tileX,
     tileY,
     tileKey: `${tileX}_${tileY}`,
+    insideVillage: true,
     state: 'idle',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
 

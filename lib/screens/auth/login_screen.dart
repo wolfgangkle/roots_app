@@ -92,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
             /// 🚀 Dev button
             TextButton(
               onPressed: () async {
-                final user = await AuthService().signIn("testacount37@roots.dev", "123456");
+                final user = await AuthService().signIn("test3@roots.dev", "123456");
                 if (user != null) {
                   debugPrint('Auto-logged in user: ${user.email}');
                   Navigator.of(context).pushReplacement(
@@ -104,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   });
                 }
               },
-              child: const Text("🚀 Dev Auto-Login (FREE)"),
+              child: const Text("🚀 Dev Auto-Login (test3@roots.dev)"),
             ),
             TextButton(
               onPressed: () async {

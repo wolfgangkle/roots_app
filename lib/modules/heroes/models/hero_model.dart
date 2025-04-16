@@ -16,17 +16,18 @@ class HeroModel {
   final Map<String, int> stats;
   final int tileX;
   final int tileY;
+  final String tileKey;
+  final Map<String, int> carriedResources;
   final String state;
   final int? destinationX;
   final int? destinationY;
   final List<Map<String, dynamic>>? movementQueue;
-
   final int hpRegen;
   final int manaRegen;
   final int foodDuration;
-
-  final DateTime? arrivesAt; // ⏱️ for movement fallback logic
-  final DocumentReference ref; // 🔗 to re-fetch/refresh hero doc
+  final DateTime? arrivesAt;
+  final bool insideVillage; // ✅ New field
+  final DocumentReference ref;
 
   HeroModel({
     required this.id,
@@ -44,16 +45,18 @@ class HeroModel {
     required this.stats,
     required this.tileX,
     required this.tileY,
+    required this.tileKey,
+    required this.carriedResources,
     required this.state,
     required this.hpRegen,
     required this.manaRegen,
     required this.foodDuration,
     required this.arrivesAt,
+    required this.insideVillage, // ✅ Added to constructor
     required this.ref,
     this.destinationX,
     this.destinationY,
     this.movementQueue,
-
   });
 
   factory HeroModel.fromFirestore(String id, Map<String, dynamic> data) {
@@ -78,11 +81,20 @@ class HeroModel {
       }),
       tileX: data['tileX'] ?? 0,
       tileY: data['tileY'] ?? 0,
+      tileKey: data['tileKey'] ?? '${data['tileX']}_${data['tileY']}',
+      carriedResources: Map<String, int>.from(data['carriedResources'] ?? {
+        'wood': 0,
+        'stone': 0,
+        'iron': 0,
+        'food': 0,
+        'gold': 0,
+      }),
       state: data['state'] ?? 'idle',
       hpRegen: data['hpRegen'] ?? 300,
       manaRegen: data['manaRegen'] ?? 60,
       foodDuration: data['foodDuration'] ?? 3600,
       arrivesAt: data['arrivesAt']?.toDate(),
+      insideVillage: data['insideVillage'] ?? false, // ✅ Added here
       destinationX: data['destinationX'],
       destinationY: data['destinationY'],
       movementQueue: (data['movementQueue'] as List<dynamic>?)

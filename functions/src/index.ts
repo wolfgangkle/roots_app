@@ -6,6 +6,8 @@ import { createHeroLogic } from './heroes/createHero.js';
 import { startHeroMovements } from './heroes/startHeroMovements.js';
 import { processHeroArrivalCallableLogic } from './heroes/processHeroArrival.js';
 import { processCombatTick } from './combat/processCombatTick.js'; // ⚔️ New combat tick logic
+import { transferHeroResources } from './heroes/transferHeroResources.js';
+
 
 admin.initializeApp();
 
@@ -17,6 +19,8 @@ export const createVillage = onCall(async (request) => {
   const { createVillageLogic } = await import('./village/createVillage.js');
   return createVillageLogic(request);
 });
+
+
 
 
 
@@ -61,6 +65,13 @@ export const createHero = onCall(createHeroLogic);
  * 🚶 startHeroMovements (NEW)
  */
 export const startHeroMovementsFunction = onCall(startHeroMovements);
+
+
+/**
+ * 📦 transferHeroResources
+ */
+export const transferHeroResourcesFunction = onCall(transferHeroResources);
+
 
 /**
  * 🏕️ foundVillage

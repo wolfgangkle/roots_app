@@ -61,7 +61,8 @@ class _FoundVillageScreenState extends State<FoundVillageScreen> {
               height: 300,
               child: HeroMiniMapOverlay(
                 hero: widget.hero,
-                waypoints: [], // no planned movement at this point
+                waypoints: [],
+                centerTileOffset: Offset(widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble()),
               ),
             ),
             const SizedBox(height: 16),
