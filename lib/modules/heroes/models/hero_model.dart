@@ -26,8 +26,14 @@ class HeroModel {
   final int manaRegen;
   final int foodDuration;
   final DateTime? arrivesAt;
-  final bool insideVillage; // ✅ New field
+  final bool insideVillage;
   final DocumentReference ref;
+  final String? groupId;
+  final String? groupLeaderId;
+  final String? guildId;
+  final Timestamp? createdAt;
+
+
 
   HeroModel({
     required this.id,
@@ -52,11 +58,17 @@ class HeroModel {
     required this.manaRegen,
     required this.foodDuration,
     required this.arrivesAt,
-    required this.insideVillage, // ✅ Added to constructor
+    required this.insideVillage,
     required this.ref,
+    required this.createdAt,
+
     this.destinationX,
     this.destinationY,
     this.movementQueue,
+    this.groupId,
+    this.groupLeaderId,
+    this.guildId,
+
   });
 
   factory HeroModel.fromFirestore(String id, Map<String, dynamic> data) {
@@ -93,6 +105,9 @@ class HeroModel {
       hpRegen: data['hpRegen'] ?? 300,
       manaRegen: data['manaRegen'] ?? 60,
       foodDuration: data['foodDuration'] ?? 3600,
+      groupId: data['groupId'],
+      groupLeaderId: data['groupLeaderId'],
+      guildId: data['guildId'],
       arrivesAt: data['arrivesAt']?.toDate(),
       insideVillage: data['insideVillage'] ?? false, // ✅ Added here
       destinationX: data['destinationX'],
@@ -101,6 +116,7 @@ class HeroModel {
           ?.map((e) => Map<String, dynamic>.from(e))
           .toList(),
       ref: FirebaseFirestore.instance.collection('heroes').doc(id),
+      createdAt: data['createdAt'],
     );
   }
 }

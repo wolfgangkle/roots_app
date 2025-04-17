@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:roots_app/profile/models/user_profile_model.dart';
 import 'package:roots_app/screens/auth/check_user_profile.dart';
-import 'package:roots_app/screens/home/main_home_screen.dart';
-
 
 class OnboardSummaryScreen extends StatelessWidget {
   final String heroName;
@@ -12,6 +8,7 @@ class OnboardSummaryScreen extends StatelessWidget {
   final String startZone;
   final Future<void> Function() onConfirm;
   final VoidCallback onEdit;
+  final bool isLoading; // ✅ NEW
 
   const OnboardSummaryScreen({
     Key? key,
@@ -21,6 +18,7 @@ class OnboardSummaryScreen extends StatelessWidget {
     required this.startZone,
     required this.onConfirm,
     required this.onEdit,
+    this.isLoading = false, // ✅ Default to false
   }) : super(key: key);
 
   Widget _buildSummaryRow(String label, String value) {
@@ -39,7 +37,8 @@ class OnboardSummaryScreen extends StatelessWidget {
     try {
       await onConfirm(); // Wait for Firestore update to finish
 
-      // Only after it's done, navigate to profile check (or even directly to MainHomeScreen)
+      if (!context.mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const CheckUserProfile()),
@@ -50,8 +49,6 @@ class OnboardSummaryScreen extends StatelessWidget {
       );
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -75,15 +72,24 @@ class OnboardSummaryScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: onEdit,
+                    onPressed: isLoading ? null : onEdit,
                     child: const Text("Edit"),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _handleConfirm(context),
-                    child: const Text("Confirm"),
+                    onPressed: isLoading ? null : () => _handleConfirm(context),
+                    child: isLoading
+                        ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                        : const Text("Confirm"),
                   ),
                 ),
               ],

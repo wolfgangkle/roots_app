@@ -6,6 +6,7 @@ import 'package:roots_app/modules/heroes/views/details_tabs/hero_stats_tab.dart'
 import 'package:roots_app/modules/heroes/views/details_tabs/hero_equipment_tab.dart';
 import 'package:roots_app/modules/heroes/views/details_tabs/hero_resources_tab.dart';
 import 'package:roots_app/modules/heroes/views/details_tabs/hero_settings_tab.dart';
+import 'package:roots_app/modules/heroes/views/details_tabs/hero_group_tab.dart'; // 👈 NEW IMPORT
 
 class HeroDetailsScreen extends StatelessWidget {
   final HeroModel hero;
@@ -36,7 +37,7 @@ class HeroDetailsScreen extends StatelessWidget {
         final currentHero = HeroModel.fromFirestore(heroId, data);
 
         return DefaultTabController(
-          length: 4,
+          length: 5, // 👈 Now has 5 tabs
           child: Scaffold(
             appBar: AppBar(
               title: Text(currentHero.heroName),
@@ -47,6 +48,7 @@ class HeroDetailsScreen extends StatelessWidget {
                   Tab(text: 'Equipment'),
                   Tab(text: 'Resources'),
                   Tab(text: 'Hero Settings'),
+                  Tab(text: 'Groups'), // 👈 New Tab
                 ],
               ),
             ),
@@ -56,6 +58,7 @@ class HeroDetailsScreen extends StatelessWidget {
                 const HeroEquipmentTab(),
                 HeroResourcesTab(hero: currentHero),
                 const HeroSettingsTab(),
+                HeroGroupsTab(hero: currentHero), // 👈 New Tab Content
               ],
             ),
           ),

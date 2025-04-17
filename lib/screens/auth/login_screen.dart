@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
-import 'register_screen.dart'; // ✅ Your new screen!
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,6 +48,34 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _cleanMapTiles() async {
+    final tilesRef = FirebaseFirestore.instance.collection('mapTiles');
+    final snapshot = await tilesRef.get();
+
+    int cleaned = 0;
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final cleanedData = {
+        'terrain': data['terrain'],
+        'x': data['x'],
+        'y': data['y'],
+      };
+
+      final shouldClean = data.keys.any((k) => !['terrain', 'x', 'y'].contains(k));
+      if (shouldClean) {
+        await doc.reference.set(cleanedData, SetOptions(merge: false));
+        cleaned++;
+      }
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("🧹 Cleaned $cleaned mapTiles")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 12),
 
-            /// 🔗 Register link
+            // 🔗 Register link
             TextButton(
               onPressed: () {
                 Navigator.of(context).push(
@@ -87,9 +116,10 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 10),
             if (errorMessage.isNotEmpty)
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
+
             const SizedBox(height: 20),
 
-            /// 🚀 Dev button
+            // 🚀 Dev Quick Login buttons
             TextButton(
               onPressed: () async {
                 final user = await AuthService().signIn("test3@roots.dev", "123456");
@@ -153,6 +183,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 }
               },
               child: const Text("🧙 Dev Auto-Login (test@roots.dev)"),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 🧼 MapTiles Cleanup Button
+            ElevatedButton.icon(
+              icon: const Icon(Icons.cleaning_services),
+              label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
+              onPressed: _cleanMapTiles,
             ),
           ],
         ),

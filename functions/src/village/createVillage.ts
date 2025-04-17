@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin';
-import { HttpsError } from 'firebase-functions/v2/https'; // ✅ Removed unused onCall
+import { HttpsError } from 'firebase-functions/v2/https';
 
 const db = admin.firestore();
 
@@ -54,11 +54,59 @@ export async function createVillageLogic(request: any) {
     throw new HttpsError('already-exists', 'This tile already has a village.');
   }
 
+  // 🔍 Load user profile
+  const profileRef = db.doc(`users/${uid}/profile/main`);
+  const profileSnap = await profileRef.get();
+  const profile = profileSnap.data();
+
+  if (!profile || !profile.slotLimits || !profile.currentSlotUsage) {
+    throw new HttpsError('failed-precondition', 'Profile is missing slot limits.');
+  }
+
+  const usedVillages = profile.currentSlotUsage.villages ?? 0;
+  const usedCompanions = profile.currentSlotUsage.companions ?? 0;
+  const maxVillages = profile.slotLimits.maxVillages ?? 8;
+  const maxSlots = profile.slotLimits.maxSlots ?? 8;
+
+  const totalUsedSlots = usedVillages + usedCompanions;
+
+  // 🔍 Load mage level
+  const mageSnap = await db.collection('heroes')
+    .where('ownerId', '==', uid)
+    .where('type', '==', 'mage')
+    .limit(1)
+    .get();
+
+  if (mageSnap.empty) {
+    throw new HttpsError('failed-precondition', 'Main hero (mage) not found.');
+  }
+
+  const mageLevel = mageSnap.docs[0].data().level ?? 1;
+
+  // 🧠 Calculate current allowed slots based on mage level
+  const currentMaxSlots = Math.min(
+    2 + Math.floor((mageLevel - 1) / 2),
+    maxSlots
+  );
+
   const newVillageRef = db.collection('users').doc(uid).collection('villages').doc();
 
   await db.runTransaction(async (tx) => {
     const now = admin.firestore.FieldValue.serverTimestamp();
 
+    const isCompanion = hero.type === 'companion';
+    const hasFreeSlot = totalUsedSlots < currentMaxSlots;
+    const underVillageCap = usedVillages < maxVillages;
+
+    // ❌ Reject if over both limits and not a sacrificable companion
+    if (!hasFreeSlot && (!isCompanion || !underVillageCap)) {
+      throw new HttpsError(
+        'failed-precondition',
+        'You have no available slot and cannot sacrifice this hero to found a village.'
+      );
+    }
+
+    // 🏡 1. Create the village
     tx.set(newVillageRef, {
       name: villageName.trim(),
       tileX,
@@ -66,13 +114,12 @@ export async function createVillageLogic(request: any) {
       tileKey,
       ownerId: uid,
       resources: {
-        wood: 100,
-        stone: 100,
-        food: 100,
-        iron: 50,
-        gold: 10,
+        wood: 0,
+        stone: 0,
+        food: 0,
+        iron: 0,
+        gold: 0,
       },
-
       productionPerHour: {
         wood: 50,
         stone: 40,
@@ -84,9 +131,29 @@ export async function createVillageLogic(request: any) {
       createdAt: now,
     });
 
+    // 📌 2. Mark tile
     tx.update(mapTileRef, {
       villageId: newVillageRef.id,
     });
+
+    // 🔄 3. Update profile
+    const profileUpdate: FirebaseFirestore.UpdateData<admin.firestore.DocumentData> = {
+      'currentSlotUsage.villages': admin.firestore.FieldValue.increment(1),
+      currentMaxSlots,
+    };
+
+    if (!hasFreeSlot && isCompanion) {
+      profileUpdate['currentSlotUsage.companions'] = admin.firestore.FieldValue.increment(-1);
+    }
+
+    tx.update(profileRef, profileUpdate);
+
+
+    // ☠️ 4. Delete companion if sacrificed
+    if (!hasFreeSlot && isCompanion) {
+      tx.delete(heroRef);
+      console.log(`☠️ Companion ${heroId} sacrificed to found a village.`);
+    }
   });
 
   console.log(`✅ Village '${villageName}' created at ${tileKey} by hero ${heroId}`);
@@ -97,6 +164,6 @@ export async function createVillageLogic(request: any) {
     tileX,
     tileY,
     tileKey,
-    message: 'Village successfully founded.',
+    message: `Village successfully founded.`,
   };
 }

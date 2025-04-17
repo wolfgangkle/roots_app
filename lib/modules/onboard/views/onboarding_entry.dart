@@ -21,6 +21,7 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
   String? villageName;
   String? startZone;
   int currentStep = 0;
+  bool _isSubmitting = false; // ✅ Lock for confirm button
 
   void _nextStep() {
     setState(() => currentStep++);
@@ -48,15 +49,27 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
 
   /// Finalizes onboarding by calling the Cloud Function.
   Future<void> _finalizeOnboarding() async {
-    final callable = FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
-    await callable.call({
-      'heroName': heroName!,
-      'villageName': villageName!,
-      'startZone': startZone!,
-      'race': selectedRace!,
-    });
-  }
+    setState(() => _isSubmitting = true);
 
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
+      await callable.call({
+        'heroName': heroName!,
+        'villageName': villageName!,
+        'startZone': startZone!,
+        'race': selectedRace!,
+      });
+    } catch (e) {
+      debugPrint("❌ Onboarding error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error finalizing onboarding: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   /// Allows the user to edit their choices. Here we simply restart the flow.
   void _editOnboarding() {
@@ -87,6 +100,7 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
           startZone: startZone!,
           onConfirm: _finalizeOnboarding,
           onEdit: _editOnboarding,
+          isLoading: _isSubmitting, // ✅ Pass loading state
         );
     }
   }

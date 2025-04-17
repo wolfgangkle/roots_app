@@ -25,6 +25,33 @@ class _FoundVillageScreenState extends State<FoundVillageScreen> {
       return;
     }
 
+    // 🧠 Confirm companion sacrifice
+    if (widget.hero.type == 'companion') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Convert Companion to Village"),
+          content: const Text(
+            "Are you sure you want to found a village with this companion?\n\n"
+                "This will permanently remove them.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.check),
+              label: const Text("Yes, Convert"),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -77,6 +104,15 @@ class _FoundVillageScreenState extends State<FoundVillageScreen> {
               ),
               onSubmitted: (_) => _submit(),
             ),
+
+            if (widget.hero.type == 'companion') ...[
+              const SizedBox(height: 8),
+              const Text(
+                "💡 Using a companion will permanently convert them into a village.",
+                style: TextStyle(fontSize: 12, color: Colors.orange),
+              ),
+            ],
+
             const SizedBox(height: 16),
 
             /// ✅ Found Button

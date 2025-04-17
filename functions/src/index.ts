@@ -22,8 +22,6 @@ export const createVillage = onCall(async (request) => {
 
 
 
-
-
 /**
  * 📦 updateVillageResources
  */
@@ -61,6 +59,49 @@ export const finalizeOnboarding = onCall(async (request) => {
  */
 export const createHero = onCall(createHeroLogic);
 
+
+/**
+ * 👥 createCompanion
+ */
+export const createCompanion = onCall(async (request) => {
+  const { createCompanionLogic } = await import('./heroes/createCompanion.js');
+  return createCompanionLogic(request);
+});
+
+
+
+
+/**
+ * 🧩 connectHeroToGroup
+ */
+export const connectHeroToGroup = onCall(async (request) => {
+  const { connectHeroToGroupLogic } = await import('./heroes/connectHeroToGroup.js');
+  return connectHeroToGroupLogic(request);
+});
+
+
+
+/**
+ * 🧹 disconnectHeroFromGroup
+ */
+export const disconnectHeroFromGroup = onCall(async (request) => {
+  const { disconnectHeroFromGroupLogic } = await import('./heroes/disconnectHeroFromGroup.js');
+  return disconnectHeroFromGroupLogic(request);
+});
+
+
+
+/**
+ * 🥾 kickHeroFromGroup
+ */
+export const kickHeroFromGroup = onCall(async (request) => {
+  const { kickHeroFromGroupLogic } = await import('./heroes/kickHeroFromGroup.js');
+  return kickHeroFromGroupLogic(request);
+});
+
+
+
+
 /**
  * 🚶 startHeroMovements (NEW)
  */
@@ -73,13 +114,6 @@ export const startHeroMovementsFunction = onCall(startHeroMovements);
 export const transferHeroResourcesFunction = onCall(transferHeroResources);
 
 
-/**
- * 🏕️ foundVillage
- */
-export const foundVillage = onCall(async (request) => {
-  const { foundVillageLogic } = await import('./village/foundVillage.js');
-  return foundVillageLogic(request);
-});
 
 /**
  * ⏰ finishBuildingUpgradeScheduled (Cloud Task HTTP endpoint)

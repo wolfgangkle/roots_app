@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 
 class HeroCard extends StatelessWidget {
@@ -11,54 +12,90 @@ class HeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final percentHp = hero.hpMax > 0 ? (hero.hp / hero.hpMax).clamp(0.0, 1.0) : 0.0;
+    final groupRef = FirebaseFirestore.instance.collection('heroGroups').doc(hero.groupId);
 
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              hero.heroName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              _formatHeroState(hero.state),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: _stateColor(hero.state),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Level ${hero.level} • ${hero.race}"),
-            const SizedBox(height: 4),
-            LinearProgressIndicator(
-              value: percentHp,
-              backgroundColor: Colors.grey.shade300,
-              color: Colors.red.shade400,
-              minHeight: 6,
-            ),
-            const SizedBox(height: 2),
-            Text("HP: ${hero.hp} / ${hero.hpMax}", style: const TextStyle(fontSize: 12)),
+    return FutureBuilder<DocumentSnapshot>(
+      future: groupRef.get(),
+      builder: (context, snapshot) {
+        String positionText = "";
+        if (snapshot.hasData && snapshot.data?.data() != null) {
+          final groupData = snapshot.data!.data() as Map<String, dynamic>;
+          final tileX = groupData['tileX'];
+          final tileY = groupData['tileY'];
+          if (tileX != null && tileY != null) {
+            positionText = "📍 $tileX / $tileY";
+          }
+        }
 
-            if (hero.state == 'moving' && hero.arrivesAt != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: _LiveCountdown(arrivesAt: hero.arrivesAt!),
-              ),
-          ],
-        ),
-      ),
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: ListTile(
+            onTap: onTap,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  hero.heroName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _formatHeroState(hero.state),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _stateColor(hero.state),
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (positionText.isNotEmpty)
+                      Text(positionText, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+              ],
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Level ${hero.level} • ${hero.race}"),
+                const SizedBox(height: 4),
+                LinearProgressIndicator(
+                  value: percentHp,
+                  backgroundColor: Colors.grey.shade300,
+                  color: Colors.red.shade400,
+                  minHeight: 6,
+                ),
+                const SizedBox(height: 2),
+                Text("HP: ${hero.hp} / ${hero.hpMax}", style: const TextStyle(fontSize: 12)),
+
+                if (hero.type == 'mage') ...[
+                  const SizedBox(height: 4),
+                  LinearProgressIndicator(
+                    value: hero.manaMax > 0 ? (hero.mana / hero.manaMax).clamp(0.0, 1.0) : 0.0,
+                    backgroundColor: Colors.grey.shade300,
+                    color: Colors.blue.shade400,
+                    minHeight: 6,
+                  ),
+                  const SizedBox(height: 2),
+                  Text("Mana: ${hero.mana} / ${hero.manaMax}", style: const TextStyle(fontSize: 12)),
+                ],
+
+                if (hero.state == 'moving' && hero.arrivesAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: _LiveCountdown(arrivesAt: hero.arrivesAt!),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
+
 
   String _formatHeroState(String state) {
     switch (state) {
