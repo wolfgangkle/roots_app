@@ -7,9 +7,10 @@ import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/map/constants/tier1_map.dart';
 import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
 import 'package:roots_app/modules/heroes/views/hero_movement_screen.dart';
-import 'package:roots_app/modules/combat/views/combat_log_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
+
+
 
 class HeroStatsTab extends StatefulWidget {
   final HeroModel hero;
@@ -24,13 +25,16 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
   bool _checkingTile = false;
   Map<String, dynamic>? _slotLimits;
   Map<String, dynamic>? _slotUsage;
+  Map<String, dynamic>? _groupData;
   int _currentMaxSlots = 0;
   int _usedSlots = 0;
+  String? _villageName;
 
   @override
   void initState() {
     super.initState();
     _loadSlotData();
+    _loadGroupData();
   }
 
   Future<void> _loadSlotData() async {
@@ -53,6 +57,40 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
       _currentMaxSlots = data['currentMaxSlots'] ?? (_slotLimits?['maxSlots'] ?? 0);
       _usedSlots = (_slotUsage?['villages'] ?? 0) + (_slotUsage?['companions'] ?? 0);
     });
+  }
+
+  Future<void> _loadGroupData() async {
+    final groupId = widget.hero.groupId;
+    if (groupId == null) return;
+
+    final groupSnap = await FirebaseFirestore.instance
+        .collection('heroGroups')
+        .doc(groupId)
+        .get();
+
+    final data = groupSnap.data();
+    if (data == null) return;
+
+    setState(() => _groupData = data);
+
+    if (data['insideVillage'] == true) {
+      final name = await _getVillageName(data['tileX'], data['tileY']);
+      setState(() => _villageName = name);
+    }
+  }
+
+  Future<String?> _getVillageName(int x, int y) async {
+    final query = await FirebaseFirestore.instance
+        .collectionGroup('villages')
+        .where('tileX', isEqualTo: x)
+        .where('tileY', isEqualTo: y)
+        .limit(1)
+        .get();
+
+    if (query.docs.isNotEmpty) {
+      return query.docs.first.data()['name'];
+    }
+    return null;
   }
 
   Future<void> _handleFoundVillage(HeroModel hero) async {
@@ -106,46 +144,92 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     final bool hasQueuedWaypoints = hero.movementQueue != null && hero.movementQueue!.isNotEmpty;
     final bool hasMovement = isMoving || hasQueuedWaypoints;
 
+    final String locationText = _groupData == null
+        ? 'Loading...'
+        : "(${_groupData!['tileX']}, ${_groupData!['tileY']})" +
+        (_groupData!['insideVillage'] == true
+            ? _villageName != null
+            ? " • In village ‘$_villageName’"
+            : " • In Village"
+            : "");
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle("🧙 Hero Info"),
-          Text("Name: ${hero.heroName}"),
-          Text("Race: ${hero.race}"),
-          Text("Level: ${hero.level}"),
-          Text("Location: (${hero.tileX}, ${hero.tileY})"),
-          Text("State: ${hero.state}"),
+          _infoCard("🧙 Hero Info", [
+            _statRow("Name", hero.heroName),
+            _statRow("Race", hero.race),
+            _statRow("Level", hero.level.toString()),
+            _statRow("Location", "📍 $locationText"),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("State"),
+                Text(
+                  _formatHeroState(hero.state),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _stateColor(hero.state),
+                  ),
+                ),
+              ],
+            ),
+          ]),
 
-          if (hasMovement) ...[
-            const SizedBox(height: 12),
-            _sectionTitle("🧭 Movement Status"),
-            // ... your existing movement UI unchanged ...
-          ],
+          if (hasMovement)
+            _infoCard("🧭 Movement Status", [
+              _statRow("Currently Moving", isMoving ? "Yes" : "No"),
+              if (hasQueuedWaypoints)
+                _statRow("Waypoints", "${hero.movementQueue?.length} queued"),
+            ]),
 
-          // ... your existing combat UI unchanged ...
+          _infoCard("⚔️ Combat Stats", [
+            _statRow("Experience", hero.experience.toString()),
+            _statRow("Magic Resistance", hero.magicResistance.toString()),
+            _barRow("HP", hero.hp, hero.hpMax, color: Theme.of(context).colorScheme.error),
+            _barRow("Mana", hero.mana, hero.manaMax, color: Theme.of(context).colorScheme.primary),
+          ]),
 
-          const SizedBox(height: 24),
-          _sectionTitle("⚔️ Combat Stats"),
-          _statRow("Experience", hero.experience.toString()),
-          _statRow("Magic Resistance", hero.magicResistance.toString()),
-          const SizedBox(height: 12),
-          _barRow("HP", hero.hp, hero.hpMax, color: Colors.red),
-          _barRow("Mana", hero.mana, hero.manaMax, color: Colors.blue),
+          _infoCard("📊 Attributes", [
+            _attributeBar("Strength", hero.stats['strength'] ?? 0),
+            _attributeBar("Dexterity", hero.stats['dexterity'] ?? 0),
+            _attributeBar("Intelligence", hero.stats['intelligence'] ?? 0),
+            _attributeBar("Constitution", hero.stats['constitution'] ?? 0),
+          ]),
 
-          const SizedBox(height: 24),
-          _sectionTitle("📊 Attributes"),
-          _attributeBar("Strength", hero.stats['strength'] ?? 0),
-          _attributeBar("Dexterity", hero.stats['dexterity'] ?? 0),
-          _attributeBar("Intelligence", hero.stats['intelligence'] ?? 0),
-          _attributeBar("Constitution", hero.stats['constitution'] ?? 0),
+          _infoCard("🗺️ Movement & Waypoints", [
+            _statRow("Movement Speed", _formatTime(hero.movementSpeed)),
+            _statRowWithInfo("Max Waypoints", hero.maxWaypoints?.toString() ?? '—',
+                tooltip: "Max path steps your hero can queue. Scales with INT later."),
+          ]),
 
-          const SizedBox(height: 24),
-          _sectionTitle("🌿 Survival & Regen"),
-          _statRow("HP Regen", "${hero.hpRegen}s"),
-          _statRow("Mana Regen", "${hero.manaRegen}s"),
-          _statRow("Food Duration", _formatDuration(hero.foodDuration)),
+          _infoCard("⚙️ Combat Mechanics", [
+            _statRow("Attack Min", hero.combat['attackMin'].toString()),
+            _statRow("Attack Max", hero.combat['attackMax'].toString()),
+            _statRow("Defense", hero.combat['defense'].toString()),
+            _statRowWithInfo("Regen per Tick", hero.combat['regenPerTick'].toString(),
+                tooltip: "HP regenerated per ~10s combat tick."),
+            _statRowWithInfo(
+              "Attack Speed",
+              "${(hero.combat['attackSpeedMs'] / 1000).toStringAsFixed(1)}s",
+              tooltip: "Time between each attack in seconds.",
+            ),
+            _statRowWithInfo(
+              "Estimated DPS",
+              _calculateDPS(hero.combat),
+              tooltip: "Average DPS = ((min+max)/2) / attack speed",
+            ),
+          ]),
+
+          _infoCard("🌿 Survival & Regen", [
+            _statRow("HP Regen", _formatTime(hero.hpRegen)),
+            _statRow("Mana Regen", _formatTime(hero.manaRegen)),
+            _statRow("Food consumption every", _formatTime(hero.foodDuration)),
+          ]),
+
+          _debugCard(hero),
 
           const SizedBox(height: 32),
           ElevatedButton.icon(
@@ -174,7 +258,7 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
             Text(
               "💡 Companions can be converted into villages.\n"
                   "If no free slot is available, they will be sacrificed to make space.",
-              style: const TextStyle(fontSize: 12, color: Colors.orange),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange),
             ),
           ],
         ],
@@ -182,14 +266,39 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     );
   }
 
+  Widget _infoCard(String title, List<Widget> children) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget _sectionTitle(String title) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-    ),
-  );
+  Widget _debugCard(HeroModel hero) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ExpansionTile(
+        title: Text("🛠️ Debug Info", style: Theme.of(context).textTheme.titleSmall),
+        children: [
+          _statRow("Group ID", hero.groupId ?? '—'),
+          _statRow("Leader ID", hero.groupLeaderId ?? '—'),
+        ],
+      ),
+    );
+  }
 
   Widget _statRow(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2),
@@ -202,6 +311,31 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     ),
   );
 
+  Widget _statRowWithInfo(String label, String value, {String? tooltip}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Text(label),
+              if (tooltip != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Tooltip(
+                    message: tooltip,
+                    child: const Icon(Icons.info_outline, size: 14, color: Colors.grey),
+                  ),
+                ),
+            ],
+          ),
+          Text(value),
+        ],
+      ),
+    );
+  }
+
   Widget _barRow(String label, int current, int max, {required Color color}) {
     final percent = max > 0 ? (current / max).clamp(0.0, 1.0) : 0.0;
     return Padding(
@@ -210,14 +344,17 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("$label: $current / $max"),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percent,
-              minHeight: 8,
-              backgroundColor: Colors.grey.shade300,
-              color: color,
-            ),
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 500),
+            tween: Tween(begin: 0.0, end: percent),
+            builder: (context, value, _) {
+              return LinearProgressIndicator(
+                value: value,
+                minHeight: 8,
+                backgroundColor: Colors.grey.shade300,
+                color: color,
+              );
+            },
           ),
         ],
       ),
@@ -231,11 +368,17 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
         children: [
           SizedBox(width: 140, child: Text(label)),
           Expanded(
-            child: LinearProgressIndicator(
-              value: value / 500,
-              minHeight: 10,
-              backgroundColor: Colors.grey.shade200,
-              color: Colors.brown,
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 600),
+              tween: Tween(begin: 0.0, end: value.toDouble()),
+              builder: (context, val, _) {
+                return LinearProgressIndicator(
+                  value: val / 500,
+                  minHeight: 10,
+                  backgroundColor: Colors.grey.shade200,
+                  color: Theme.of(context).colorScheme.secondary,
+                );
+              },
             ),
           ),
           const SizedBox(width: 8),
@@ -245,13 +388,49 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     );
   }
 
-  String _formatDuration(int seconds) {
-    final duration = Duration(seconds: seconds);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final parts = <String>[];
-    if (hours > 0) parts.add('${hours}h');
-    if (minutes > 0 || parts.isEmpty) parts.add('${minutes}m');
-    return parts.join(' ');
+  String _formatTime(int seconds) {
+    if (seconds < 60) return '$seconds s';
+    final minutes = seconds ~/ 60;
+    final remaining = seconds % 60;
+    return remaining == 0 ? '$minutes m' : '$minutes m $remaining s';
+  }
+
+  Color _stateColor(String state) {
+    switch (state) {
+      case 'idle':
+        return Colors.green;
+      case 'moving':
+        return Colors.orange;
+      case 'in_combat':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _formatHeroState(String state) {
+    switch (state) {
+      case 'idle':
+        return '🟢 idle';
+      case 'moving':
+        return '🟡 moving';
+      case 'in_combat':
+        return '🔴 in combat';
+      default:
+        return '❔ unknown';
+    }
+  }
+
+
+
+  String _calculateDPS(Map<String, dynamic> combat) {
+    final min = combat['attackMin'] ?? 0;
+    final max = combat['attackMax'] ?? 0;
+    final speedMs = combat['attackSpeedMs'] ?? 1000;
+    final avg = (min + max) / 2;
+    final seconds = speedMs / 1000;
+    if (seconds == 0) return '∞';
+    final dps = avg / seconds;
+    return dps.toStringAsFixed(2);
   }
 }

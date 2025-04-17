@@ -48,6 +48,8 @@ export async function createHeroLogic(request: any) {
   const newHeroRef = heroesRef.doc();
   const heroId = newHeroRef.id;
 
+  const maxWaypoints = 20;
+
   const heroData = {
     ownerId: userId,
     heroName,
@@ -85,6 +87,7 @@ export async function createHeroLogic(request: any) {
     foodDuration: 3600,
 
     movementSpeed,
+    maxWaypoints, // 🆕 New field!
   };
 
   const heroGroupRef = db.collection('heroGroups').doc(heroId);
@@ -108,7 +111,7 @@ export async function createHeroLogic(request: any) {
     heroGroupRef.set(heroGroupData),
   ]);
 
-  console.log(`🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, movementSpeed=${movementSpeed}s`);
+  console.log(`🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, movementSpeed=${movementSpeed}s, maxWaypoints=${maxWaypoints}`);
 
   return {
     heroId,

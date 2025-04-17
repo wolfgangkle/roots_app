@@ -28,74 +28,85 @@ class HeroCard extends StatelessWidget {
         }
 
         return Card(
-          elevation: 3,
+          elevation: 2,
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: ListTile(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
             onTap: onTap,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  hero.heroName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      _formatHeroState(hero.state),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _stateColor(hero.state),
-                        fontSize: 12,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// Header row: Name + State + Position
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        hero.heroName,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    if (positionText.isNotEmpty)
-                      Text(positionText, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                  ],
-                ),
-              ],
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Level ${hero.level} • ${hero.race}"),
-                const SizedBox(height: 4),
-                LinearProgressIndicator(
-                  value: percentHp,
-                  backgroundColor: Colors.grey.shade300,
-                  color: Colors.red.shade400,
-                  minHeight: 6,
-                ),
-                const SizedBox(height: 2),
-                Text("HP: ${hero.hp} / ${hero.hpMax}", style: const TextStyle(fontSize: 12)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _formatHeroState(hero.state),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: _stateColor(hero.state),
+                            ),
+                          ),
+                          if (positionText.isNotEmpty)
+                            Text(positionText, style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      ),
+                    ],
+                  ),
 
-                if (hero.type == 'mage') ...[
                   const SizedBox(height: 4),
+                  Text("Level ${hero.level} • ${hero.race}", style: Theme.of(context).textTheme.bodyMedium),
+
+                  const SizedBox(height: 8),
+
+                  /// HP bar
                   LinearProgressIndicator(
-                    value: hero.manaMax > 0 ? (hero.mana / hero.manaMax).clamp(0.0, 1.0) : 0.0,
+                    value: percentHp,
                     backgroundColor: Colors.grey.shade300,
-                    color: Colors.blue.shade400,
+                    color: Theme.of(context).colorScheme.error,
                     minHeight: 6,
                   ),
-                  const SizedBox(height: 2),
-                  Text("Mana: ${hero.mana} / ${hero.manaMax}", style: const TextStyle(fontSize: 12)),
-                ],
+                  const SizedBox(height: 4),
+                  Text("HP: ${hero.hp} / ${hero.hpMax}", style: Theme.of(context).textTheme.bodySmall),
 
-                if (hero.state == 'moving' && hero.arrivesAt != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: _LiveCountdown(arrivesAt: hero.arrivesAt!),
-                  ),
-              ],
+                  /// Mana bar
+                  if (hero.type == 'mage') ...[
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: hero.manaMax > 0 ? (hero.mana / hero.manaMax).clamp(0.0, 1.0) : 0.0,
+                      backgroundColor: Colors.grey.shade300,
+                      color: Theme.of(context).colorScheme.primary,
+                      minHeight: 6,
+                    ),
+                    const SizedBox(height: 4),
+                    Text("Mana: ${hero.mana} / ${hero.manaMax}", style: Theme.of(context).textTheme.bodySmall),
+                  ],
+
+                  /// Countdown
+                  if (hero.state == 'moving' && hero.arrivesAt != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: _LiveCountdown(arrivesAt: hero.arrivesAt!),
+                    ),
+                ],
+              ),
             ),
           ),
         );
       },
     );
   }
-
 
   String _formatHeroState(String state) {
     switch (state) {
@@ -162,6 +173,9 @@ class _LiveCountdownState extends State<_LiveCountdown> {
     final mm = _remaining.inMinutes.remainder(60).toString().padLeft(2, '0');
     final ss = _remaining.inSeconds.remainder(60).toString().padLeft(2, '0');
 
-    return Text("🕒 $mm:$ss until arrival", style: const TextStyle(fontSize: 12));
+    return Text(
+      "🕒 $mm:$ss until arrival",
+      style: Theme.of(context).textTheme.bodySmall,
+    );
   }
 }

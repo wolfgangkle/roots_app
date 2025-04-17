@@ -25,6 +25,9 @@ class HeroModel {
   final int hpRegen;
   final int manaRegen;
   final int foodDuration;
+  final int movementSpeed;           // 🆕 New
+  final int maxWaypoints;            // 🆕 New
+  final Map<String, dynamic> combat; // 🆕 New
   final DateTime? arrivesAt;
   final bool insideVillage;
   final DocumentReference ref;
@@ -32,8 +35,6 @@ class HeroModel {
   final String? groupLeaderId;
   final String? guildId;
   final Timestamp? createdAt;
-
-
 
   HeroModel({
     required this.id,
@@ -57,18 +58,19 @@ class HeroModel {
     required this.hpRegen,
     required this.manaRegen,
     required this.foodDuration,
+    required this.movementSpeed,
+    required this.maxWaypoints,
+    required this.combat,
     required this.arrivesAt,
     required this.insideVillage,
     required this.ref,
     required this.createdAt,
-
     this.destinationX,
     this.destinationY,
     this.movementQueue,
     this.groupId,
     this.groupLeaderId,
     this.guildId,
-
   });
 
   factory HeroModel.fromFirestore(String id, Map<String, dynamic> data) {
@@ -105,11 +107,20 @@ class HeroModel {
       hpRegen: data['hpRegen'] ?? 300,
       manaRegen: data['manaRegen'] ?? 60,
       foodDuration: data['foodDuration'] ?? 3600,
+      movementSpeed: data['movementSpeed'] ?? 1000, // default fallback
+      maxWaypoints: data['maxWaypoints'] ?? 5,       // default fallback
+      combat: Map<String, dynamic>.from(data['combat'] ?? {
+        'attackMin': 1,
+        'attackMax': 2,
+        'defense': 0,
+        'regenPerTick': 0,
+        'attackSpeedMs': 1000,
+      }),
       groupId: data['groupId'],
       groupLeaderId: data['groupLeaderId'],
       guildId: data['guildId'],
       arrivesAt: data['arrivesAt']?.toDate(),
-      insideVillage: data['insideVillage'] ?? false, // ✅ Added here
+      insideVillage: data['insideVillage'] ?? false,
       destinationX: data['destinationX'],
       destinationY: data['destinationY'],
       movementQueue: (data['movementQueue'] as List<dynamic>?)

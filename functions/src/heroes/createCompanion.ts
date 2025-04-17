@@ -84,7 +84,7 @@ export async function createCompanionLogic(request: any) {
       stats: {
         strength: 10,
         dexterity: 10,
-        intelligence: 10,
+        intelligence: 3,
         constitution: 10,
         magicResistance: 0,
       },
@@ -103,7 +103,9 @@ export async function createCompanionLogic(request: any) {
       hpRegen: 300,
       foodDuration: 3600,
       movementSpeed,
+      maxWaypoints: 6,
     };
+
 
     const groupRef = db.collection('heroGroups').doc(heroId);
     const groupData = {
