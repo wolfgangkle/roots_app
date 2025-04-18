@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/data/building_definitions.dart';
-import 'package:roots_app/modules/village/views/building_card.dart';
+import 'package:roots_app/modules/village/widgets/building_card.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_button.dart';
 

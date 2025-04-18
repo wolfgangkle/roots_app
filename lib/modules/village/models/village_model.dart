@@ -18,6 +18,7 @@ class VillageModel {
   final DateTime lastUpdated;
   final Map<String, BuildingModel> buildings;
   BuildJobModel? currentBuildJob;
+  final Map<String, dynamic>? currentCraftingJob; // ✅ NEW
 
   VillageModel({
     required this.id,
@@ -32,6 +33,7 @@ class VillageModel {
     required this.lastUpdated,
     required this.buildings,
     this.currentBuildJob,
+    this.currentCraftingJob, // ✅ NEW
   });
 
   factory VillageModel.fromMap(String id, Map<String, dynamic> data) {
@@ -44,8 +46,9 @@ class VillageModel {
     });
 
     final jobData = data['currentBuildJob'];
-    final BuildJobModel? job =
-    jobData != null ? BuildJobModel.fromMap(jobData) : null;
+    final BuildJobModel? job = jobData != null ? BuildJobModel.fromMap(jobData) : null;
+
+    final craftingJob = data['currentCraftingJob'] as Map<String, dynamic>?;
 
     return VillageModel(
       id: id,
@@ -60,6 +63,7 @@ class VillageModel {
       lastUpdated: (data['lastUpdated'] as Timestamp).toDate(),
       buildings: buildings,
       currentBuildJob: job,
+      currentCraftingJob: craftingJob, // ✅ NEW
     );
   }
 
@@ -79,6 +83,8 @@ class VillageModel {
       'buildings': buildings.map((key, value) => MapEntry(key, value.toMap())),
       if (currentBuildJob != null)
         'currentBuildJob': currentBuildJob!.toMap(),
+      if (currentCraftingJob != null)
+        'currentCraftingJob': currentCraftingJob, // ✅
     };
   }
 
@@ -116,6 +122,7 @@ class VillageModel {
     DateTime? lastUpdated,
     Map<String, BuildingModel>? buildings,
     BuildJobModel? currentBuildJob,
+    Map<String, dynamic>? currentCraftingJob, // ✅ NEW
   }) {
     return VillageModel(
       id: id,
@@ -130,6 +137,7 @@ class VillageModel {
       lastUpdated: lastUpdated ?? this.lastUpdated,
       buildings: buildings ?? this.buildings,
       currentBuildJob: currentBuildJob ?? this.currentBuildJob,
+      currentCraftingJob: currentCraftingJob ?? this.currentCraftingJob,
     );
   }
 
@@ -164,7 +172,6 @@ class VillageModel {
     return endTime.isAfter(now) ? endTime.difference(now) : Duration.zero;
   }
 
-  /// 🚀 Optimistically simulate an upgrade start (for snappy UI)
   void simulateUpgrade(String buildingType) {
     final currentLevel = buildings[buildingType]?.level ?? 0;
     final targetLevel = currentLevel + 1;
@@ -185,9 +192,6 @@ class VillageModel {
     currentBuildJob = simulatedJob;
   }
 
-
-
-  /// 🔄 Optional rollback if backend fails
   void cancelSimulatedUpgrade() {
     currentBuildJob = null;
   }

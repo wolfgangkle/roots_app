@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
 import 'register_screen.dart';
+import 'package:roots_app/modules/village/data/items.dart'; // ✅ Import gameItems
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -76,6 +77,31 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _seedCraftingItems() async {
+    final batch = FirebaseFirestore.instance.batch();
+    final itemsRef = FirebaseFirestore.instance.collection('items');
+
+    for (final entry in gameItems.entries) {
+      final itemId = entry.key;
+      final data = entry.value;
+
+      final docRef = itemsRef.doc(itemId);
+      batch.set(docRef, {
+        'itemId': itemId,
+        ...data,
+      }, SetOptions(merge: true));
+    }
+
+    await batch.commit();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("🧪 Seeded all crafting items into Firestore!")),
+      );
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,7 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 🔗 Register link
             TextButton(
               onPressed: () {
                 Navigator.of(context).push(
@@ -112,11 +137,9 @@ class _LoginScreenState extends State<LoginScreen> {
               },
               child: const Text("Don't have an account? Register here"),
             ),
-
             const SizedBox(height: 10),
             if (errorMessage.isNotEmpty)
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
-
             const SizedBox(height: 20),
 
             // 🚀 Dev Quick Login buttons
@@ -192,6 +215,14 @@ class _LoginScreenState extends State<LoginScreen> {
               icon: const Icon(Icons.cleaning_services),
               label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
               onPressed: _cleanMapTiles,
+            ),
+            const SizedBox(height: 12),
+
+            // 🧪 Seed Crafting Items Button
+            ElevatedButton.icon(
+              icon: const Icon(Icons.bolt),
+              label: const Text("🧪 Seed Crafting Items"),
+              onPressed: _seedCraftingItems,
             ),
           ],
         ),

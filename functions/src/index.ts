@@ -9,6 +9,10 @@ import { processCombatTick } from './combat/processCombatTick.js'; // ⚔️ New
 import { transferHeroResources } from './heroes/transferHeroResources.js';
 
 
+
+
+
+
 admin.initializeApp();
 
 
@@ -112,6 +116,33 @@ export const startHeroMovementsFunction = onCall(startHeroMovements);
  * 📦 transferHeroResources
  */
 export const transferHeroResourcesFunction = onCall(transferHeroResources);
+
+
+/**
+ * 🛠️ startCraftingJob (delayed crafting)
+ */
+export const startCraftingJob = onCall(async (request) => {
+  const { startCraftingJobLogic } = await import('./crafting/startCraftingJob.js');
+  return startCraftingJobLogic(request);
+});
+
+
+
+/**
+ * 🧪 finishCraftingJob (manual / fallback call)
+ */
+export const finishCraftingJob = onCall(async (request) => {
+  const { finishCraftingJobLogic } = await import('./crafting/finishCraftingJob.js');
+  return finishCraftingJobLogic(request);
+});
+
+
+
+/**
+ * ⏰ finishCraftingJobScheduled (Cloud Task HTTP endpoint)
+ */
+export { finishCraftingJobScheduled } from './crafting/finishCraftingJobScheduled.js';
+
 
 
 

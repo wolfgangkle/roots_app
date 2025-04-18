@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
+import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.dart'; // ✅ NEW
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 import 'package:roots_app/modules/village/extensions/building_model_extension.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class VillageCard extends StatefulWidget {
   final VillageModel village;
@@ -25,7 +27,6 @@ class _VillageCardState extends State<VillageCard> {
   @override
   void initState() {
     super.initState();
-    // Set up a timer that fires every second to update simulated resources
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {});
     });
@@ -41,6 +42,7 @@ class _VillageCardState extends State<VillageCard> {
   Widget build(BuildContext context) {
     final res = widget.village.simulatedResources;
     final upgrade = widget.village.currentBuildJob;
+    final crafting = widget.village.currentCraftingJob;
 
     final prodWood = widget.village.buildings['woodcutter']?.productionPerHour ?? 0;
     final prodStone = widget.village.buildings['quarry']?.productionPerHour ?? 0;
@@ -74,6 +76,7 @@ class _VillageCardState extends State<VillageCard> {
                 ],
               ),
               const SizedBox(height: 8),
+
               // 📦 Resources with production
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +89,8 @@ class _VillageCardState extends State<VillageCard> {
                 ],
               ),
               const SizedBox(height: 8),
-              // ⏳ Upgrade progress indicator with building name
+
+              // ⏳ Upgrade progress
               if (upgrade != null) ...[
                 Text(
                   'Upgrading: ${upgrade.buildingType}',
@@ -99,6 +103,27 @@ class _VillageCardState extends State<VillageCard> {
                 UpgradeProgressIndicator(
                   startedAt: upgrade.startedAt,
                   endsAt: upgrade.startedAt.add(upgrade.duration),
+                  villageId: widget.village.id,
+                ),
+              ],
+
+              // 🛠️ Crafting progress
+              // 🛠️ Crafting progress
+              if (crafting != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Crafting: ${crafting['itemId'] ?? 'unknown'}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                CraftingProgressIndicator(
+                  startedAt: (crafting['startedAt'] as Timestamp).toDate(),
+                  endsAt: (crafting['startedAt'] as Timestamp)
+                      .toDate()
+                      .add(Duration(seconds: crafting['durationSeconds'] ?? 0)),
                   villageId: widget.village.id,
                 ),
               ],

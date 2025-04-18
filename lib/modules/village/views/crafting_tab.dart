@@ -1,77 +1,95 @@
 import 'package:flutter/material.dart';
+import 'package:roots_app/modules/village/data/items.dart';
+import 'package:roots_app/modules/village/widgets/crafting_button.dart';
+import 'package:roots_app/modules/village/widgets/crafting_card.dart';
 
-class CraftingTab extends StatelessWidget {
-  const CraftingTab({super.key});
+class CraftingTab extends StatefulWidget {
+  final String villageId;
+  final Map<String, dynamic>? currentCraftingJob;
+  final String selectedFilter;
+
+  const CraftingTab({
+    super.key,
+    required this.villageId,
+    required this.currentCraftingJob,
+    required this.selectedFilter,
+  });
+
+  @override
+  State<CraftingTab> createState() => _CraftingTabState();
+}
+
+class _CraftingTabState extends State<CraftingTab> {
+  bool isCraftingInProgress = false;
+
+  void _onCraftStart() {
+    setState(() => isCraftingInProgress = true);
+  }
+
+  @override
+  void didUpdateWidget(covariant CraftingTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // ✅ Reset button lock if the crafting job was just cleared
+    if (oldWidget.currentCraftingJob != null &&
+        widget.currentCraftingJob == null &&
+        isCraftingInProgress) {
+      setState(() {
+        isCraftingInProgress = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Placeholder data for crafting items
-    final dummyCraftingItems = [
-      {
-        'name': 'Iron Sword',
-        'type': 'Weapons',
-        'cost': '3 Iron, 1 Wood',
-      },
-      {
-        'name': 'Leather Armor',
-        'type': 'Armor',
-        'cost': '2 Hide, 2 Thread',
-      },
-      {
-        'name': 'Health Potion',
-        'type': 'Other',
-        'cost': '2 Herbs, 1 Water',
-      },
-    ];
+    final entries = gameItems.entries.toList();
 
-    return ListView.builder(
+    final filtered = entries.where((entry) {
+      if (widget.selectedFilter == 'All') return true;
+      final normalized = _normalizedType(widget.selectedFilter);
+      return normalized.isEmpty ||
+          (entry.value['type'] as String?)?.toLowerCase() == normalized;
+    }).toList();
+
+    final allDisabled = isCraftingInProgress || widget.currentCraftingJob != null;
+
+    return filtered.isEmpty
+        ? const Center(child: Text("🚫 No matching items."))
+        : ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: dummyCraftingItems.length,
+      itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final item = dummyCraftingItems[index];
+        final itemId = filtered[index].key;
+        final item = filtered[index].value;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade200,
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item['name'] ?? '',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text('💸 Cost: ${item['cost']}'),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Crafting "${item['name']}" not implemented yet!')),
-                      );
-                    },
-                    child: const Text('Craft'),
-                  ),
-                ],
-              )
-            ],
+        return CraftingCard(
+          itemId: itemId,
+          itemData: item,
+          villageId: widget.villageId,
+          isDisabled: allDisabled,
+          currentCraftingJob: widget.currentCraftingJob,
+          craftingButtonWidget: CraftButton(
+            itemId: itemId,
+            villageId: widget.villageId,
+            isDisabled: allDisabled,
+            label: allDisabled ? 'Crafting...' : 'Craft',
+            onCraftStart: _onCraftStart,
           ),
         );
       },
     );
+  }
+
+  String _normalizedType(String filter) {
+    switch (filter.toLowerCase()) {
+      case 'weapons':
+        return 'weapon';
+      case 'armor':
+        return 'armor';
+      case 'other':
+        return 'other';
+      default:
+        return '';
+    }
   }
 }

@@ -3,8 +3,8 @@ import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/widgets/filter_bar.dart';
 import 'package:roots_app/widgets/top_tab_selector.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
-import 'building_tab.dart';
-import 'crafting_tab.dart';
+import 'package:roots_app/modules/village/views/building_tab.dart';
+import 'package:roots_app/modules/village/views/crafting_tab.dart';
 
 class BuildingScreen extends StatefulWidget {
   final VillageModel village;
@@ -25,20 +25,20 @@ class _BuildingScreenState extends State<BuildingScreen> {
 
     return Column(
       children: [
-        // 🔝 Top Tabs
+        // 🔝 Top Tabs (Buildings / Crafting)
         TopTabSelector(
           tabs: const ['Buildings', 'Crafting'],
           current: currentTab,
           onTabChanged: (value) {
             setState(() {
               currentTab = value;
-              currentFilter = 'All'; // Reset filter on tab switch
+              currentFilter = 'All'; // 🔄 Reset filter when switching tabs
             });
           },
         ),
         const SizedBox(height: 12),
 
-        // 🔍 Filter buttons below tabs
+        // 🔍 Contextual Filters
         FilterBar(
           filters: currentTab == 'Buildings'
               ? ['All', 'Production', 'Storage']
@@ -50,14 +50,18 @@ class _BuildingScreenState extends State<BuildingScreen> {
         ),
         const SizedBox(height: 12),
 
-        // 📋 Tab Content
+        // 📋 Dynamic Tab Content
         Expanded(
           child: currentTab == 'Buildings'
               ? BuildingTab(
             village: widget.village,
             selectedFilter: currentFilter,
           )
-              : const CraftingTab(), // Just placeholder for now
+              : CraftingTab(
+            villageId: widget.village.id,
+            currentCraftingJob: widget.village.currentCraftingJob,
+            selectedFilter: currentFilter,
+          ),
         ),
       ],
     );
