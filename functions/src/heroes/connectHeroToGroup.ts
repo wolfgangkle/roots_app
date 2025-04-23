@@ -49,7 +49,6 @@ export async function connectHeroToGroupLogic(request: any) {
         throw new HttpsError('failed-precondition', 'Heroes must be on the same tile.');
       }
 
-      // ✅ Group leader check
       if (targetData.groupLeaderId && targetData.groupLeaderId !== targetHeroId) {
         throw new HttpsError('failed-precondition', 'Target hero is not a group leader.');
       }
@@ -74,12 +73,6 @@ export async function connectHeroToGroupLogic(request: any) {
         ancestorId = ancestorSnap.data()?.groupLeaderId;
       }
 
-      // ✅ Update connecting hero
-      transaction.update(heroRef, {
-        groupLeaderId: targetHeroId,
-        groupId: targetHeroId,
-      });
-
       // ✅ Merge group metadata
       const existingGroupData = groupSnap.exists ? groupSnap.data() : null;
       const existingMembers: string[] = existingGroupData?.members || [targetHeroId];
@@ -90,7 +83,7 @@ export async function connectHeroToGroupLogic(request: any) {
 
       const insideVillage = existingGroupData?.insideVillage ?? false;
 
-      // ✅ Recalculate slowest movement speed of ALL members (existing + joining)
+      // ✅ Recalculate slowest movement speed of ALL members (before any writes!)
       const memberRefs = allMembers.map(id => db.collection('heroes').doc(id));
       const memberSnaps = await Promise.all(memberRefs.map(ref => transaction.get(ref)));
 
@@ -107,6 +100,12 @@ export async function connectHeroToGroupLogic(request: any) {
         insideVillage,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
+
+      // ✅ Update connecting hero (moved after reads)
+      transaction.update(heroRef, {
+        groupLeaderId: targetHeroId,
+        groupId: targetHeroId,
+      });
 
       // ✅ Delete old solo group if it's empty
       if (oldGroupSnap.exists) {
