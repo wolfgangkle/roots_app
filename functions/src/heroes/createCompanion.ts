@@ -1,15 +1,37 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
+const db = admin.firestore();
+
+/**
+ * Reusable stat scaling logic
+ */
+function calculateDerivedStats(stats: {
+  strength: number;
+  dexterity: number;
+  intelligence: number;
+  constitution: number;
+}) {
+  const { strength: STR, dexterity: DEX, intelligence: INT, constitution: CON } = stats;
+
+  return {
+    hpMax: 100 + CON * 10,
+    hpRegen: Math.max(60, 300 - CON * 3),
+    manaMax: 50 + INT * 2,
+    manaRegen: Math.max(20, 60 - INT * 1),
+    attackMin: 5 + Math.floor(STR * 0.4),
+    attackMax: 9 + Math.floor(STR * 0.6),
+    attackSpeedMs: Math.max(400, 1000 - DEX * 20),
+    maxWaypoints: 10 + Math.floor(INT * 0.5),
+    carryCapacity: 50 + STR * 2 + CON * 5
+  };
+}
+
 export async function createCompanionLogic(request: any) {
-  const db = admin.firestore();
   const { tileX, tileY, name } = request.data;
   const userId = request.auth?.uid;
 
-  if (!userId) {
-    throw new HttpsError('unauthenticated', 'User must be logged in.');
-  }
-
+  if (!userId) throw new HttpsError('unauthenticated', 'User must be logged in.');
   if (typeof tileX !== 'number' || typeof tileY !== 'number') {
     throw new HttpsError('invalid-argument', 'tileX and tileY must be numbers.');
   }
@@ -71,6 +93,16 @@ export async function createCompanionLogic(request: any) {
   const tileKey = `${tileX}_${tileY}`;
   const now = admin.firestore.FieldValue.serverTimestamp();
 
+  const baseStats = {
+    strength: 10,
+    dexterity: 10,
+    intelligence: 3, // 🧠 Dumber than a mage
+    constitution: 10,
+    magicResistance: 0,
+  };
+
+  const derived = calculateDerivedStats(baseStats);
+
   await db.runTransaction(async (tx) => {
     const heroData = {
       ownerId: userId,
@@ -81,31 +113,28 @@ export async function createCompanionLogic(request: any) {
       experience: 0,
       groupId: heroId,
       groupLeaderId: null,
-      stats: {
-        strength: 10,
-        dexterity: 10,
-        intelligence: 3,
-        constitution: 10,
-        magicResistance: 0,
-      },
-      hp: 100,
-      hpMax: 100,
+      stats: baseStats,
+      hp: derived.hpMax,
+      hpMax: derived.hpMax,
+      mana: derived.manaMax,
+      manaMax: derived.manaMax,
       combat: {
         combatLevel: 1,
-        attackMin: 5,
-        attackMax: 9,
+        attackMin: derived.attackMin,
+        attackMax: derived.attackMax,
         defense: 1,
         regenPerTick: 1,
-        attackSpeedMs: 100000,
+        attackSpeedMs: derived.attackSpeedMs,
       },
-      state: 'idle',
-      createdAt: now,
-      hpRegen: 300,
+      hpRegen: derived.hpRegen,
+      manaRegen: derived.manaRegen,
       foodDuration: 3600,
       movementSpeed,
-      maxWaypoints: 6,
+      maxWaypoints: derived.maxWaypoints,
+      carryCapacity: derived.carryCapacity,
+      state: 'idle',
+      createdAt: now,
     };
-
 
     const groupRef = db.collection('heroGroups').doc(heroId);
     const groupData = {

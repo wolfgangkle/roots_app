@@ -2,7 +2,6 @@ import * as admin from 'firebase-admin';
 import { onCall } from 'firebase-functions/v2/https';
 import * as functions from 'firebase-functions';
 
-import { createHeroLogic } from './heroes/createHero.js';
 import { startHeroMovements } from './heroes/startHeroMovements.js';
 import { processHeroArrivalCallableLogic } from './heroes/processHeroArrival.js';
 import { processCombatTick } from './combat/processCombatTick.js'; // ⚔️ New combat tick logic
@@ -61,7 +60,11 @@ export const finalizeOnboarding = onCall(async (request) => {
 /**
  * 🌱 createHero
  */
-export const createHero = onCall(createHeroLogic);
+export const createHero = onCall(async (request) => {
+  const { createHeroLogic } = await import('./heroes/createHero.js');
+  return createHeroLogic(request);
+});
+
 
 
 /**
@@ -102,6 +105,58 @@ export const kickHeroFromGroup = onCall(async (request) => {
   const { kickHeroFromGroupLogic } = await import('./heroes/kickHeroFromGroup.js');
   return kickHeroFromGroupLogic(request);
 });
+
+
+/**
+ * 🛡️ equipHeroItem (Equip item from village to hero slot)
+ */
+export const equipHeroItem = onCall(async (request) => {
+  const { equipHeroItem } = await import('./heroes/equipHeroItem.js');
+  return equipHeroItem(request);
+});
+
+/**
+ * 🛡️ dropHeroItem (drop item from hero slot to tile or village)
+ */
+export const dropHeroItem = onCall(async (request) => {
+  const { dropHeroItem } = await import('./heroes/dropHeroItem.js');
+  return dropHeroItem(request);
+});
+
+/**
+ * 🛡️ equipItemFromBackpack (switch items from the backpack to the equipped slot)
+ */
+export const equipItemFromBackpack = onCall(async (request) => {
+  const { equipItemFromBackpack } = await import('./heroes/equipItemFromBackpack.js');
+  return equipItemFromBackpack(request);
+});
+
+/**
+ * 🛡️ storeItemInBackpack (put an item directly in the backpack)
+ */
+export const storeItemInBackpack = onCall(async (request) => {
+  const { storeItemInBackpack } = await import('./heroes/storeItemInBackpack.js');
+  return storeItemInBackpack(request);
+});
+
+/**
+ * 🛡️ unequipItemToBackpack (put an item from equipmentslot to the backpack)
+ */
+export const unequipItemToBackpack = onCall(async (request) => {
+  const { unequipItemToBackpack } = await import('./heroes/unequipItemToBackpack.js');
+  return unequipItemToBackpack(request);
+});
+
+
+/**
+ * 🛡️ dropItemFromSlot (put an item from equipmentslot to the tile or village)
+ */
+export const dropItemFromSlot = onCall(async (request) => {
+  const { dropItemFromSlot } = await import('./heroes/dropItemFromSlot.js');
+  return dropItemFromSlot(request);
+});
+
+
 
 
 

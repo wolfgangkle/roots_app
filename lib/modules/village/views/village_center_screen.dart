@@ -3,8 +3,9 @@ import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/services/village_service.dart';
 import 'package:roots_app/modules/village/views/building_screen.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
+import 'package:roots_app/modules/village/views/village_items_tab.dart';
 
-enum VillageTab { buildings, equipment, storage }
+enum VillageTab { buildings, items, storage }
 
 class VillageCenterScreen extends StatefulWidget {
   final VillageModel village;
@@ -32,7 +33,7 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildTabButton(VillageTab.buildings, 'Buildings'),
-              _buildTabButton(VillageTab.equipment, 'Equipment'),
+              _buildTabButton(VillageTab.items, 'Items'),
               _buildTabButton(VillageTab.storage, 'Storage'),
             ],
           ),
@@ -83,8 +84,8 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
             return BuildingScreen(village: updatedVillage);
           },
         );
-      case VillageTab.equipment:
-        return const Center(child: Text('⚔️ Equipment view coming soon!'));
+      case VillageTab.items:
+        return VillageItemsTab(villageId: widget.village.id);
       case VillageTab.storage:
         return const Center(child: Text('📦 Storage view coming soon!'));
     }

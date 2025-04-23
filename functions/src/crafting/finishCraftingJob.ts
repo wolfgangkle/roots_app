@@ -54,13 +54,24 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
   const { itemId, quantity, craftedStats } = craftingJob;
   const itemsRef = villageRef.collection('items');
 
-  const existingQuery = await itemsRef
-    .where('itemId', '==', itemId)
-    .where('craftedStats.damage', '==', craftedStats.damage)
-    .where('craftedStats.balance', '==', craftedStats.balance)
-    .where('craftedStats.weight', '==', craftedStats.weight)
-    .limit(1)
-    .get();
+  // 🔍 Dynamically build craftedStats query
+  let query = itemsRef.where('itemId', '==', itemId).limit(1);
+
+  if ('minDamage' in craftedStats && 'maxDamage' in craftedStats) {
+    query = query
+      .where('craftedStats.minDamage', '==', craftedStats.minDamage)
+      .where('craftedStats.maxDamage', '==', craftedStats.maxDamage);
+  }
+
+  if ('balance' in craftedStats) {
+    query = query.where('craftedStats.balance', '==', craftedStats.balance);
+  }
+
+  if ('weight' in craftedStats) {
+    query = query.where('craftedStats.weight', '==', craftedStats.weight);
+  }
+
+  const existingQuery = await query.get();
 
   if (!existingQuery.empty) {
     // 🔁 Merge stack

@@ -1,13 +1,38 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
+const db = admin.firestore();
+/**
+ * Calculates all derived stats for a hero based on base attributes.
+ */
+function calculateDerivedStats(stats: {
+  strength: number;
+  dexterity: number;
+  intelligence: number;
+  constitution: number;
+}) {
+  const { strength: STR, dexterity: DEX, intelligence: INT, constitution: CON } = stats;
+
+  return {
+    hpMax: 100 + CON * 10,
+    hpRegen: Math.max(60, 300 - CON * 3),
+    manaMax: 50 + INT * 2,
+    manaRegen: Math.max(20, 60 - INT * 1),
+    attackMin: 5 + Math.floor(STR * 0.4),
+    attackMax: 9 + Math.floor(STR * 0.6),
+    attackSpeedMs: Math.max(400, 1000 - DEX * 20),
+    maxWaypoints: 10 + Math.floor(INT * 0.5),
+    carryCapacity: 50 + STR * 2 + CON * 5
+  };
+}
+
 export async function createHeroLogic(request: any) {
-  const db = admin.firestore();
   const { tileX, tileY } = request.data;
   const userId = request.auth?.uid;
 
-  if (!userId) {
-    throw new HttpsError('unauthenticated', 'User must be logged in.');
+  if (!userId) throw new HttpsError('unauthenticated', 'User must be logged in.');
+  if (typeof tileX !== 'number' || typeof tileY !== 'number') {
+    throw new HttpsError('invalid-argument', 'tileX and tileY must be numbers.');
   }
 
   const profileSnap = await db.doc(`users/${userId}/profile/main`).get();
@@ -16,24 +41,20 @@ export async function createHeroLogic(request: any) {
   if (!profileData || typeof profileData.heroName !== 'string' || profileData.heroName.trim().length < 3) {
     throw new HttpsError('invalid-argument', 'Main hero name not set or invalid in user profile.');
   }
-  const heroName = profileData.heroName.trim();
 
-  if (!profileData.race || typeof profileData.race !== 'string' || profileData.race.trim().length === 0) {
+  if (!profileData.race || typeof profileData.race !== 'string') {
     throw new HttpsError('invalid-argument', 'Race is required in your profile.');
   }
+
+  const heroName = profileData.heroName.trim();
   const normalizedRace = profileData.race.trim().toLowerCase();
-
-  if (typeof tileX !== 'number' || typeof tileY !== 'number') {
-    throw new HttpsError('invalid-argument', 'tileX and tileY must be numbers.');
-  }
-
   const tileKey = `${tileX}_${tileY}`;
-  const heroesRef = db.collection('heroes');
 
-  const existingSnapshot = await heroesRef
+  const existingSnapshot = await db.collection('heroes')
     .where('ownerId', '==', userId)
     .where('type', '==', 'mage')
     .get();
+
   if (!existingSnapshot.empty) {
     throw new HttpsError('already-exists', 'Main hero already exists for this user.');
   }
@@ -42,13 +63,20 @@ export async function createHeroLogic(request: any) {
     human: 300,
     dwarf: 600,
   };
-
   const movementSpeed = defaultMovementSpeeds[normalizedRace] ?? 1200;
 
-  const newHeroRef = heroesRef.doc();
+  const newHeroRef = db.collection('heroes').doc();
   const heroId = newHeroRef.id;
 
-  const maxWaypoints = 20;
+  const baseStats = {
+    strength: 10,
+    dexterity: 10,
+    intelligence: 10,
+    constitution: 10,
+    magicResistance: 0,
+  };
+
+  const derived = calculateDerivedStats(baseStats);
 
   const heroData = {
     ownerId: userId,
@@ -59,35 +87,27 @@ export async function createHeroLogic(request: any) {
     experience: 0,
     groupId: heroId,
     groupLeaderId: null,
-    stats: {
-      strength: 10,
-      dexterity: 10,
-      intelligence: 10,
-      constitution: 10,
-      magicResistance: 0,
-    },
-    hp: 100,
-    hpMax: 100,
-    mana: 50,
-    manaMax: 50,
+    stats: baseStats,
+    hp: derived.hpMax,
+    hpMax: derived.hpMax,
+    mana: derived.manaMax,
+    manaMax: derived.manaMax,
     combat: {
       combatLevel: 1,
-      attackMin: 5,
-      attackMax: 9,
+      attackMin: derived.attackMin,
+      attackMax: derived.attackMax,
+      attackSpeedMs: derived.attackSpeedMs,
       defense: 1,
       regenPerTick: 1,
-      attackSpeedMs: 100000,
     },
     state: 'idle',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-
-    // Regen and hunger
-    hpRegen: 300,
-    manaRegen: 60,
+    hpRegen: derived.hpRegen,
+    manaRegen: derived.manaRegen,
     foodDuration: 3600,
-
     movementSpeed,
-    maxWaypoints, // 🆕 New field!
+    maxWaypoints: derived.maxWaypoints,
+    carryCapacity: derived.carryCapacity,
   };
 
   const heroGroupRef = db.collection('heroGroups').doc(heroId);
@@ -111,7 +131,7 @@ export async function createHeroLogic(request: any) {
     heroGroupRef.set(heroGroupData),
   ]);
 
-  console.log(`🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, movementSpeed=${movementSpeed}s, maxWaypoints=${maxWaypoints}`);
+  console.log(`🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, movementSpeed=${movementSpeed}s`);
 
   return {
     heroId,

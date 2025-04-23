@@ -8,13 +8,48 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 600,
     "craftingCost": { "wood": 60 },
     "baseStats": {
-      "damage": 4,
+      "minDamage": 3,
+      "maxDamage": 5,
       "attackSpeed": 900,
-      "balance": 1,
+      "balance": 0,
       "weight": 1
     },
     "description": "A rough branch. Better than nothing.",
   },
+
+  "sharpened_stick": {
+    "name": "Sharpened Stick",
+    "type": "weapon",
+    "subType": "spear",
+    "equipSlot": "main_hand",
+    "buildTime": 700,
+    "craftingCost": { "wood": 70 },
+    "baseStats": {
+      "minDamage": 4,
+      "maxDamage": 6,
+      "attackSpeed": 850,
+      "balance": 0,
+      "weight": 1
+    },
+    "description": "Pointy, primitive, but surprisingly effective.",
+  },
+
+  "crude_buckler": {
+    "name": "Crude Buckler",
+    "type": "armor",
+    "subType": "shield",
+    "equipSlot": "offhand",
+    "buildTime": 1000,
+    "craftingCost": { "wood": 140 },
+    "baseStats": {
+      "armor": 2,
+      "camouflage": 1,
+      "weight": 1
+    },
+    "description": "Light and made of bark. Blocks squirrels, maybe.",
+  },
+
+
   "wooden_club": {
     "name": "Wooden Club",
     "type": "weapon",
@@ -23,9 +58,10 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 900,
     "craftingCost": { "wood": 90 },
     "baseStats": {
-      "damage": 6,
+      "minDamage": 5,
+      "maxDamage": 8,
       "attackSpeed": 1100,
-      "balance": 1,
+      "balance": 0,
       "weight": 2
     },
     "description": "Heavy but slow. A basic smashing tool.",
@@ -45,7 +81,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "description": "Woven from scraps. Barely protective.",
   },
 
-  // 🛠️ FORGE LEVEL 1
+// 🛠️ FORGE LEVEL 1
   "wooden_sword": {
     "name": "Wooden Sword",
     "type": "weapon",
@@ -54,14 +90,53 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 1200,
     "craftingCost": { "wood": 180 },
     "baseStats": {
-      "damage": 7,
+      "minDamage": 6,
+      "maxDamage": 9,
       "attackSpeed": 800,
-      "balance": 2,
+      "balance": 0,
       "weight": 1
     },
     "description": "A carved blade made from hardwood.",
     "unlockRequirement": { "building": "forge", "level": 1 },
   },
+
+  "carved_dagger": {
+    "name": "Carved Dagger",
+    "type": "weapon",
+    "subType": "dagger",
+    "equipSlot": "main_hand",
+    "buildTime": 1000,
+    "craftingCost": { "wood": 90 },
+    "baseStats": {
+      "minDamage": 3,
+      "maxDamage": 5,
+      "attackSpeed": 500,
+      "balance": 0,
+      "weight": 1
+    },
+    "description": "Quick and light. It slices, it dices.",
+    "unlockRequirement": { "building": "forge", "level": 1 },
+  },
+
+  "stone_axe": {
+    "name": "Stone Axe",
+    "type": "weapon",
+    "subType": "axe",
+    "equipSlot": "main_hand",
+    "buildTime": 1800,
+    "craftingCost": { "wood": 120, "stone": 120 },
+    "baseStats": {
+      "minDamage": 7,
+      "maxDamage": 11,
+      "attackSpeed": 1000,
+      "balance": 0,
+      "weight": 3
+    },
+    "description": "Primitive axe, better for chopping than finesse.",
+    "unlockRequirement": { "building": "forge", "level": 1 },
+  },
+
+
   "rusty_dagger": {
     "name": "Rusty Dagger",
     "type": "weapon",
@@ -70,9 +145,10 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 1500,
     "craftingCost": { "wood": 100, "stone": 100 },
     "baseStats": {
-      "damage": 5,
+      "minDamage": 4,
+      "maxDamage": 6,
       "attackSpeed": 600,
-      "balance": 3,
+      "balance": 0,
       "weight": 1
     },
     "description": "Corroded but quick. Keep it away from flesh wounds.",
@@ -93,6 +169,59 @@ final gameItems = <String, Map<String, dynamic>>{
     "description": "Crude defense. Blocks some damage.",
     "unlockRequirement": { "building": "forge", "level": 1 },
   },
+
+
+  // 🛠️ FORGE LEVEL 1
+  "wooden_sword": {
+    "name": "Wooden Sword",
+    "type": "weapon",
+    "subType": "sword",
+    "equipSlot": "main_hand",
+    "buildTime": 1200,
+    "craftingCost": { "wood": 180 },
+    "baseStats": {
+      "minDamage": 6,
+      "maxDamage": 9,
+      "attackSpeed": 800,
+      "balance": 0,
+      "weight": 1
+    },
+    "description": "A carved blade made from hardwood.",
+    "unlockRequirement": { "building": "forge", "level": 1 },
+  },
+  "rusty_dagger": {
+    "name": "Rusty Dagger",
+    "type": "weapon",
+    "subType": "dagger",
+    "equipSlot": "main_hand",
+    "buildTime": 1500,
+    "craftingCost": { "wood": 100, "stone": 100 },
+    "baseStats": {
+      "minDamage": 4,
+      "maxDamage": 6,
+      "attackSpeed": 600,
+      "balance": 0,
+      "weight": 1
+    },
+    "description": "Corroded but quick. Keep it away from flesh wounds.",
+    "unlockRequirement": { "building": "forge", "level": 1 },
+  },
+  "wooden_shield": {
+    "name": "Wooden Shield",
+    "type": "armor",
+    "subType": "shield",
+    "equipSlot": "offhand",
+    "buildTime": 1800,
+    "craftingCost": { "wood": 250 },
+    "baseStats": {
+      "armor": 3,
+      "camouflage": 0,
+      "weight": 2
+    },
+    "description": "Crude defense. Blocks some damage.",
+    "unlockRequirement": { "building": "forge", "level": 1 },
+  },
+
 
   // 🧤 FORGE LEVEL 3 – LEATHER ARMOR SET
   "leather_helmet": {
@@ -118,7 +247,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 4800,
     "craftingCost": { "wood": 200, "iron": 150 },
     "baseStats": {
-      "armor": 6,
+      "armor": 5,
       "camouflage": 2,
       "weight": 2
     },
@@ -133,7 +262,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 3600,
     "craftingCost": { "wood": 120, "iron": 80 },
     "baseStats": {
-      "armor": 2,
+      "armor": 1,
       "camouflage": 1,
       "weight": 1
     },
@@ -155,7 +284,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "description": "A sturdy leather strap. Helps tie the outfit together.",
     "unlockRequirement": { "building": "forge", "level": 3 },
   },
-    "leather_pants": {
+  "leather_pants": {
     "name": "Leather Pants",
     "type": "armor",
     "subType": "legs",
@@ -163,7 +292,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 4800,
     "craftingCost": { "wood": 180, "iron": 120 },
     "baseStats": {
-      "armor": 4,
+      "armor": 3,
       "camouflage": 1,
       "weight": 2
     },
@@ -186,6 +315,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "unlockRequirement": { "building": "forge", "level": 3 },
   },
 
+
   // 🗡️ FORGE LEVEL 5 – IRON TIER
   "iron_sword": {
     "name": "Iron Sword",
@@ -195,9 +325,10 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 7200,
     "craftingCost": { "iron": 500, "wood": 100 },
     "baseStats": {
-      "damage": 15,
+      "minDamage": 12,
+      "maxDamage": 18,
       "attackSpeed": 750,
-      "balance": 3,
+      "balance": 0,
       "weight": 2
     },
     "description": "A standard issue sword forged from iron.",
@@ -211,9 +342,10 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 7800,
     "craftingCost": { "iron": 600, "wood": 150 },
     "baseStats": {
-      "damage": 18,
+      "minDamage": 14,
+      "maxDamage": 22,
       "attackSpeed": 850,
-      "balance": 2,
+      "balance": 0,
       "weight": 3
     },
     "description": "Heavy and brutal. Not for finesse fighters.",
@@ -227,9 +359,10 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 7800,
     "craftingCost": { "iron": 550, "wood": 130 },
     "baseStats": {
-      "damage": 20,
+      "minDamage": 16,
+      "maxDamage": 24,
       "attackSpeed": 1000,
-      "balance": 1,
+      "balance": 0,
       "weight": 4
     },
     "description": "A heavy iron club to break bones and shields.",
@@ -243,14 +376,16 @@ final gameItems = <String, Map<String, dynamic>>{
     "buildTime": 10800,
     "craftingCost": { "iron": 1000, "wood": 200 },
     "baseStats": {
-      "damage": 30,
+      "minDamage": 24,
+      "maxDamage": 36,
       "attackSpeed": 1200,
-      "balance": 1,
+      "balance": 0,
       "weight": 6
     },
     "description": "Two-handed terror. Slow but devastating.",
     "unlockRequirement": { "building": "forge", "level": 5 },
   },
+
   "iron_shield": {
     "name": "Iron Shield",
     "type": "armor",
@@ -266,7 +401,6 @@ final gameItems = <String, Map<String, dynamic>>{
     "description": "A sturdy shield forged to absorb punishment.",
     "unlockRequirement": { "building": "forge", "level": 5 },
   },
-
   "iron_belt": {
     "name": "Iron Belt",
     "type": "armor",
@@ -297,7 +431,6 @@ final gameItems = <String, Map<String, dynamic>>{
     "description": "Protects your noggin with thick iron plating.",
     "unlockRequirement": { "building": "forge", "level": 5 },
   },
-
   "iron_chestplate": {
     "name": "Iron Chestplate",
     "type": "armor",
@@ -313,7 +446,6 @@ final gameItems = <String, Map<String, dynamic>>{
     "description": "Heavy and solid. Absorbs brutal blows.",
     "unlockRequirement": { "building": "forge", "level": 5 },
   },
-
   "iron_gauntlets": {
     "name": "Iron Gauntlets",
     "type": "armor",
@@ -329,7 +461,6 @@ final gameItems = <String, Map<String, dynamic>>{
     "description": "Clunky but protective handguards.",
     "unlockRequirement": { "building": "forge", "level": 5 },
   },
-
   "iron_greaves": {
     "name": "Iron Greaves",
     "type": "armor",
@@ -345,7 +476,6 @@ final gameItems = <String, Map<String, dynamic>>{
     "description": "Thick armor for strong legs.",
     "unlockRequirement": { "building": "forge", "level": 5 },
   },
-
   "iron_boots": {
     "name": "Iron Boots",
     "type": "armor",
