@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
 
-
 class HeroResourcesTab extends StatefulWidget {
   final HeroModel hero;
 
@@ -30,6 +29,7 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
   bool _busy = false;
 
   final Map<String, TextEditingController> _controllers = {};
+  double _projectedWeight = 0.0;
 
   @override
   void initState() {
@@ -95,44 +95,6 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     }
   }
 
-  Future<void> _transferAll({required bool pickUp}) async {
-    if (tileKey == null) return;
-
-    final changes = <String, int>{};
-
-    for (final key in sourceResources.keys) {
-      final amount = pickUp
-          ? sourceResources[key] ?? 0
-          : widget.hero.carriedResources[key] ?? 0;
-      if (amount > 0) {
-        changes[key] = amount; // ✅ always positive
-      }
-    }
-
-    if (changes.isEmpty) return;
-
-    setState(() => _busy = true);
-
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResources');
-      await callable.call({
-        'heroId': widget.hero.id,
-        'tileKey': tileKey,
-        'action': pickUp ? 'pickup' : 'drop', // ✅ action field added
-        'resourceChanges': changes,
-      });
-
-      await _loadResourceSource();
-    } catch (e) {
-      print("🔥 Failed to transfer all: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error transferring resources: $e")),
-      );
-    } finally {
-      setState(() => _busy = false);
-    }
-  }
-
   Future<void> _transferCustom({required bool pickUp}) async {
     if (tileKey == null) return;
 
@@ -141,7 +103,7 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     for (final key in sourceResources.keys) {
       final value = int.tryParse(_controllers[key]?.text ?? '0') ?? 0;
       if (value > 0) {
-        changes[key] = value; // ✅ always positive
+        changes[key] = value;
       }
     }
 
@@ -154,11 +116,18 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
       await callable.call({
         'heroId': widget.hero.id,
         'tileKey': tileKey,
-        'action': pickUp ? 'pickup' : 'drop', // ✅ action field added
+        'action': pickUp ? 'pickup' : 'drop',
         'resourceChanges': changes,
       });
 
       await _loadResourceSource();
+
+      if (pickUp) {
+        for (final controller in _controllers.values) {
+          controller.text = '0';
+        }
+        _recalculateProjectedWeight();
+      }
     } catch (e) {
       print("🔥 Failed to transfer custom resources: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -169,13 +138,32 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     }
   }
 
+  void _recalculateProjectedWeight() {
+    const resourceWeights = {
+      'wood': 0.01,
+      'stone': 0.01,
+      'iron': 0.01,
+      'food': 0.01,
+      'gold': 0.01,
+    };
+
+    double total = widget.hero.currentWeight?.toDouble() ?? 0.0;
+
+    for (final key in resourceWeights.keys) {
+      final input = int.tryParse(_controllers[key]?.text ?? '0') ?? 0;
+      total += input * resourceWeights[key]!;
+    }
+
+    setState(() {
+      _projectedWeight = total;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final heroRes = widget.hero.carriedResources;
     final currentWeight = widget.hero.currentWeight ?? 0;
     final maxWeight = widget.hero.carryCapacity ?? 1;
-    final percent = (currentWeight / maxWeight).clamp(0.0, 1.0);
 
     return _loading
         ? const Center(child: CircularProgressIndicator())
@@ -197,6 +185,15 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
             carryCapacity: maxWeight.toDouble(),
           ),
 
+          const SizedBox(height: 8),
+
+          Text(
+            "Projected after transfer: ${_projectedWeight.toStringAsFixed(2)} / ${maxWeight.toStringAsFixed(0)}",
+            style: TextStyle(
+              fontSize: 12,
+              color: _projectedWeight > maxWeight ? Colors.red : Colors.green,
+            ),
+          ),
 
           const SizedBox(height: 16),
 
@@ -207,11 +204,6 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.upload_file),
-                label: const Text("Pick Up All"),
-                onPressed: _busy ? null : () => _transferAll(pickUp: true),
-              ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.download),
                 label: const Text("Drop All"),
@@ -234,7 +226,6 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     );
   }
 
-
   List<Widget> _buildResourceRows(Map<String, dynamic> heroRes) {
     final keys = ['wood', 'stone', 'iron', 'food', 'gold'];
     return keys.map((key) {
@@ -253,6 +244,7 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
               child: TextField(
                 controller: _controllers[key],
                 keyboardType: TextInputType.number,
+                onChanged: (_) => _recalculateProjectedWeight(),
                 decoration: const InputDecoration(
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -291,5 +283,40 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
 
   String _capitalize(String input) {
     return input[0].toUpperCase() + input.substring(1);
+  }
+
+  Future<void> _transferAll({required bool pickUp}) async {
+    if (tileKey == null) return;
+
+    final changes = <String, int>{};
+    for (final key in sourceResources.keys) {
+      final amount = pickUp ? sourceResources[key] ?? 0 : widget.hero.carriedResources[key] ?? 0;
+      if (amount > 0) {
+        changes[key] = amount;
+      }
+    }
+
+    if (changes.isEmpty) return;
+
+    setState(() => _busy = true);
+
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResources');
+      await callable.call({
+        'heroId': widget.hero.id,
+        'tileKey': tileKey,
+        'action': pickUp ? 'pickup' : 'drop',
+        'resourceChanges': changes,
+      });
+
+      await _loadResourceSource();
+    } catch (e) {
+      print("🔥 Failed to transfer all: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error transferring resources: $e")),
+      );
+    } finally {
+      setState(() => _busy = false);
+    }
   }
 }

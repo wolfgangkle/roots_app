@@ -12,7 +12,6 @@ export async function transferHeroResources(request: any) {
 
   const { heroId, tileKey, action, resourceChanges } = request.data;
 
-  // 📥 Input validation
   if (!['pickup', 'drop'].includes(action)) {
     throw new HttpsError('invalid-argument', 'Action must be "pickup" or "drop".');
   }
@@ -29,6 +28,8 @@ export async function transferHeroResources(request: any) {
   const allowedResources = ['wood', 'stone', 'iron', 'food', 'gold'];
   console.log("📥 transferHeroResources called with", { heroId, tileKey, action, resourceChanges });
 
+  let groupId: string | undefined;
+
   await db.runTransaction(async (tx) => {
     const heroRef = db.collection('heroes').doc(heroId);
     const heroSnap = await tx.get(heroRef);
@@ -38,7 +39,6 @@ export async function transferHeroResources(request: any) {
       throw new HttpsError('permission-denied', 'You do not own this hero.');
     }
 
-    // 🛡️ State checks
     if (['dead', 'in_combat'].includes(hero.state)) {
       throw new HttpsError('failed-precondition', `Cannot transfer resources while hero is ${hero.state}.`);
     }
@@ -46,7 +46,7 @@ export async function transferHeroResources(request: any) {
       throw new HttpsError('failed-precondition', 'Cannot pick up resources while moving.');
     }
 
-    const groupId = hero.groupId;
+    groupId = hero.groupId;
     if (!groupId) throw new HttpsError('failed-precondition', 'Hero is not in a valid group.');
 
     const groupRef = db.collection('heroGroups').doc(groupId);
@@ -157,17 +157,19 @@ export async function transferHeroResources(request: any) {
     console.log(`💰 Hero ${heroId} ${action}ped resources:`, resourceChanges, `→ ${insideVillage ? 'village' : 'tile'} storage`);
   });
 
-  // 🧪 Optional: reactivate this later outside the transaction
-  // try {
-  //   const { updateGroupMovementSpeed } = await import('../helpers/groupUtils.js');
-  //   await Promise.race([
-  //     updateGroupMovementSpeed(heroId),
-  //     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout updating group speed')), 3000)),
-  //   ]);
-  //   console.log('✅ Group speed updated');
-  // } catch (err) {
-  //   console.warn('⚠️ Failed to update group speed:', err.message);
-  // }
+  // ✅ Recalculate group movementSpeed after the transaction
+  if (groupId) {
+    try {
+      const { updateGroupMovementSpeed } = await import('../helpers/groupUtils.js');
+      await Promise.race([
+        updateGroupMovementSpeed(groupId),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout updating group speed')), 3000)),
+      ]);
+      console.log(`✅ Group movement speed updated for group ${groupId}`);
+    } catch (err) {
+      console.warn(`⚠️ Failed to update group speed for group ${groupId}:`, (err as any).message);
+    }
+  }
 
   console.log(`🏁 transferHeroResources completed for hero ${heroId} (${action})`);
   return { success: true, message: `Resources ${action}ped successfully.` };

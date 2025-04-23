@@ -1,5 +1,10 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats';
+import {
+  calculateHeroWeight,
+  calculateAdjustedMovementSpeed,
+} from '../helpers/heroWeight';
 
 export async function equipItemFromBackpack(request: any) {
   const db = admin.firestore();
@@ -22,6 +27,7 @@ export async function equipItemFromBackpack(request: any) {
 
   const hero = heroSnap.data()!;
   const backpack = Array.isArray(hero.backpack) ? [...hero.backpack] : [];
+  const equipped = hero.equipped || {};
 
   const item = backpack[backpackIndex];
   if (!item || !item.itemId) {
@@ -37,7 +43,6 @@ export async function equipItemFromBackpack(request: any) {
     // Optional: throw or allow
   }
 
-  const equipped = hero.equipped || {};
   const oldEquippedItem = equipped[slot];
 
   // Remove the item from backpack
@@ -60,19 +65,14 @@ export async function equipItemFromBackpack(request: any) {
     });
   }
 
-  // Recalculate combat stats only
-  let attackMin = 5;
-  let attackMax = 10;
-  let defense = 0;
+  // ✅ Recalculate all combat stats from base stats + gear
+  const { attackMin, attackMax, attackSpeedMs, defense } = calculateHeroCombatStats(hero.stats, equipped);
 
-  for (const s of validSlots) {
-    const item = equipped[s];
-    if (item?.craftedStats) {
-      attackMin += item.craftedStats.attackMin ?? 0;
-      attackMax += item.craftedStats.attackMax ?? 0;
-      defense += item.craftedStats.defense ?? 0;
-    }
-  }
+  // ✅ Recalculate weight and movement speed
+  const currentWeight = calculateHeroWeight(equipped, backpack);
+  const baseSpeed = hero.baseMovementSpeed ?? hero.movementSpeed ?? 1200;
+  const carryCapacity = hero.carryCapacity ?? 100;
+  const movementSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
 
   const batch = db.batch();
 
@@ -83,8 +83,11 @@ export async function equipItemFromBackpack(request: any) {
       ...hero.combat,
       attackMin,
       attackMax,
+      attackSpeedMs,
       defense,
     },
+    currentWeight,
+    movementSpeed,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
@@ -98,7 +101,10 @@ export async function equipItemFromBackpack(request: any) {
     updatedStats: {
       attackMin,
       attackMax,
+      attackSpeedMs,
       defense,
+      currentWeight,
+      movementSpeed,
     },
   };
 }

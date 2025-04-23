@@ -4,7 +4,8 @@ import {
   calculateHeroWeight,
   calculateAdjustedMovementSpeed,
 } from '../helpers/heroWeight';
-import { updateGroupMovementSpeed } from '../helpers/groupUtils'; // ✅ New import
+import { updateGroupMovementSpeed } from '../helpers/groupUtils';
+import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats'; // ✅ New import
 
 export async function equipHeroItem(request: any) {
   const db = admin.firestore();
@@ -109,34 +110,24 @@ export async function equipHeroItem(request: any) {
     equipSlot,
   };
 
-  // 5. Recalculate combat stats
-  let attackMin = 5;
-  let attackMax = 10;
-  let defense = 0;
+  // ✅ 5. Recalculate combat stats with base stats and equipped gear
+  const { attackMin, attackMax, attackSpeedMs, defense } = calculateHeroCombatStats(heroData.stats, equipped);
 
-  for (const slotKey of validSlots) {
-    const item = equipped[slotKey];
-    if (item?.craftedStats) {
-      attackMin += item.craftedStats.attackMin ?? 0;
-      attackMax += item.craftedStats.attackMax ?? 0;
-      defense += item.craftedStats.defense ?? 0;
-    }
-  }
-
-  // 6. Calculate current weight and adjusted movement speed
+  // ✅ 6. Calculate current weight and adjusted movement speed
   const backpack = heroData.backpack ?? [];
   const currentWeight = calculateHeroWeight(equipped, backpack);
   const baseSpeed = heroData.baseMovementSpeed ?? heroData.movementSpeed ?? 1200;
   const carryCapacity = heroData.carryCapacity ?? 100;
   const adjustedSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
 
-  // 7. Prepare update
+  // ✅ 7. Prepare update
   const updatedHeroData = {
     equipped,
     combat: {
       ...heroData.combat,
       attackMin,
       attackMax,
+      attackSpeedMs,
       defense,
     },
     currentWeight,
@@ -160,6 +151,7 @@ export async function equipHeroItem(request: any) {
     updatedStats: {
       attackMin,
       attackMax,
+      attackSpeedMs,
       defense,
       weight: currentWeight,
       movementSpeed: adjustedSpeed,

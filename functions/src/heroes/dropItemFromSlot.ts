@@ -4,7 +4,8 @@ import {
   calculateHeroWeight,
   calculateAdjustedMovementSpeed,
 } from '../helpers/heroWeight';
-import { updateGroupMovementSpeed } from '../helpers/groupUtils'; // ✅ New import
+import { updateGroupMovementSpeed } from '../helpers/groupUtils';
+import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats'; // ✅ New import
 
 export async function dropItemFromSlot(request: any) {
   const db = admin.firestore();
@@ -49,21 +50,10 @@ export async function dropItemFromSlot(request: any) {
   // Remove the item from equipment slot
   equipped[slot] = null;
 
-  // Recalculate stats (attack/defense only)
-  let attackMin = 5;
-  let attackMax = 10;
-  let defense = 0;
+  // ✅ Recalculate combat stats based on updated equipped items
+  const { attackMin, attackMax, attackSpeedMs, defense } = calculateHeroCombatStats(hero.stats, equipped);
 
-  for (const s of validSlots) {
-    const eq = equipped[s];
-    if (eq?.craftedStats) {
-      attackMin += eq.craftedStats.attackMin ?? 0;
-      attackMax += eq.craftedStats.attackMax ?? 0;
-      defense += eq.craftedStats.defense ?? 0;
-    }
-  }
-
-  // Recalculate current weight and movement speed
+  // ✅ Recalculate weight and movement speed
   const backpack = hero.backpack ?? [];
   const currentWeight = calculateHeroWeight(equipped, backpack);
   const baseSpeed = hero.baseMovementSpeed ?? hero.movementSpeed ?? 1200;
@@ -82,13 +72,14 @@ export async function dropItemFromSlot(request: any) {
     droppedFromSlot: slot,
   });
 
-  // Update hero
+  // Update hero with new state
   batch.update(heroRef, {
     equipped,
     combat: {
       ...hero.combat,
       attackMin,
       attackMax,
+      attackSpeedMs,
       defense,
     },
     currentWeight,
@@ -110,6 +101,10 @@ export async function dropItemFromSlot(request: any) {
     droppedSlot: slot,
     itemId,
     updatedStats: {
+      attackMin,
+      attackMax,
+      attackSpeedMs,
+      defense,
       currentWeight,
       movementSpeed,
     },
