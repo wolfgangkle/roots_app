@@ -10,7 +10,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 3,
       "maxDamage": 5,
-      "attackSpeed": 900,
+      "attackSpeed": 10000,
       "balance": 0,
       "weight": 1
     },
@@ -27,7 +27,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 4,
       "maxDamage": 6,
-      "attackSpeed": 850,
+      "attackSpeed": 15000,
       "balance": 0,
       "weight": 1
     },
@@ -60,7 +60,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 5,
       "maxDamage": 8,
-      "attackSpeed": 1100,
+      "attackSpeed": 7500,
       "balance": 0,
       "weight": 2
     },
@@ -92,7 +92,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 6,
       "maxDamage": 9,
-      "attackSpeed": 800,
+      "attackSpeed": 20000,
       "balance": 0,
       "weight": 1
     },
@@ -110,7 +110,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 3,
       "maxDamage": 5,
-      "attackSpeed": 500,
+      "attackSpeed": 40000,
       "balance": 0,
       "weight": 1
     },
@@ -128,7 +128,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 7,
       "maxDamage": 11,
-      "attackSpeed": 1000,
+      "attackSpeed": 10000,
       "balance": 0,
       "weight": 3
     },
@@ -147,7 +147,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 4,
       "maxDamage": 6,
-      "attackSpeed": 600,
+      "attackSpeed": 30000,
       "balance": 0,
       "weight": 1
     },
@@ -182,7 +182,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 6,
       "maxDamage": 9,
-      "attackSpeed": 800,
+      "attackSpeed": 20000,
       "balance": 0,
       "weight": 1
     },
@@ -199,7 +199,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 4,
       "maxDamage": 6,
-      "attackSpeed": 600,
+      "attackSpeed": 30000,
       "balance": 0,
       "weight": 1
     },
@@ -327,7 +327,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 12,
       "maxDamage": 18,
-      "attackSpeed": 750,
+      "attackSpeed": 25000,
       "balance": 0,
       "weight": 2
     },
@@ -344,7 +344,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 14,
       "maxDamage": 22,
-      "attackSpeed": 850,
+      "attackSpeed": 20000,
       "balance": 0,
       "weight": 3
     },
@@ -361,7 +361,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 16,
       "maxDamage": 24,
-      "attackSpeed": 1000,
+      "attackSpeed": 15000,
       "balance": 0,
       "weight": 4
     },
@@ -378,7 +378,7 @@ final gameItems = <String, Map<String, dynamic>>{
     "baseStats": {
       "minDamage": 24,
       "maxDamage": 36,
-      "attackSpeed": 1200,
+      "attackSpeed": 7500,
       "balance": 0,
       "weight": 6
     },

@@ -1,31 +1,11 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import {
+  calculateHeroCombatStats,
+  calculateNonCombatDerivedStats
+} from '../helpers/calculateHeroCombatStats';
 
 const db = admin.firestore();
-
-/**
- * Reusable stat scaling logic
- */
-function calculateDerivedStats(stats: {
-  strength: number;
-  dexterity: number;
-  intelligence: number;
-  constitution: number;
-}) {
-  const { strength: STR, dexterity: DEX, intelligence: INT, constitution: CON } = stats;
-
-  return {
-    hpMax: 100 + CON * 10,
-    hpRegen: Math.max(60, 300 - CON * 3),
-    manaMax: 50 + INT * 2,
-    manaRegen: Math.max(20, 60 - INT * 1),
-    attackMin: 5 + Math.floor(STR * 0.4),
-    attackMax: 9 + Math.floor(STR * 0.6),
-    attackSpeedMs: Math.max(400, 1000 - DEX * 20),
-    maxWaypoints: 10 + Math.floor(INT * 0.5),
-    carryCapacity: 50 + STR * 2 + CON * 5,
-  };
-}
 
 export async function createCompanionLogic(request: any) {
   const { tileX, tileY, name } = request.data;
@@ -49,11 +29,12 @@ export async function createCompanionLogic(request: any) {
     ? name.trim()
     : 'Unnamed Companion';
 
-  const movementSpeeds: Record<string, number> = {
-    human: 300,
-    dwarf: 600,
+  // ✅ Use race-based movement speed modifiers (in seconds)
+  const movementModifiers: Record<string, number> = {
+    human: 0,
+    dwarf: 400,
   };
-  const movementSpeed = movementSpeeds[normalizedRace] ?? 1200;
+  const raceMovementOffset = movementModifiers[normalizedRace] ?? 0;
 
   const usedVillages = profileData.currentSlotUsage.villages ?? 0;
   const usedCompanions = profileData.currentSlotUsage.companions ?? 0;
@@ -96,12 +77,14 @@ export async function createCompanionLogic(request: any) {
   const baseStats = {
     strength: 10,
     dexterity: 10,
-    intelligence: 3, // 🧠 Dumber than a mage
+    intelligence: 3,
     constitution: 10,
     magicResistance: 0,
   };
 
-  const derived = calculateDerivedStats(baseStats);
+  const nonCombat = calculateNonCombatDerivedStats(baseStats);
+  const combat = calculateHeroCombatStats(baseStats, {});
+  const baseMovementSpeed = Math.max(600, nonCombat.baseMovementSpeed + raceMovementOffset);
 
   await db.runTransaction(async (tx) => {
     const heroData = {
@@ -114,26 +97,26 @@ export async function createCompanionLogic(request: any) {
       groupId: heroId,
       groupLeaderId: null,
       stats: baseStats,
-      hp: derived.hpMax,
-      hpMax: derived.hpMax,
-      mana: derived.manaMax,
-      manaMax: derived.manaMax,
+      hp: nonCombat.hpMax,
+      hpMax: nonCombat.hpMax,
+      mana: nonCombat.manaMax,
+      manaMax: nonCombat.manaMax,
       combat: {
         combatLevel: 1,
-        attackMin: derived.attackMin,
-        attackMax: derived.attackMax,
+        attackMin: combat.attackMin,
+        attackMax: combat.attackMax,
+        attackSpeedMs: combat.attackSpeedMs,
         defense: 1,
         regenPerTick: 1,
-        attackSpeedMs: derived.attackSpeedMs,
       },
-      hpRegen: derived.hpRegen,
-      manaRegen: derived.manaRegen,
+      hpRegen: nonCombat.hpRegen,
+      manaRegen: nonCombat.manaRegen,
       foodDuration: 3600,
-      baseMovementSpeed: movementSpeed, // ✅ NEW
-      movementSpeed,
-      maxWaypoints: derived.maxWaypoints,
-      carryCapacity: derived.carryCapacity,
-      currentWeight: 0, // ✅ NEW
+      baseMovementSpeed,
+      movementSpeed: baseMovementSpeed,
+      maxWaypoints: nonCombat.maxWaypoints,
+      carryCapacity: nonCombat.carryCapacity,
+      currentWeight: 0,
       state: 'idle',
       createdAt: now,
     };
@@ -146,8 +129,8 @@ export async function createCompanionLogic(request: any) {
       tileX,
       tileY,
       tileKey,
-      baseMovementSpeed: movementSpeed, // ✅ NEW
-      movementSpeed,
+      baseMovementSpeed,
+      movementSpeed: baseMovementSpeed,
       insideVillage: true,
       createdAt: now,
       updatedAt: now,
@@ -162,7 +145,7 @@ export async function createCompanionLogic(request: any) {
     });
   });
 
-  console.log(`👥 Companion "${companionName}" created for ${userId} (${usedSlots + 1}/${currentMaxSlots} slots)`);
+  console.log(`👥 Companion "${companionName}" created for ${userId} (${usedSlots + 1}/${currentMaxSlots} slots), baseMove=${baseStats.constitution}/con = ${baseMovementSpeed}s`);
 
   return {
     heroId,

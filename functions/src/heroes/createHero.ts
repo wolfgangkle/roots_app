@@ -1,31 +1,11 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import {
+  calculateHeroCombatStats,
+  calculateNonCombatDerivedStats
+} from '../helpers/calculateHeroCombatStats';
 
 const db = admin.firestore();
-
-/**
- * Calculates all derived stats for a hero based on base attributes.
- */
-function calculateDerivedStats(stats: {
-  strength: number;
-  dexterity: number;
-  intelligence: number;
-  constitution: number;
-}) {
-  const { strength: STR, dexterity: DEX, intelligence: INT, constitution: CON } = stats;
-
-  return {
-    hpMax: 100 + CON * 10,
-    hpRegen: Math.max(60, 300 - CON * 3),
-    manaMax: 50 + INT * 2,
-    manaRegen: Math.max(20, 60 - INT * 1),
-    attackMin: 5 + Math.floor(STR * 0.4),
-    attackMax: 9 + Math.floor(STR * 0.6),
-    attackSpeedMs: Math.max(400, 1000 - DEX * 20),
-    maxWaypoints: 10 + Math.floor(INT * 0.5),
-    carryCapacity: 50 + STR * 2 + CON * 5
-  };
-}
 
 export async function createHeroLogic(request: any) {
   const { tileX, tileY } = request.data;
@@ -60,15 +40,6 @@ export async function createHeroLogic(request: any) {
     throw new HttpsError('already-exists', 'Main hero already exists for this user.');
   }
 
-  const defaultMovementSpeeds: Record<string, number> = {
-    human: 300,
-    dwarf: 600,
-  };
-  const movementSpeed = defaultMovementSpeeds[normalizedRace] ?? 1200;
-
-  const newHeroRef = db.collection('heroes').doc();
-  const heroId = newHeroRef.id;
-
   const baseStats = {
     strength: 10,
     dexterity: 10,
@@ -77,7 +48,21 @@ export async function createHeroLogic(request: any) {
     magicResistance: 0,
   };
 
-  const derived = calculateDerivedStats(baseStats);
+  // ✅ Calculate core stats
+  const nonCombat = calculateNonCombatDerivedStats(baseStats);
+  const combat = calculateHeroCombatStats(baseStats, {});
+
+  // ✅ Apply race modifier to movement speed
+  const movementSpeedModifiers: Record<string, number> = {
+    human: 0,  // standard speed
+    dwarf: +400, // 100 seconds slower
+  };
+
+  const raceMovementOffset = movementSpeedModifiers[normalizedRace] ?? 0;
+  const baseMovementSpeed = Math.max(600, nonCombat.baseMovementSpeed + raceMovementOffset);
+
+  const newHeroRef = db.collection('heroes').doc();
+  const heroId = newHeroRef.id;
 
   const heroData = {
     ownerId: userId,
@@ -89,28 +74,28 @@ export async function createHeroLogic(request: any) {
     groupId: heroId,
     groupLeaderId: null,
     stats: baseStats,
-    hp: derived.hpMax,
-    hpMax: derived.hpMax,
-    mana: derived.manaMax,
-    manaMax: derived.manaMax,
+    hp: nonCombat.hpMax,
+    hpMax: nonCombat.hpMax,
+    mana: nonCombat.manaMax,
+    manaMax: nonCombat.manaMax,
     combat: {
       combatLevel: 1,
-      attackMin: derived.attackMin,
-      attackMax: derived.attackMax,
-      attackSpeedMs: derived.attackSpeedMs,
+      attackMin: combat.attackMin,
+      attackMax: combat.attackMax,
+      attackSpeedMs: combat.attackSpeedMs,
       defense: 1,
       regenPerTick: 1,
     },
     state: 'idle',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    hpRegen: derived.hpRegen,
-    manaRegen: derived.manaRegen,
+    hpRegen: nonCombat.hpRegen,
+    manaRegen: nonCombat.manaRegen,
     foodDuration: 3600,
-    baseMovementSpeed: movementSpeed, // ✅ added
-    movementSpeed,
-    maxWaypoints: derived.maxWaypoints,
-    carryCapacity: derived.carryCapacity,
-    currentWeight: 0, // ✅ added
+    baseMovementSpeed,
+    movementSpeed: baseMovementSpeed,
+    maxWaypoints: nonCombat.maxWaypoints,
+    carryCapacity: nonCombat.carryCapacity,
+    currentWeight: 0,
   };
 
   const heroGroupRef = db.collection('heroGroups').doc(heroId);
@@ -123,8 +108,8 @@ export async function createHeroLogic(request: any) {
     tileX,
     tileY,
     tileKey,
-    baseMovementSpeed: movementSpeed, // ✅ added
-    movementSpeed,
+    baseMovementSpeed,
+    movementSpeed: baseMovementSpeed,
     insideVillage: true,
     createdAt: now,
     updatedAt: now,
@@ -135,7 +120,7 @@ export async function createHeroLogic(request: any) {
     heroGroupRef.set(heroGroupData),
   ]);
 
-  console.log(`🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, movementSpeed=${movementSpeed}s`);
+  console.log(`🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, baseMove=${baseMovementSpeed}s`);
 
   return {
     heroId,
