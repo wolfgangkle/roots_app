@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/heroes/widgets/equipment_slots_view.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_backpack_list.dart';
 import 'package:roots_app/modules/heroes/widgets/tile_or_village_item_list.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart'; // ✅ NEW
 
 class HeroEquipmentTab extends StatelessWidget {
   final String heroId;
@@ -48,6 +49,8 @@ class HeroEquipmentTab extends StatelessWidget {
 
             final data = snapshot.data!.data() as Map<String, dynamic>;
             final heroState = data['state'] ?? 'idle';
+            final currentWeight = (data['currentWeight'] ?? 0).toDouble();
+            final carryCapacity = (data['carryCapacity'] ?? 1).toDouble();
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -61,6 +64,12 @@ class HeroEquipmentTab extends StatelessWidget {
                     villageId: resolvedVillageId,
                     insideVillage: insideVillage,
                   ),
+                  const SizedBox(height: 12),
+                  HeroWeightBar(
+                    currentWeight: currentWeight.toDouble(),
+                    carryCapacity: (data['carryCapacity'] ?? 1).toDouble(),
+                  ),
+
                   const Divider(height: 24),
                   HeroBackpackList(
                     heroId: heroId,

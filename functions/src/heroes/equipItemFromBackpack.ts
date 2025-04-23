@@ -33,7 +33,7 @@ export async function equipItemFromBackpack(request: any) {
   const equipSlot = item.equipSlot?.toString().toLowerCase() ?? 'main_hand';
 
   if (equipSlot !== slot.toLowerCase()) {
-    console.warn(`⚠️ Slot mismatch: trying to equip $itemId with slot $equipSlot into $slot`);
+    console.warn(`⚠️ Slot mismatch: trying to equip ${itemId} with slot ${equipSlot} into ${slot}`);
     // Optional: throw or allow
   }
 
@@ -60,11 +60,10 @@ export async function equipItemFromBackpack(request: any) {
     });
   }
 
-  // Recalculate stats
+  // Recalculate combat stats only
   let attackMin = 5;
   let attackMax = 10;
   let defense = 0;
-  let weight = 0;
 
   for (const s of validSlots) {
     const item = equipped[s];
@@ -72,7 +71,6 @@ export async function equipItemFromBackpack(request: any) {
       attackMin += item.craftedStats.attackMin ?? 0;
       attackMax += item.craftedStats.attackMax ?? 0;
       defense += item.craftedStats.defense ?? 0;
-      weight += item.craftedStats.weight ?? 0;
     }
   }
 
@@ -87,7 +85,6 @@ export async function equipItemFromBackpack(request: any) {
       attackMax,
       defense,
     },
-    totalWeight: weight,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
@@ -102,7 +99,6 @@ export async function equipItemFromBackpack(request: any) {
       attackMin,
       attackMax,
       defense,
-      weight,
     },
   };
 }

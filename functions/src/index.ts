@@ -5,7 +5,7 @@ import * as functions from 'firebase-functions';
 import { startHeroMovements } from './heroes/startHeroMovements.js';
 import { processHeroArrivalCallableLogic } from './heroes/processHeroArrival.js';
 import { processCombatTick } from './combat/processCombatTick.js'; // ⚔️ New combat tick logic
-import { transferHeroResources } from './heroes/transferHeroResources.js';
+
 
 
 
@@ -170,7 +170,11 @@ export const startHeroMovementsFunction = onCall(startHeroMovements);
 /**
  * 📦 transferHeroResources
  */
-export const transferHeroResourcesFunction = onCall(transferHeroResources);
+export const transferHeroResources = onCall(async (request) => {
+  const { transferHeroResources } = await import('./heroes/transferHeroResources.js');
+  return transferHeroResources(request);
+});
+
 
 
 /**

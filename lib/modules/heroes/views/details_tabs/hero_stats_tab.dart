@@ -4,13 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
+import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart'; // ✅ NEW
 import 'package:roots_app/modules/map/constants/tier1_map.dart';
 import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
 import 'package:roots_app/modules/heroes/views/hero_movement_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
-
-
 
 class HeroStatsTab extends StatefulWidget {
   final HeroModel hero;
@@ -189,8 +188,10 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
             _statRow("Experience", hero.experience.toString()),
             _statRow("Magic Resistance", hero.magicResistance.toString()),
             _barRow("HP", hero.hp, hero.hpMax, color: Theme.of(context).colorScheme.error),
-            _barRow("Mana", hero.mana, hero.manaMax, color: Theme.of(context).colorScheme.primary),
+            if (hero.type != 'companion') // ✅ Hide for companions
+              _barRow("Mana", hero.mana, hero.manaMax, color: Theme.of(context).colorScheme.primary),
           ]),
+
 
           _infoCard("📊 Attributes", [
             _attributeBar("Strength", hero.stats['strength'] ?? 0),
@@ -227,11 +228,13 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
             _statRow("HP Regen", _formatTime(hero.hpRegen)),
             _statRow("Mana Regen", _formatTime(hero.manaRegen)),
             _statRow("Food consumption every", _formatTime(hero.foodDuration)),
-            _statRowWithInfo(
-              "Carry Capacity",
-              "${hero.carryCapacity} kg",
-              tooltip: "Maximum total item weight this hero can carry. Scales with STR and CON.",
+
+            // ✅ Replaced static carry capacity with dynamic weight bar
+            HeroWeightBar(
+              currentWeight: (hero.currentWeight ?? 0).toDouble(),
+              carryCapacity: (hero.carryCapacity ?? 1).toDouble(),
             ),
+
           ]),
 
           _debugCard(hero),

@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
+import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
+
 
 class HeroResourcesTab extends StatefulWidget {
   final HeroModel hero;
@@ -99,9 +101,11 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     final changes = <String, int>{};
 
     for (final key in sourceResources.keys) {
-      final amount = pickUp ? sourceResources[key]! : (widget.hero.carriedResources[key] ?? 0);
+      final amount = pickUp
+          ? sourceResources[key] ?? 0
+          : widget.hero.carriedResources[key] ?? 0;
       if (amount > 0) {
-        changes[key] = pickUp ? amount : -amount;
+        changes[key] = amount; // ✅ always positive
       }
     }
 
@@ -110,10 +114,11 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     setState(() => _busy = true);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResourcesFunction');
+      final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResources');
       await callable.call({
         'heroId': widget.hero.id,
         'tileKey': tileKey,
+        'action': pickUp ? 'pickup' : 'drop', // ✅ action field added
         'resourceChanges': changes,
       });
 
@@ -136,7 +141,7 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     for (final key in sourceResources.keys) {
       final value = int.tryParse(_controllers[key]?.text ?? '0') ?? 0;
       if (value > 0) {
-        changes[key] = pickUp ? value : -value;
+        changes[key] = value; // ✅ always positive
       }
     }
 
@@ -145,10 +150,11 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     setState(() => _busy = true);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResourcesFunction');
+      final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResources');
       await callable.call({
         'heroId': widget.hero.id,
         'tileKey': tileKey,
+        'action': pickUp ? 'pickup' : 'drop', // ✅ action field added
         'resourceChanges': changes,
       });
 
@@ -162,6 +168,7 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
       setState(() => _busy = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -185,24 +192,12 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
           ),
           const SizedBox(height: 12),
 
-          // ✅ Carry capacity bar
-          Text(
-            "⚖️ Carried Weight: ${currentWeight.toStringAsFixed(2)} / $maxWeight",
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          HeroWeightBar(
+            currentWeight: currentWeight.toDouble(),
+            carryCapacity: maxWeight.toDouble(),
           ),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            value: percent,
-            minHeight: 8,
-            backgroundColor: Colors.grey.shade300,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              percent < 0.5
-                  ? Colors.green
-                  : percent < 0.9
-                  ? Colors.orange
-                  : Colors.red,
-            ),
-          ),
+
+
           const SizedBox(height: 16),
 
           ..._buildResourceRows(heroRes),

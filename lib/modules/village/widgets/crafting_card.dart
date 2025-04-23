@@ -9,7 +9,7 @@ class CraftingCard extends StatelessWidget {
   final String villageId;
   final bool isDisabled;
   final Widget? craftingButtonWidget;
-  final Map<String, dynamic>? currentCraftingJob; // ✅ NEW
+  final Map<String, dynamic>? currentCraftingJob;
 
   const CraftingCard({
     super.key,
@@ -31,6 +31,9 @@ class CraftingCard extends StatelessWidget {
     final costString = craftingCost.entries
         .map((e) => '${e.value} ${_capitalize(e.key)}')
         .join(', ');
+
+    final buildTimeSeconds = itemData['buildTime'] ?? 0;
+    final buildTimeText = _formatDuration(Duration(seconds: buildTimeSeconds));
 
     final isCraftingThisItem = currentCraftingJob != null &&
         currentCraftingJob!['itemId'] == itemId;
@@ -64,6 +67,7 @@ class CraftingCard extends StatelessWidget {
           Text('🧪 Type: ${_capitalize(type)}'),
           const SizedBox(height: 4),
           Text('💸 Cost: $costString'),
+          Text('⏳ Craft Time: $buildTimeText'),
 
           if (baseStats.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -97,5 +101,13 @@ class CraftingCard extends StatelessWidget {
   String _capitalize(String text) {
     if (text.isEmpty) return text;
     return text[0].toUpperCase() + text.substring(1);
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+
+    if (minutes == 0) return '$seconds s';
+    return seconds == 0 ? '$minutes min' : '$minutes min $seconds s';
   }
 }

@@ -40,11 +40,10 @@ export async function unequipItemToBackpack(request: any) {
     unequippedAt: admin.firestore.Timestamp.now(),
   });
 
-  // Recalculate combat stats
+  // Recalculate combat stats only
   let attackMin = 5;
   let attackMax = 10;
   let defense = 0;
-  let weight = 0;
 
   for (const s of validSlots) {
     const equippedItem = equipped[s];
@@ -52,7 +51,6 @@ export async function unequipItemToBackpack(request: any) {
       attackMin += equippedItem.craftedStats.attackMin ?? 0;
       attackMax += equippedItem.craftedStats.attackMax ?? 0;
       defense += equippedItem.craftedStats.defense ?? 0;
-      weight += equippedItem.craftedStats.weight ?? 0;
     }
   }
 
@@ -67,7 +65,6 @@ export async function unequipItemToBackpack(request: any) {
       attackMax,
       defense,
     },
-    totalWeight: weight,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
@@ -82,7 +79,6 @@ export async function unequipItemToBackpack(request: any) {
       attackMin,
       attackMax,
       defense,
-      weight,
     },
   };
 }

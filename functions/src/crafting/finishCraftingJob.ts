@@ -1,12 +1,9 @@
 import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { buildCraftedStats } from '../utils/buildCraftedStats.js';
 
 const db = admin.firestore();
 
-/**
- * 🧠 Pure logic for finishing a crafting job.
- * Safe to call via HTTP (Cloud Task) or manually (client).
- */
 export async function finishCraftingJobLogic(request: CallableRequest<any>) {
   const { villageId } = request.data;
   const userId = request.auth?.uid;
@@ -25,7 +22,6 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
     : new Date(0);
   const now = new Date();
 
-  // ⏱️ Throttle repeat finishes
   const secondsSinceLastCheck = (now.getTime() - lastCheck.getTime()) / 1000;
   if (secondsSinceLastCheck < 10) {
     console.log(`⏱️ Throttled: ${villageId} checked ${secondsSinceLastCheck.toFixed(2)}s ago`);
@@ -50,23 +46,28 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
     return { message: 'Crafting job is not complete yet.' };
   }
 
-  // 🎯 Apply result to village inventory
-  const { itemId, quantity, craftedStats } = craftingJob;
+  const { itemId, quantity } = craftingJob;
   const itemsRef = villageRef.collection('items');
 
-  // 🔍 Dynamically build craftedStats query
-  let query = itemsRef.where('itemId', '==', itemId).limit(1);
+  const itemSnap = await db.collection('items').doc(itemId).get();
+  if (!itemSnap.exists) throw new HttpsError('not-found', 'Item definition not found.');
 
+  const itemData = itemSnap.data()!;
+  const baseStats = itemData.baseStats || {};
+  const type = itemData.type || 'misc';
+  const research = data.research?.[itemId] || {};
+  const craftedStats = buildCraftedStats(baseStats, research, type); // ✅
+
+  // Build query
+  let query = itemsRef.where('itemId', '==', itemId).limit(1);
   if ('minDamage' in craftedStats && 'maxDamage' in craftedStats) {
     query = query
       .where('craftedStats.minDamage', '==', craftedStats.minDamage)
       .where('craftedStats.maxDamage', '==', craftedStats.maxDamage);
   }
-
   if ('balance' in craftedStats) {
     query = query.where('craftedStats.balance', '==', craftedStats.balance);
   }
-
   if ('weight' in craftedStats) {
     query = query.where('craftedStats.weight', '==', craftedStats.weight);
   }
@@ -74,26 +75,23 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
   const existingQuery = await query.get();
 
   if (!existingQuery.empty) {
-    // 🔁 Merge stack
     await existingQuery.docs[0].ref.update({
-      quantity: admin.firestore.FieldValue.increment(quantity)
+      quantity: admin.firestore.FieldValue.increment(quantity),
     });
   } else {
-    // ➕ New stack
     await itemsRef.add({
       itemId,
       quantity,
       craftedStats,
       craftedAt: admin.firestore.Timestamp.now(),
-      craftedByVillageId: villageId
+      craftedByVillageId: villageId,
     });
   }
 
-  // 🧹 Clean up crafting job
   await villageRef.update({
     currentCraftingJob: admin.firestore.FieldValue.delete(),
     lastCraftingCheck: admin.firestore.Timestamp.fromDate(now),
-    lastCraftingMethod: request.auth?.uid ? 'onCall' : 'scheduled'
+    lastCraftingMethod: request.auth?.uid ? 'onCall' : 'scheduled',
   });
 
   console.log(`✅ Finished crafting ${quantity}x ${itemId} for village ${villageId}`);
@@ -102,7 +100,7 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
     finished: true,
     itemId,
     quantity,
-    craftedStats
+    craftedStats,
   };
 }
 

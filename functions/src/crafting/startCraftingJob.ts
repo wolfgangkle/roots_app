@@ -1,6 +1,7 @@
 import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { scheduleCraftingTask } from '../utils/scheduleCraftingTask.js';
+import { buildCraftedStats } from '../utils/buildCraftedStats.js'; // ✅ NEW
 
 const db = admin.firestore();
 
@@ -24,18 +25,17 @@ export async function startCraftingJobLogic(request: CallableRequest<any>) {
 
   const villageData = villageSnap.data()!;
   const itemData = itemSnap.data()!;
-  const research = villageData.research?.[itemId] || { damage: 0, balance: 0, weight: 0 };
+  const research = villageData.research?.[itemId] || {};
   const existingJob = villageData.currentCraftingJob;
 
   if (existingJob) {
     throw new HttpsError('failed-precondition', 'Another crafting job is already active.');
   }
 
-  const craftedStats = {
-    damage: research.damage || 0,
-    balance: research.balance || 0,
-    weight: research.weight || 0,
-  };
+  const baseStats = itemData.baseStats || {};
+  const type = itemData.type || 'misc';
+  const craftedStats = buildCraftedStats(baseStats, research, type);
+
 
   // 🔧 Calculate total cost
   const resourceCost = itemData.craftingCost || {};
@@ -60,7 +60,7 @@ export async function startCraftingJobLogic(request: CallableRequest<any>) {
   }
 
   // 🕒 Set up crafting job
-  const durationSeconds: number = itemData.buildTime || 60; // fallback to 60s if not defined
+  const durationSeconds: number = itemData.buildTime || 60;
   const now = new Date();
   const startedAt = admin.firestore.Timestamp.fromDate(now);
 
