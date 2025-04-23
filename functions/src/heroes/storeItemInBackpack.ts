@@ -1,5 +1,10 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import {
+  calculateHeroWeight,
+  calculateAdjustedMovementSpeed,
+} from '../helpers/heroWeight';
+import { updateGroupMovementSpeed } from '../helpers/groupUtils'; // ✅ New import
 
 export async function storeItemInBackpack(request: any) {
   const db = admin.firestore();
@@ -42,18 +47,32 @@ export async function storeItemInBackpack(request: any) {
     movedAt: admin.firestore.Timestamp.now(),
   });
 
+  // ✅ Recalculate weight and movement speed
+  const equipped = hero.equipped || {};
+  const currentWeight = calculateHeroWeight(equipped, backpack);
+  const baseSpeed = hero.baseMovementSpeed ?? hero.movementSpeed ?? 1200;
+  const carryCapacity = hero.carryCapacity ?? 100;
+  const movementSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
+
   const batch = db.batch();
 
   // Remove the item from the tile or village
   batch.delete(sourceRef);
 
-  // Update the backpack
+  // Update the backpack and new stats
   batch.update(heroRef, {
     backpack,
+    currentWeight,
+    movementSpeed,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
   await batch.commit();
+
+  // ✅ Sync group speed if needed
+  if (hero.groupId) {
+    await updateGroupMovementSpeed(hero.groupId);
+  }
 
   console.log(`🎒 Hero ${heroId} picked up ${quantity}x ${itemId} into backpack from ${villageId ?? tileKey}`);
 
@@ -62,5 +81,9 @@ export async function storeItemInBackpack(request: any) {
     itemId,
     quantity,
     source: villageId ?? tileKey,
+    updatedStats: {
+      currentWeight,
+      movementSpeed,
+    },
   };
 }

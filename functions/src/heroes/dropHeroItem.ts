@@ -1,5 +1,10 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import {
+  calculateHeroWeight,
+  calculateAdjustedMovementSpeed,
+} from '../helpers/heroWeight';
+import { updateGroupMovementSpeed } from '../helpers/groupUtils'; // ✅ Added
 
 export async function dropHeroItem(request: any) {
   const db = admin.firestore();
@@ -53,16 +58,44 @@ export async function dropHeroItem(request: any) {
     droppedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  // 2. Update hero backpack
+  // 2. Update backpack
   if (quantity === itemQuantity) {
-    backpack.splice(backpackIndex, 1); // full drop → remove item
+    backpack.splice(backpackIndex, 1); // drop all = remove item
   } else {
     backpack[backpackIndex].quantity -= quantity;
   }
 
-  batch.update(heroRef, { backpack });
+  // 3. Recalculate weight & speed
+  const equipped = hero.equipped || {};
+  const currentWeight = calculateHeroWeight(equipped, backpack);
+  const baseSpeed = hero.baseMovementSpeed ?? hero.movementSpeed ?? 1200;
+  const carryCapacity = hero.carryCapacity ?? 100;
+  const movementSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
+
+  // 4. Update hero doc
+  batch.update(heroRef, {
+    backpack,
+    currentWeight,
+    movementSpeed,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
   await batch.commit();
 
+  // ✅ 5. Sync group movement if needed
+  if (hero.groupId) {
+    await updateGroupMovementSpeed(hero.groupId);
+  }
+
   console.log(`📦 Hero ${heroId} dropped ${quantity}x ${itemId} to ${villageId ?? tileKey}`);
-  return { success: true, itemId, quantity };
+
+  return {
+    success: true,
+    itemId,
+    quantity,
+    updatedStats: {
+      currentWeight,
+      movementSpeed,
+    },
+  };
 }

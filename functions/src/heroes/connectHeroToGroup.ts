@@ -82,23 +82,28 @@ export async function connectHeroToGroupLogic(request: any) {
 
       // ✅ Merge group metadata
       const existingGroupData = groupSnap.exists ? groupSnap.data() : null;
+      const existingMembers: string[] = existingGroupData?.members || [targetHeroId];
+      const allMembers = [...new Set([...existingMembers, heroId])];
+
       const newConnections = existingGroupData?.connections || {};
       newConnections[heroId] = targetHeroId;
 
-      const newMembers = admin.firestore.FieldValue.arrayUnion(heroId, targetHeroId);
-
-      // ✅ Calculate slowest movementSpeed
-      const heroSpeed = heroData.movementSpeed ?? 1200;
-      const groupSpeed = existingGroupData?.movementSpeed ?? 1200;
-      const updatedSpeed = Math.min(heroSpeed, groupSpeed);
-
       const insideVillage = existingGroupData?.insideVillage ?? false;
 
+      // ✅ Recalculate slowest movement speed of ALL members (existing + joining)
+      const memberRefs = allMembers.map(id => db.collection('heroes').doc(id));
+      const memberSnaps = await Promise.all(memberRefs.map(ref => transaction.get(ref)));
+
+      const slowestSpeed = Math.max(
+        ...memberSnaps.map(snap => snap.data()?.movementSpeed ?? 999999)
+      );
+
+      // ✅ Update group
       transaction.set(groupRef, {
-        members: newMembers,
+        members: allMembers,
         connections: newConnections,
         leaderHeroId: targetHeroId,
-        movementSpeed: updatedSpeed,
+        movementSpeed: slowestSpeed,
         insideVillage,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });

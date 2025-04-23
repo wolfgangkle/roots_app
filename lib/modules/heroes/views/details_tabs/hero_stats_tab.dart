@@ -227,6 +227,11 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
             _statRow("HP Regen", _formatTime(hero.hpRegen)),
             _statRow("Mana Regen", _formatTime(hero.manaRegen)),
             _statRow("Food consumption every", _formatTime(hero.foodDuration)),
+            _statRowWithInfo(
+              "Carry Capacity",
+              "${hero.carryCapacity} kg",
+              tooltip: "Maximum total item weight this hero can carry. Scales with STR and CON.",
+            ),
           ]),
 
           _debugCard(hero),

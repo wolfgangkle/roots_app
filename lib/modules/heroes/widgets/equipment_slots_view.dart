@@ -25,7 +25,8 @@ class EquipmentSlotsView extends StatefulWidget {
 }
 
 class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
-  final Map<String, bool> _loadingSlot = {};
+  bool _isLoading = false;
+  String? _activeSlot; // optional: tracks which slot is spinning
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +75,6 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
               final meta = itemId != null ? gameItems[itemId] ?? {} : null;
 
               final isBlocked = slot == 'offHand' && isMainHandTwoHanded;
-              final isLoading = _loadingSlot[slot] == true;
 
               return ListTile(
                 leading: Icon(isBlocked ? Icons.lock : Icons.check_circle_outline),
@@ -93,7 +93,7 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: isLoading
+                      icon: (_isLoading && _activeSlot == slot)
                           ? const SizedBox(
                         width: 20,
                         height: 20,
@@ -101,10 +101,13 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
                       )
                           : const Icon(Icons.backpack),
                       tooltip: 'Unequip to Backpack',
-                      onPressed: isLoading
+                      onPressed: _isLoading
                           ? null
                           : () async {
-                        setState(() => _loadingSlot[slot] = true);
+                        setState(() {
+                          _isLoading = true;
+                          _activeSlot = slot;
+                        });
                         try {
                           final callable = FirebaseFunctions.instance.httpsCallable('unequipItemToBackpack');
                           final result = await callable.call({
@@ -125,12 +128,17 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
                             );
                           }
                         } finally {
-                          if (mounted) setState(() => _loadingSlot[slot] = false);
+                          if (mounted) {
+                            setState(() {
+                              _isLoading = false;
+                              _activeSlot = null;
+                            });
+                          }
                         }
                       },
                     ),
                     IconButton(
-                      icon: isLoading
+                      icon: (_isLoading && _activeSlot == slot)
                           ? const SizedBox(
                         width: 20,
                         height: 20,
@@ -138,10 +146,13 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
                       )
                           : const Icon(Icons.backspace),
                       tooltip: 'Drop Item',
-                      onPressed: isLoading
+                      onPressed: _isLoading
                           ? null
                           : () async {
-                        setState(() => _loadingSlot[slot] = true);
+                        setState(() {
+                          _isLoading = true;
+                          _activeSlot = slot;
+                        });
                         final tileKey = "${widget.tileX}_${widget.tileY}";
                         try {
                           final callable = FirebaseFunctions.instance.httpsCallable('dropItemFromSlot');
@@ -164,7 +175,12 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
                             );
                           }
                         } finally {
-                          if (mounted) setState(() => _loadingSlot[slot] = false);
+                          if (mounted) {
+                            setState(() {
+                              _isLoading = false;
+                              _activeSlot = null;
+                            });
+                          }
                         }
                       },
                     ),

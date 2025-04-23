@@ -23,7 +23,7 @@ function calculateDerivedStats(stats: {
     attackMax: 9 + Math.floor(STR * 0.6),
     attackSpeedMs: Math.max(400, 1000 - DEX * 20),
     maxWaypoints: 10 + Math.floor(INT * 0.5),
-    carryCapacity: 50 + STR * 2 + CON * 5
+    carryCapacity: 50 + STR * 2 + CON * 5,
   };
 }
 
@@ -129,9 +129,11 @@ export async function createCompanionLogic(request: any) {
       hpRegen: derived.hpRegen,
       manaRegen: derived.manaRegen,
       foodDuration: 3600,
+      baseMovementSpeed: movementSpeed, // ✅ NEW
       movementSpeed,
       maxWaypoints: derived.maxWaypoints,
       carryCapacity: derived.carryCapacity,
+      currentWeight: 0, // ✅ NEW
       state: 'idle',
       createdAt: now,
     };
@@ -144,6 +146,7 @@ export async function createCompanionLogic(request: any) {
       tileX,
       tileY,
       tileKey,
+      baseMovementSpeed: movementSpeed, // ✅ NEW
       movementSpeed,
       insideVillage: true,
       createdAt: now,

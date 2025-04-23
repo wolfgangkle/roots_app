@@ -1,5 +1,10 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import {
+  calculateHeroWeight,
+  calculateAdjustedMovementSpeed,
+} from '../helpers/heroWeight';
+import { updateGroupMovementSpeed } from '../helpers/groupUtils'; // ✅ New import
 
 export async function equipHeroItem(request: any) {
   const db = admin.firestore();
@@ -75,7 +80,7 @@ export async function equipHeroItem(request: any) {
     equipped['offHand'] = null;
   }
 
-    // 2. Move previously equipped item back to appropriate source
+  // 2. Move previously equipped item back to appropriate source
   if (oldItem?.itemId) {
     const returnToRef = villageId
       ? db.collection('users').doc(userId).collection('villages').doc(villageId).collection('items').doc()
@@ -94,7 +99,6 @@ export async function equipHeroItem(request: any) {
     }
   }
 
-
   // 3. Remove item from source (village or tile)
   batch.delete(sourceItemRef);
 
@@ -105,11 +109,10 @@ export async function equipHeroItem(request: any) {
     equipSlot,
   };
 
-  // 5. Recalculate stats
+  // 5. Recalculate combat stats
   let attackMin = 5;
   let attackMax = 10;
   let defense = 0;
-  let weight = 0;
 
   for (const slotKey of validSlots) {
     const item = equipped[slotKey];
@@ -117,10 +120,17 @@ export async function equipHeroItem(request: any) {
       attackMin += item.craftedStats.attackMin ?? 0;
       attackMax += item.craftedStats.attackMax ?? 0;
       defense += item.craftedStats.defense ?? 0;
-      weight += item.craftedStats.weight ?? 0;
     }
   }
 
+  // 6. Calculate current weight and adjusted movement speed
+  const backpack = heroData.backpack ?? [];
+  const currentWeight = calculateHeroWeight(equipped, backpack);
+  const baseSpeed = heroData.baseMovementSpeed ?? heroData.movementSpeed ?? 1200;
+  const carryCapacity = heroData.carryCapacity ?? 100;
+  const adjustedSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
+
+  // 7. Prepare update
   const updatedHeroData = {
     equipped,
     combat: {
@@ -129,12 +139,18 @@ export async function equipHeroItem(request: any) {
       attackMax,
       defense,
     },
-    totalWeight: weight,
+    currentWeight,
+    movementSpeed: adjustedSpeed,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
   batch.update(heroRef, updatedHeroData);
   await batch.commit();
+
+  // ✅ 8. Recalculate group movementSpeed if needed
+  if (heroData.groupId) {
+    await updateGroupMovementSpeed(heroData.groupId);
+  }
 
   console.log(`🛡 Hero ${heroId} equipped ${itemId} from ${villageId ? 'village' : tileKey} to slot ${slot}.`);
 
@@ -145,7 +161,8 @@ export async function equipHeroItem(request: any) {
       attackMin,
       attackMax,
       defense,
-      weight,
+      weight: currentWeight,
+      movementSpeed: adjustedSpeed,
     },
   };
 }

@@ -4,7 +4,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/data/items.dart';
 
-class HeroBackpackList extends StatelessWidget {
+class HeroBackpackList extends StatefulWidget {
   final String heroId;
   final int tileX;
   final int tileY;
@@ -21,13 +21,21 @@ class HeroBackpackList extends StatelessWidget {
   });
 
   @override
+  State<HeroBackpackList> createState() => _HeroBackpackListState();
+}
+
+class _HeroBackpackListState extends State<HeroBackpackList> {
+  bool _isLoading = false;
+  int? _activeIndex;
+
+  @override
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
       return const Center(child: Text("⚠️ Not logged in."));
     }
 
-    final heroRef = FirebaseFirestore.instance.collection('heroes').doc(heroId);
+    final heroRef = FirebaseFirestore.instance.collection('heroes').doc(widget.heroId);
 
     return StreamBuilder<DocumentSnapshot>(
       stream: heroRef.snapshots(),
@@ -63,6 +71,8 @@ class HeroBackpackList extends StatelessWidget {
                 final itemName = meta['name'] ?? itemId;
                 final slot = _determineEquipSlot(meta);
 
+                final isThisActive = _activeIndex == index && _isLoading;
+
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: ListTile(
@@ -75,12 +85,24 @@ class HeroBackpackList extends StatelessWidget {
                       children: [
                         IconButton(
                           tooltip: 'Equip',
-                          icon: const Icon(Icons.check),
-                          onPressed: () async {
+                          icon: isThisActive
+                              ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                              : const Icon(Icons.check),
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                            setState(() {
+                              _isLoading = true;
+                              _activeIndex = index;
+                            });
                             try {
                               final callable = FirebaseFunctions.instance.httpsCallable('equipItemFromBackpack');
                               final result = await callable.call({
-                                'heroId': heroId,
+                                'heroId': widget.heroId,
                                 'backpackIndex': index,
                                 'slot': slot,
                               });
@@ -101,21 +123,40 @@ class HeroBackpackList extends StatelessWidget {
                                   SnackBar(content: Text("❌ Failed to equip: $e")),
                                 );
                               }
+                            } finally {
+                              if (mounted) {
+                                setState(() {
+                                  _isLoading = false;
+                                  _activeIndex = null;
+                                });
+                              }
                             }
                           },
                         ),
                         IconButton(
                           tooltip: 'Drop',
-                          icon: const Icon(Icons.backspace),
-                          onPressed: () async {
+                          icon: isThisActive
+                              ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                              : const Icon(Icons.backspace),
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                            setState(() {
+                              _isLoading = true;
+                              _activeIndex = index;
+                            });
                             try {
                               final callable = FirebaseFunctions.instance.httpsCallable('dropHeroItem');
                               final result = await callable.call({
-                                'heroId': heroId,
+                                'heroId': widget.heroId,
                                 'backpackIndex': index,
                                 'quantity': 1,
-                                if (insideVillage) 'villageId': villageId,
-                                if (!insideVillage) 'tileKey': '${tileX}_${tileY}',
+                                if (widget.insideVillage) 'villageId': widget.villageId,
+                                if (!widget.insideVillage) 'tileKey': '${widget.tileX}_${widget.tileY}',
                               });
 
                               if (context.mounted) {
@@ -130,6 +171,13 @@ class HeroBackpackList extends StatelessWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text("❌ Failed to drop item: $e")),
                                 );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() {
+                                  _isLoading = false;
+                                  _activeIndex = null;
+                                });
                               }
                             }
                           },

@@ -67,12 +67,25 @@ export async function kickHeroFromGroupLogic(request: any) {
       if (updatedMembers.length === 0) {
         tx.delete(groupRef);
       } else {
+        // Fetch movementSpeed of remaining members
+        const remainingRefs = updatedMembers.map((id: string) => db.collection('heroes').doc(id));
+        const remainingSnaps = await Promise.all(
+          remainingRefs.map((ref: FirebaseFirestore.DocumentReference) => tx.get(ref))
+        );
+
+
+        const slowestSpeed = Math.max(
+          ...remainingSnaps.map(snap => snap.data()?.movementSpeed ?? 999999)
+        );
+
         tx.update(groupRef, {
           members: updatedMembers,
           connections: updatedConnections,
+          movementSpeed: slowestSpeed, // ✅ Recalculate new slowest
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }
+
 
       // ✅ Create solo group with inherited position + insideVillage + own movementSpeed
       tx.set(soloGroupRef, {

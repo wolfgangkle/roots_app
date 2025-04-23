@@ -2,6 +2,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
+
 /**
  * Calculates all derived stats for a hero based on base attributes.
  */
@@ -105,9 +106,11 @@ export async function createHeroLogic(request: any) {
     hpRegen: derived.hpRegen,
     manaRegen: derived.manaRegen,
     foodDuration: 3600,
+    baseMovementSpeed: movementSpeed, // ✅ added
     movementSpeed,
     maxWaypoints: derived.maxWaypoints,
     carryCapacity: derived.carryCapacity,
+    currentWeight: 0, // ✅ added
   };
 
   const heroGroupRef = db.collection('heroGroups').doc(heroId);
@@ -120,6 +123,7 @@ export async function createHeroLogic(request: any) {
     tileX,
     tileY,
     tileKey,
+    baseMovementSpeed: movementSpeed, // ✅ added
     movementSpeed,
     insideVillage: true,
     createdAt: now,

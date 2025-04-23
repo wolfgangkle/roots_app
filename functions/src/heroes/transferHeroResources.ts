@@ -1,5 +1,9 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import {
+  calculateHeroWeight,
+  calculateAdjustedMovementSpeed,
+} from '../helpers/heroWeight';
 
 export async function transferHeroResources(request: any) {
   const db = admin.firestore();
@@ -28,24 +32,30 @@ export async function transferHeroResources(request: any) {
   await db.runTransaction(async (tx) => {
     const heroRef = db.collection('heroes').doc(heroId);
     const heroSnap = await tx.get(heroRef);
-
-    if (!heroSnap.exists) {
-      throw new HttpsError('not-found', 'Hero not found.');
-    }
-
+    if (!heroSnap.exists) throw new HttpsError('not-found', 'Hero not found.');
     const heroData = heroSnap.data()!;
+
     if (heroData.ownerId !== userId) {
       throw new HttpsError('permission-denied', 'You do not own this hero.');
     }
 
-    if (heroData.state !== 'idle') {
-      throw new HttpsError('failed-precondition', 'Hero must be idle to transfer resources.');
+    const groupId = heroData.groupId;
+    if (!groupId || typeof groupId !== 'string') {
+      throw new HttpsError('failed-precondition', 'Hero is not assigned to a valid group.');
     }
 
-    if (heroData.tileKey !== tileKey) {
+    const groupRef = db.collection('heroGroups').doc(groupId);
+    const groupSnap = await tx.get(groupRef);
+    if (!groupSnap.exists) {
+      throw new HttpsError('not-found', 'Hero group data not found.');
+    }
+
+    const groupData = groupSnap.data()!;
+    if (groupData.tileKey !== tileKey) {
       throw new HttpsError('invalid-argument', `Hero is not currently on tile ${tileKey}.`);
     }
 
+    const insideVillage = groupData.insideVillage ?? false;
     const tileRef = db.collection('mapTiles').doc(tileKey);
     const tileSnap = await tx.get(tileRef);
     const tileData = tileSnap.exists ? tileSnap.data() ?? {} : {};
@@ -55,24 +65,15 @@ export async function transferHeroResources(request: any) {
     let targetRes: Record<string, number> = {};
     let isVillage = false;
 
-    if (tileData.villageId) {
-      if (!heroData.insideVillage) {
-        throw new HttpsError('failed-precondition', 'You must be inside the village to access its storage.');
-      }
-
-      const villageId = tileData.villageId;
-      const villageRef = db.doc(`users/${userId}/villages/${villageId}`);
+    if (insideVillage && tileData.villageId) {
+      const villageRef = db.doc(`users/${userId}/villages/${tileData.villageId}`);
       const villageSnap = await tx.get(villageRef);
-      if (!villageSnap.exists) {
-        throw new HttpsError('not-found', 'Village data not found.');
-      }
+      if (!villageSnap.exists) throw new HttpsError('not-found', 'Village data not found.');
 
       const villageData = villageSnap.data()!;
       const lastUpdated: Date = villageData.lastUpdated?.toDate?.() ?? new Date(0);
       const now = new Date();
-
       const elapsedMinutes = (now.getTime() - lastUpdated.getTime()) / 60000;
-
       const production: Record<string, number> = villageData.productionPerHour || {};
       const stored: Record<string, number> = villageData.resources || {};
 
@@ -94,7 +95,7 @@ export async function transferHeroResources(request: any) {
           lastUpdated: admin.firestore.Timestamp.fromDate(now),
         });
 
-        console.log(`🌾 Refreshed village ${villageId} before resource transfer.`, gain);
+        console.log(`🌾 Refreshed village ${tileData.villageId} before resource transfer.`, gain);
       }
 
       targetRef = villageRef;
@@ -107,7 +108,6 @@ export async function transferHeroResources(request: any) {
 
     for (const res of allowedResources) {
       const change = resourceChanges[res];
-
       if (typeof change !== 'number' || change === 0) continue;
 
       const heroAmount = heroRes[res] ?? 0;
@@ -129,19 +129,49 @@ export async function transferHeroResources(request: any) {
       }
     }
 
-    tx.update(heroRef, { carriedResources: heroRes });
+    // ✅ Recalculate weight and speed
+    const equipped = heroData.equipped || {};
+    const backpack = heroData.backpack || [];
+    const currentWeight = calculateHeroWeight(equipped, backpack, heroRes);
+    const baseSpeed = heroData.baseMovementSpeed ?? heroData.movementSpeed ?? 1200;
+    const carryCapacity = heroData.carryCapacity ?? 100;
+    const movementSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
 
-    tx.set(targetRef, isVillage
-      ? { resources: targetRes }
-      : {
-          tileKey,
-          x: heroData.tileX,
-          y: heroData.tileY,
-          resources: targetRes,
-          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-        },
+    // 🚨 Block over-capacity transfers
+    if (currentWeight > carryCapacity) {
+      throw new HttpsError(
+        'failed-precondition',
+        `Transfer would exceed carry capacity. Current: ${currentWeight.toFixed(2)} / Max: ${carryCapacity}`
+      );
+    }
+
+    // ✅ Update hero
+    tx.update(heroRef, {
+      carriedResources: heroRes,
+      currentWeight,
+      movementSpeed,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // ✅ Update storage
+    tx.set(targetRef,
+      isVillage
+        ? { resources: targetRes }
+        : {
+            tileKey,
+            x: groupData.tileX,
+            y: groupData.tileY,
+            resources: targetRes,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          },
       { merge: true }
     );
+
+    // ✅ Group speed sync (dynamic import to avoid initializeApp timing issues)
+    if (heroData.groupId) {
+      const { updateGroupMovementSpeed } = await import('../helpers/groupUtils.js');
+      await updateGroupMovementSpeed(heroData.groupId);
+    }
 
     console.log(`💰 Hero ${heroId} transferred resources:`, resourceChanges, `→ ${isVillage ? 'village' : 'tile'} storage`);
   });

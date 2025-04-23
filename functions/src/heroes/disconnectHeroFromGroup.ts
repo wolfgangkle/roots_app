@@ -64,12 +64,22 @@ export async function disconnectHeroFromGroupLogic(request: any) {
       if (updatedMembers.length === 0) {
         tx.delete(groupRef); // Empty group cleanup
       } else {
+        // 🔍 Recalculate slowest movementSpeed
+        const remainingRefs = updatedMembers.map(id => db.collection('heroes').doc(id));
+        const remainingSnaps = await Promise.all(remainingRefs.map(ref => tx.get(ref)));
+
+        const slowestSpeed = Math.max(
+          ...remainingSnaps.map(snap => snap.data()?.movementSpeed ?? 999999)
+        );
+
         tx.update(groupRef, {
           members: updatedMembers,
           connections: updatedConnections,
+          movementSpeed: slowestSpeed, // ✅ Recalculated
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }
+
 
       // ✅ Create solo group with tile + insideVillage + movementSpeed
       tx.set(soloGroupRef, {

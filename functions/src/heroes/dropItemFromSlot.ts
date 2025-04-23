@@ -1,5 +1,10 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import {
+  calculateHeroWeight,
+  calculateAdjustedMovementSpeed,
+} from '../helpers/heroWeight';
+import { updateGroupMovementSpeed } from '../helpers/groupUtils'; // ✅ New import
 
 export async function dropItemFromSlot(request: any) {
   const db = admin.firestore();
@@ -44,11 +49,10 @@ export async function dropItemFromSlot(request: any) {
   // Remove the item from equipment slot
   equipped[slot] = null;
 
-  // Recalculate stats
+  // Recalculate stats (attack/defense only)
   let attackMin = 5;
   let attackMax = 10;
   let defense = 0;
-  let weight = 0;
 
   for (const s of validSlots) {
     const eq = equipped[s];
@@ -56,9 +60,15 @@ export async function dropItemFromSlot(request: any) {
       attackMin += eq.craftedStats.attackMin ?? 0;
       attackMax += eq.craftedStats.attackMax ?? 0;
       defense += eq.craftedStats.defense ?? 0;
-      weight += eq.craftedStats.weight ?? 0;
     }
   }
+
+  // Recalculate current weight and movement speed
+  const backpack = hero.backpack ?? [];
+  const currentWeight = calculateHeroWeight(equipped, backpack);
+  const baseSpeed = hero.baseMovementSpeed ?? hero.movementSpeed ?? 1200;
+  const carryCapacity = hero.carryCapacity ?? 100;
+  const movementSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
 
   const batch = db.batch();
 
@@ -81,11 +91,17 @@ export async function dropItemFromSlot(request: any) {
       attackMax,
       defense,
     },
-    totalWeight: weight,
+    currentWeight,
+    movementSpeed,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
   await batch.commit();
+
+  // ✅ Update group movement speed if needed
+  if (hero.groupId) {
+    await updateGroupMovementSpeed(hero.groupId);
+  }
 
   console.log(`📦 Dropped ${itemId} from slot ${slot} to ${villageId ?? tileKey} (hero: ${heroId})`);
 
@@ -93,5 +109,9 @@ export async function dropItemFromSlot(request: any) {
     success: true,
     droppedSlot: slot,
     itemId,
+    updatedStats: {
+      currentWeight,
+      movementSpeed,
+    },
   };
 }

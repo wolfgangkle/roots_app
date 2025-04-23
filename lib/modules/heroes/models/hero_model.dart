@@ -22,11 +22,13 @@ class HeroModel {
   final int? destinationX;
   final int? destinationY;
   final List<Map<String, dynamic>>? movementQueue;
+  final int currentWeight;
   final int hpRegen;
   final int manaRegen;
   final int foodDuration;
   final int movementSpeed;           // 🆕 New
   final int maxWaypoints;            // 🆕 New
+  final int carryCapacity;
   final Map<String, dynamic> combat; // 🆕 New
   final DateTime? arrivesAt;
   final bool insideVillage;
@@ -65,6 +67,8 @@ class HeroModel {
     required this.insideVillage,
     required this.ref,
     required this.createdAt,
+    required this.carryCapacity,
+    required this.currentWeight,
     this.destinationX,
     this.destinationY,
     this.movementQueue,
@@ -119,6 +123,8 @@ class HeroModel {
       groupId: data['groupId'],
       groupLeaderId: data['groupLeaderId'],
       guildId: data['guildId'],
+      carryCapacity: data['carryCapacity'] ?? 0,
+      currentWeight: data['currentWeight'] ?? 0,
       arrivesAt: data['arrivesAt']?.toDate(),
       insideVillage: data['insideVillage'] ?? false,
       destinationX: data['destinationX'],

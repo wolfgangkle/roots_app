@@ -22,14 +22,18 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
   };
 
   String? villageId;
+  String? tileKey;
+  bool insideVillage = false;
   bool _loading = true;
+  bool _busy = false;
+
   final Map<String, TextEditingController> _controllers = {};
 
   @override
   void initState() {
     super.initState();
     for (var res in sourceResources.keys) {
-      _controllers[res] = TextEditingController(text: "1");
+      _controllers[res] = TextEditingController(text: "0");
     }
     _loadResourceSource();
   }
@@ -43,14 +47,29 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
   }
 
   Future<void> _loadResourceSource() async {
-    final tileKey = widget.hero.tileKey;
+    setState(() {
+      _loading = true;
+    });
+
+    final groupId = widget.hero.groupId;
+    if (groupId == null) return;
+
+    final groupSnap = await FirebaseFirestore.instance.collection('heroGroups').doc(groupId).get();
+    final groupData = groupSnap.data();
+    if (groupData == null) return;
+
+    tileKey = groupData['tileKey'] as String?;
+    insideVillage = groupData['insideVillage'] as bool? ?? false;
+
+    if (tileKey == null) return;
 
     final tileSnap = await FirebaseFirestore.instance.collection('mapTiles').doc(tileKey).get();
     final tileData = tileSnap.data();
 
-    if (widget.hero.insideVillage && tileData?['villageId'] != null) {
+    if (insideVillage && tileData?['villageId'] != null) {
       final id = tileData!['villageId'];
       villageId = id;
+
       final villageSnap = await FirebaseFirestore.instance
           .doc('users/${widget.hero.ownerId}/villages/$id')
           .get();
@@ -74,33 +93,9 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
     }
   }
 
-  Future<void> _transferResource({
-    required String type,
-    required bool pickUp,
-    required int amount,
-  }) async {
-    if (amount <= 0) return;
-
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResourcesFunction');
-      await callable.call({
-        'heroId': widget.hero.id,
-        'tileKey': widget.hero.tileKey,
-        'resourceChanges': {
-          type: pickUp ? amount : -amount,
-        },
-      });
-
-      await _loadResourceSource();
-    } catch (e) {
-      print("🔥 Failed to transfer resource: $e");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Error transferring $type: $e"),
-      ));
-    }
-  }
-
   Future<void> _transferAll({required bool pickUp}) async {
+    if (tileKey == null) return;
+
     final changes = <String, int>{};
 
     for (final key in sourceResources.keys) {
@@ -110,23 +105,70 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
       }
     }
 
+    if (changes.isEmpty) return;
+
+    setState(() => _busy = true);
+
     try {
       final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResourcesFunction');
       await callable.call({
         'heroId': widget.hero.id,
-        'tileKey': widget.hero.tileKey,
+        'tileKey': tileKey,
         'resourceChanges': changes,
       });
 
       await _loadResourceSource();
     } catch (e) {
       print("🔥 Failed to transfer all: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error transferring resources: $e")),
+      );
+    } finally {
+      setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _transferCustom({required bool pickUp}) async {
+    if (tileKey == null) return;
+
+    final changes = <String, int>{};
+
+    for (final key in sourceResources.keys) {
+      final value = int.tryParse(_controllers[key]?.text ?? '0') ?? 0;
+      if (value > 0) {
+        changes[key] = pickUp ? value : -value;
+      }
+    }
+
+    if (changes.isEmpty) return;
+
+    setState(() => _busy = true);
+
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('transferHeroResourcesFunction');
+      await callable.call({
+        'heroId': widget.hero.id,
+        'tileKey': tileKey,
+        'resourceChanges': changes,
+      });
+
+      await _loadResourceSource();
+    } catch (e) {
+      print("🔥 Failed to transfer custom resources: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error transferring resources: $e")),
+      );
+    } finally {
+      setState(() => _busy = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final heroRes = widget.hero.carriedResources;
+    final currentWeight = widget.hero.currentWeight ?? 0;
+    final maxWeight = widget.hero.carryCapacity ?? 1;
+    final percent = (currentWeight / maxWeight).clamp(0.0, 1.0);
 
     return _loading
         ? const Center(child: CircularProgressIndicator())
@@ -136,26 +178,59 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.hero.insideVillage && villageId != null
+            insideVillage && villageId != null
                 ? "🏰 Inside Village • Transfer from Storage"
                 : "🗺️ On Tile • Transfer from Tile",
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
+
+          // ✅ Carry capacity bar
+          Text(
+            "⚖️ Carried Weight: ${currentWeight.toStringAsFixed(2)} / $maxWeight",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          LinearProgressIndicator(
+            value: percent,
+            minHeight: 8,
+            backgroundColor: Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              percent < 0.5
+                  ? Colors.green
+                  : percent < 0.9
+                  ? Colors.orange
+                  : Colors.red,
+            ),
+          ),
+          const SizedBox(height: 16),
+
           ..._buildResourceRows(heroRes),
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
             children: [
               ElevatedButton.icon(
                 icon: const Icon(Icons.upload_file),
                 label: const Text("Pick Up All"),
-                onPressed: () => _transferAll(pickUp: true),
+                onPressed: _busy ? null : () => _transferAll(pickUp: true),
               ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.download),
                 label: const Text("Drop All"),
-                onPressed: () => _transferAll(pickUp: false),
+                onPressed: _busy ? null : () => _transferAll(pickUp: false),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.upload),
+                label: const Text("Pick Up Resources"),
+                onPressed: _busy ? null : () => _transferCustom(pickUp: true),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.download_rounded),
+                label: const Text("Drop Resources"),
+                onPressed: _busy ? null : () => _transferCustom(pickUp: false),
               ),
             ],
           )
@@ -163,6 +238,7 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
       ),
     );
   }
+
 
   List<Widget> _buildResourceRows(Map<String, dynamic> heroRes) {
     final keys = ['wood', 'stone', 'iron', 'food', 'gold'];
@@ -187,22 +263,6 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
                   contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: () {
-                final amount = int.tryParse(_controllers[key]?.text ?? '0') ?? 0;
-                _transferResource(type: key, pickUp: true, amount: amount);
-              },
-              child: const Text("Pick Up"),
-            ),
-            const SizedBox(width: 6),
-            ElevatedButton(
-              onPressed: () {
-                final amount = int.tryParse(_controllers[key]?.text ?? '0') ?? 0;
-                _transferResource(type: key, pickUp: false, amount: amount);
-              },
-              child: const Text("Drop"),
             ),
             const SizedBox(width: 12),
             Expanded(
