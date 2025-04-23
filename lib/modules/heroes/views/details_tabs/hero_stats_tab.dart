@@ -20,44 +20,34 @@ class HeroStatsTab extends StatefulWidget {
   State<HeroStatsTab> createState() => _HeroStatsTabState();
 }
 
+
+
+
 class _HeroStatsTabState extends State<HeroStatsTab> {
-  bool _checkingTile = false;
-  Map<String, dynamic>? _slotLimits;
-  Map<String, dynamic>? _slotUsage;
   Map<String, dynamic>? _groupData;
-  int _currentMaxSlots = 0;
-  int _usedSlots = 0;
   String? _villageName;
+  bool _checkingTile = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSlotData();
-    _loadGroupData();
+  // Format seconds to "Xm Ys"
+  String _formatTime(int seconds) {
+    if (seconds < 60) return '$seconds s';
+    final minutes = seconds ~/ 60;
+    final remaining = seconds % 60;
+    return remaining == 0 ? '$minutes m' : '$minutes m $remaining s';
   }
 
-  Future<void> _loadSlotData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+  // Format milliseconds to "Xm Ys"
+  String _formatMsToMinutesSeconds(int ms) {
+    final totalSeconds = ms ~/ 1000;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
 
-    final profileSnap = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('profile')
-        .doc('main')
-        .get();
-
-    final data = profileSnap.data();
-    if (data == null) return;
-
-    setState(() {
-      _slotLimits = data['slotLimits'] ?? {};
-      _slotUsage = data['currentSlotUsage'] ?? {};
-      _currentMaxSlots = data['currentMaxSlots'] ?? (_slotLimits?['maxSlots'] ?? 0);
-      _usedSlots = (_slotUsage?['villages'] ?? 0) + (_slotUsage?['companions'] ?? 0);
-    });
+    if (minutes == 0) return '$seconds s';
+    if (seconds == 0) return '$minutes m';
+    return '$minutes m $seconds s';
   }
 
+  // Load group data (make async)
   Future<void> _loadGroupData() async {
     final groupId = widget.hero.groupId;
     if (groupId == null) return;
@@ -70,14 +60,18 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     final data = groupSnap.data();
     if (data == null) return;
 
-    setState(() => _groupData = data);
+    setState(() {
+      _groupData = data;
+    });
 
-    if (data['insideVillage'] == true) {
-      final name = await _getVillageName(data['tileX'], data['tileY']);
-      setState(() => _villageName = name);
+    // Fetch the village name asynchronously
+    if (_groupData!['insideVillage'] == true) {
+      _villageName = await _getVillageName(_groupData!['tileX'], _groupData!['tileY']);
+      setState(() {});  // Ensure UI is updated when village name is fetched
     }
   }
 
+  // Get village name
   Future<String?> _getVillageName(int x, int y) async {
     final query = await FirebaseFirestore.instance
         .collectionGroup('villages')
@@ -92,6 +86,13 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     return null;
   }
 
+  // Can found village
+  bool _canFoundVillage(HeroModel hero) {
+    // Implement your logic to check if a village can be founded here
+    return true; // Placeholder return, modify as needed
+  }
+
+  // Handle found village
   Future<void> _handleFoundVillage(HeroModel hero) async {
     setState(() => _checkingTile = true);
 
@@ -117,22 +118,10 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     ));
   }
 
-  bool _canFoundVillage(HeroModel hero) {
-    final tileKey = '${hero.tileX}_${hero.tileY}';
-    final terrain = tier1Map[tileKey];
-    final isIdle = hero.state == 'idle';
-    final isPlains = terrain == 'plains';
-
-    if (!isIdle || !isPlains) return false;
-
-    final usedVillages = _slotUsage?['villages'] ?? 0;
-    final maxVillages = _slotLimits?['maxVillages'] ?? 0;
-
-    if (hero.type == 'mage') {
-      return _usedSlots < _currentMaxSlots;
-    } else {
-      return _usedSlots < _currentMaxSlots || usedVillages < maxVillages;
-    }
+  @override
+  void initState() {
+    super.initState();
+    _loadGroupData();
   }
 
   @override
@@ -188,10 +177,9 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
             _statRow("Experience", hero.experience.toString()),
             _statRow("Magic Resistance", hero.magicResistance.toString()),
             _barRow("HP", hero.hp, hero.hpMax, color: Theme.of(context).colorScheme.error),
-            if (hero.type != 'companion') // ✅ Hide for companions
+            if (hero.type != 'companion')
               _barRow("Mana", hero.mana, hero.manaMax, color: Theme.of(context).colorScheme.primary),
           ]),
-
 
           _infoCard("📊 Attributes", [
             _attributeBar("Strength", hero.stats['strength'] ?? 0),
@@ -214,8 +202,8 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
                 tooltip: "HP regenerated per ~10s combat tick."),
             _statRowWithInfo(
               "Attack Speed",
-              "${(hero.combat['attackSpeedMs'] / 1000).toStringAsFixed(1)}s",
-              tooltip: "Time between each attack in seconds.",
+              _formatMsToMinutesSeconds(hero.combat['attackSpeedMs']),
+              tooltip: "Time between each attack. Affects combat pacing.",
             ),
             _statRowWithInfo(
               "Estimated DPS",
@@ -228,13 +216,10 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
             _statRow("HP Regen", _formatTime(hero.hpRegen)),
             _statRow("Mana Regen", _formatTime(hero.manaRegen)),
             _statRow("Food consumption every", _formatTime(hero.foodDuration)),
-
-            // ✅ Replaced static carry capacity with dynamic weight bar
             HeroWeightBar(
               currentWeight: (hero.currentWeight ?? 0).toDouble(),
               carryCapacity: (hero.carryCapacity ?? 1).toDouble(),
             ),
-
           ]),
 
           _debugCard(hero),
@@ -274,6 +259,7 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     );
   }
 
+  // Helper Methods
   Widget _infoCard(String title, List<Widget> children) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -396,13 +382,6 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     );
   }
 
-  String _formatTime(int seconds) {
-    if (seconds < 60) return '$seconds s';
-    final minutes = seconds ~/ 60;
-    final remaining = seconds % 60;
-    return remaining == 0 ? '$minutes m' : '$minutes m $remaining s';
-  }
-
   Color _stateColor(String state) {
     switch (state) {
       case 'idle':
@@ -429,8 +408,6 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     }
   }
 
-
-
   String _calculateDPS(Map<String, dynamic> combat) {
     final min = combat['attackMin'] ?? 0;
     final max = combat['attackMax'] ?? 0;
@@ -442,3 +419,4 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     return dps.toStringAsFixed(2);
   }
 }
+
