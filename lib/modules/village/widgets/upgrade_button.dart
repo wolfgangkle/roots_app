@@ -15,7 +15,7 @@ class UpgradeButton extends StatefulWidget {
   final VoidCallback? onOptimisticUpgrade;
 
   const UpgradeButton({
-    Key? key,
+    super.key,
     required this.buildingType,
     required this.currentLevel,
     required this.villageId,
@@ -24,7 +24,7 @@ class UpgradeButton extends StatefulWidget {
     this.onGlobalUpgradeStart,
     this.onUpgradeComplete,
     this.onOptimisticUpgrade, // NEW
-  }) : super(key: key);
+  });
 
   @override
   _UpgradeButtonState createState() => _UpgradeButtonState();

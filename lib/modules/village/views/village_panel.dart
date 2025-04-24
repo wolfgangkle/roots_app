@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/services/village_service.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/widgets/village_card.dart';
-import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 
 class VillagePanel extends StatefulWidget {
   final void Function(VillageModel)? onVillageTap;
 
-  const VillagePanel({Key? key, this.onVillageTap}) : super(key: key);
+  const VillagePanel({super.key, this.onVillageTap});
 
   @override
   _VillagePanelState createState() => _VillagePanelState();

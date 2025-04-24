@@ -23,6 +23,7 @@ dependencies:
   # ✅ Needed for firebase_auth_web
   js: ^0.7.2
 
+  vector_math: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

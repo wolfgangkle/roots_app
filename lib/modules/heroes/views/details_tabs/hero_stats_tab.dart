@@ -1,12 +1,10 @@
 // imports...
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
-import 'package:roots_app/modules/map/constants/tier1_map.dart';
 import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
 import 'package:roots_app/modules/heroes/views/hero_movement_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
@@ -116,12 +114,11 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
 
     final String locationText = _groupData == null
         ? 'Loading...'
-        : "(${_groupData!['tileX']}, ${_groupData!['tileY']})" +
-        (_groupData!['insideVillage'] == true
+        : "(${_groupData!['tileX']}, ${_groupData!['tileY']})${_groupData!['insideVillage'] == true
             ? _villageName != null
             ? " • In village ‘$_villageName’"
             : " • In Village"
-            : "");
+            : ""}";
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -171,7 +168,7 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
 
           _infoCard("🗺️ Movement & Waypoints", [
             _statRow("Movement Speed", _formatTime(hero.movementSpeed)),
-            _statRowWithInfo("Max Waypoints", hero.maxWaypoints?.toString() ?? '—',
+            _statRowWithInfo("Max Waypoints", hero.maxWaypoints.toString() ?? '—',
                 tooltip: "Max path steps your hero can queue. Scales with INT later."),
           ]),
 

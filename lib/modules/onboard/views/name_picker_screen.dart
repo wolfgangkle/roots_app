@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class NamePickerScreen extends StatefulWidget {
   final void Function(String heroName) onNext;
 
-  const NamePickerScreen({Key? key, required this.onNext}) : super(key: key);
+  const NamePickerScreen({super.key, required this.onNext});
 
   @override
   State<NamePickerScreen> createState() => _NamePickerScreenState();

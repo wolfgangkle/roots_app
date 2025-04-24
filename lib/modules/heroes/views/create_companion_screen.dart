@@ -9,7 +9,7 @@ import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
 
 class CreateCompanionScreen extends StatefulWidget {
-  const CreateCompanionScreen({Key? key}) : super(key: key);
+  const CreateCompanionScreen({super.key});
 
   @override
   State<CreateCompanionScreen> createState() => _CreateCompanionScreenState();

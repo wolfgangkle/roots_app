@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
-import 'package:roots_app/modules/village/models/building_model.dart';
 import 'package:roots_app/utils/firestore_logger.dart';
 
 class VillageService {

@@ -1,6 +1,7 @@
 
 /// 🔄 Upgrade duration formulas — matches Cloud Functions backend logic.
 /// See: functions/src/utils/buildingFormulas.ts
+library;
 
 
 

@@ -9,7 +9,7 @@ import 'zone_picker_screen.dart';
 import 'onboard_summary.dart';
 
 class OnboardingEntry extends StatefulWidget {
-  const OnboardingEntry({Key? key}) : super(key: key);
+  const OnboardingEntry({super.key});
 
   @override
   State<OnboardingEntry> createState() => _OnboardingEntryState();

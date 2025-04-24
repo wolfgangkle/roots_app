@@ -188,7 +188,7 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
                       final data = doc.data() as Map<String, dynamic>;
                       final hero = HeroModel.fromFirestore(doc.id, data);
                       final groupSnap = await FirebaseFirestore.instance.collection('heroGroups').doc(hero.groupId).get();
-                      final groupData = groupSnap.data() as Map<String, dynamic>?;
+                      final groupData = groupSnap.data();
 
                       return MapEntry(hero, groupData ?? {});
                     })),

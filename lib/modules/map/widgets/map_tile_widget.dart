@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:roots_app/modules/map/models/terrain_type_model.dart';
 import 'package:roots_app/modules/map/providers/terrain_provider.dart';
 
 class MapTileWidget extends StatelessWidget {

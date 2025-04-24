@@ -96,10 +96,9 @@ class ReportsListScreen extends StatelessWidget {
                       final isOngoing = combatState == 'ongoing';
                       // Optionally add a combat message (e.g. a summary or XP info)
                       final combatMessage = combatData?['message'];
-                      final subtitle = "$formattedTime • ${isOngoing ? 'Ongoing' : 'Completed'}" +
-                          (combatMessage != null && combatMessage.toString().isNotEmpty
+                      final subtitle = "$formattedTime • ${isOngoing ? 'Ongoing' : 'Completed'}${combatMessage != null && combatMessage.toString().isNotEmpty
                               ? " • $combatMessage"
-                              : "");
+                              : ""}";
                       return ListTile(
                         leading: Icon(_iconForType(type)),
                         title: Text(title),

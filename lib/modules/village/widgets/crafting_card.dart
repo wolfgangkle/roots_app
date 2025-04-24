@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:roots_app/modules/village/widgets/crafting_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.dart';
 

@@ -100,7 +100,7 @@ class FirestoreService {
       final y = rand.nextInt(bounds['maxY']! - bounds['minY']!) + bounds['minY']!;
 
       // 🧱 NEW CHECK: Exclude invalid terrain tiles (future-ready!)
-      final tileDoc = await _db.collection('tiles').doc('tile_${x}_${y}').get();
+      final tileDoc = await _db.collection('tiles').doc('tile_${x}_$y').get();
       if (tileDoc.exists && ['water', 'mountain', 'ice', 'forest'].contains(tileDoc['terrain'])) {
         continue; // Skip bad terrain tiles
       }

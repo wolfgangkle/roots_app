@@ -4,7 +4,7 @@ import 'package:roots_app/modules/map/constants/terrain_definitions.dart';
 
 class TerrainProvider extends ChangeNotifier {
   final Map<String, TerrainTypeModel> _terrainTypes = terrainDefinitions;
-  bool _isLoaded = true;
+  final bool _isLoaded = true;
 
   bool get isLoaded => _isLoaded;
 

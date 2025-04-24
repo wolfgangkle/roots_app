@@ -125,7 +125,7 @@ class _HeroMiniMapOverlayState extends State<HeroMiniMapOverlay> {
                     itemBuilder: (context, index) {
                       final x = panOffset.dx.toInt() + (index % visibleTiles);
                       final y = panOffset.dy.toInt() + (index ~/ visibleTiles);
-                      final tileKey = '${x}_${y}';
+                      final tileKey = '${x}_$y';
                       final terrainId = tier1Map[tileKey] ?? 'plains';
                       final isHero = (x == widget.hero.tileX && y == widget.hero.tileY);
                       final isWaypoint = widget.waypoints.any((wp) => wp['x'] == x && wp['y'] == y);

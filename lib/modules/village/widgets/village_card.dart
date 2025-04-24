@@ -12,10 +12,10 @@ class VillageCard extends StatefulWidget {
   final VoidCallback? onTap;
 
   const VillageCard({
-    Key? key,
+    super.key,
     required this.village,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   _VillageCardState createState() => _VillageCardState();

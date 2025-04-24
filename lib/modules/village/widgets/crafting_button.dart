@@ -12,7 +12,7 @@ class CraftButton extends StatefulWidget {
   final VoidCallback? onOptimisticCraft;
 
   const CraftButton({
-    Key? key,
+    super.key,
     required this.itemId,
     required this.villageId,
     this.quantity = 1,
@@ -21,7 +21,7 @@ class CraftButton extends StatefulWidget {
     this.onCraftStart,
     this.onCraftComplete,
     this.onOptimisticCraft,
-  }) : super(key: key);
+  });
 
   @override
   State<CraftButton> createState() => _CraftButtonState();

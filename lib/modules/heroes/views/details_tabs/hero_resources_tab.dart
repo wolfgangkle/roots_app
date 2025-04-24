@@ -147,7 +147,7 @@ class _HeroResourcesTabState extends State<HeroResourcesTab> {
       'gold': 0.01,
     };
 
-    double total = widget.hero.currentWeight?.toDouble() ?? 0.0;
+    double total = widget.hero.currentWeight.toDouble() ?? 0.0;
 
     for (final key in resourceWeights.keys) {
       final input = int.tryParse(_controllers[key]?.text ?? '0') ?? 0;

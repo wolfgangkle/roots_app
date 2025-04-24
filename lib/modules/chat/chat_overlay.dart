@@ -20,7 +20,7 @@ class _ChatOverlayState extends State<ChatOverlay> {
 
   bool _isCollapsed = false;
   double _height = 220;
-  double _width = 380;
+  final double _width = 380;
 
   void _sendMessage(String sender) {
     final text = _controller.text.trim();

@@ -39,7 +39,7 @@ class ZonePickerScreen extends StatelessWidget {
                   onTap: () => onNext(zone['id']!),
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

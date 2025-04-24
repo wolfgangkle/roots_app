@@ -17,5 +17,5 @@ class MapTileModel {
     );
   }
 
-  String get id => '${x}_${y}';
+  String get id => '${x}_$y';
 }

@@ -245,7 +245,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                                 ),
                               );
                             } else {
-                              return Text("$enemyName #$i (${hp} HP remaining)");
+                              return Text("$enemyName #$i ($hp HP remaining)");
                             }
                           }),
                       ],
@@ -286,7 +286,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                         final damage = attack['damage']?.toString() ?? '';
                         List<TextSpan> spans = [
                           const TextSpan(text: "🧙 "),
-                          TextSpan(text: "$attackerName", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: attackerName, style: const TextStyle(fontWeight: FontWeight.bold)),
                           const TextSpan(text: " hits "),
                         ];
                         if (targetType == 'enemy' && target is int) {
@@ -306,7 +306,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                           final targetHp = (heroesHpAfter != null && heroesHpAfter.containsKey(target))
                               ? heroesHpAfter[target]
                               : '?';
-                          spans.add(TextSpan(text: "$targetName", style: const TextStyle(fontWeight: FontWeight.bold)));
+                          spans.add(TextSpan(text: targetName, style: const TextStyle(fontWeight: FontWeight.bold)));
                           spans.add(TextSpan(text: " for $damage damage --> "));
                           spans.add(_buildOutcomeSpan(targetHp, targetName));
                         } else {
@@ -331,7 +331,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                       final attackerName = (heroNameMap != null && heroNameMap.containsKey(rawAttackerId))
                           ? heroNameMap[rawAttackerId]!
                           : rawAttackerId;
-                      spans.add(TextSpan(text: "$attackerName", style: const TextStyle(fontWeight: FontWeight.bold)));
+                      spans.add(TextSpan(text: attackerName, style: const TextStyle(fontWeight: FontWeight.bold)));
                       spans.add(const TextSpan(text: " hits "));
                       final targetType = heroAttackRaw['targetType']?.toString() ?? '';
                       final target = heroAttackRaw['target'];

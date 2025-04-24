@@ -11,10 +11,10 @@ class BuildingTab extends StatefulWidget {
   final String selectedFilter;
 
   const BuildingTab({
-    Key? key,
+    super.key,
     required this.village,
     required this.selectedFilter,
-  }) : super(key: key);
+  });
 
   @override
   _BuildingTabState createState() => _BuildingTabState();

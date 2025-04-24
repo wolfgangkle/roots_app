@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/models/building_definition.dart';
-import 'package:roots_app/modules/village/widgets/upgrade_button.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
@@ -14,13 +13,13 @@ class BuildingCard extends StatelessWidget {
   final VillageModel village;
 
   const BuildingCard({
-    Key? key,
+    super.key,
     required this.type,
     required this.level,
     required this.definition,
     required this.village,
     this.upgradeButtonWidget,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

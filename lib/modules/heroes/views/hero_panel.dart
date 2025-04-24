@@ -12,7 +12,7 @@ import 'package:roots_app/screens/controllers/main_content_controller.dart';
 class HeroPanel extends StatelessWidget {
   final MainContentController controller;
 
-  const HeroPanel({required this.controller, Key? key}) : super(key: key);
+  const HeroPanel({required this.controller, super.key});
 
   Stream<List<HeroModel>> _heroStream() {
     final user = FirebaseAuth.instance.currentUser;
@@ -23,7 +23,7 @@ class HeroPanel extends StatelessWidget {
         .where('ownerId', isEqualTo: user.uid)
         .snapshots()
         .map((query) => query.docs.map((doc) {
-      return HeroModel.fromFirestore(doc.id, doc.data() as Map<String, dynamic>);
+      return HeroModel.fromFirestore(doc.id, doc.data());
     }).toList());
   }
 
@@ -57,8 +57,8 @@ class HeroPanel extends StatelessWidget {
           if (a.type == 'mage' && b.type != 'mage') return -1;
           if (b.type == 'mage' && a.type != 'mage') return 1;
 
-          final aTime = (a.createdAt as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-          final bTime = (b.createdAt as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+          final aTime = (a.createdAt)?.millisecondsSinceEpoch ?? 0;
+          final bTime = (b.createdAt)?.millisecondsSinceEpoch ?? 0;
           return aTime.compareTo(bTime);
         });
 

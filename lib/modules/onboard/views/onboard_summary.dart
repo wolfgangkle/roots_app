@@ -11,7 +11,7 @@ class OnboardSummaryScreen extends StatelessWidget {
   final bool isLoading; // ✅ NEW
 
   const OnboardSummaryScreen({
-    Key? key,
+    super.key,
     required this.heroName,
     required this.race,
     required this.villageName,
@@ -19,7 +19,7 @@ class OnboardSummaryScreen extends StatelessWidget {
     required this.onConfirm,
     required this.onEdit,
     this.isLoading = false, // ✅ Default to false
-  }) : super(key: key);
+  });
 
   Widget _buildSummaryRow(String label, String value) {
     return Padding(

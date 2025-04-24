@@ -49,7 +49,7 @@ class _MapGridViewState extends State<MapGridView> {
                   if (x >= mapSize || y >= mapSize) {
                     return SizedBox(width: tileSize.toDouble(), height: tileSize.toDouble());
                   }
-                  final terrainId = tier1Map['${x}_${y}'] ?? 'plains';
+                  final terrainId = tier1Map['${x}_$y'] ?? 'plains';
                   return SizedBox(
                     width: tileSize.toDouble(),
                     height: tileSize.toDouble(),

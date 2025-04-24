@@ -60,7 +60,7 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
 
   bool isHeroTile(int x, int y) => x == widget.hero.tileX && y == widget.hero.tileY;
   bool isWaypoint(int x, int y) => _waypoints.any((wp) => wp['x'] == x && wp['y'] == y);
-  bool isVillageTile(int x, int y) => _villageTileKeys.contains('${x}_${y}');
+  bool isVillageTile(int x, int y) => _villageTileKeys.contains('${x}_$y');
 
   void _addWaypoint(int x, int y) {
     setState(() {
@@ -250,7 +250,7 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
                       final tileSize = calculatedTileSize.clamp(60.0, 100.0);
 
                       TerrainTypeModel? getTerrain(int x, int y) {
-                        final key = '${x}_${y}';
+                        final key = '${x}_$y';
                         final terrainId = tier1Map[key];
                         if (terrainId == null) return null;
                         return terrainDefinitions[terrainId];
