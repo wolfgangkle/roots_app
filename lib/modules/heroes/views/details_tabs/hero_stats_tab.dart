@@ -1,10 +1,11 @@
+// imports...
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
-import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart'; // ✅ NEW
+import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
 import 'package:roots_app/modules/map/constants/tier1_map.dart';
 import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
 import 'package:roots_app/modules/heroes/views/hero_movement_screen.dart';
@@ -20,15 +21,11 @@ class HeroStatsTab extends StatefulWidget {
   State<HeroStatsTab> createState() => _HeroStatsTabState();
 }
 
-
-
-
 class _HeroStatsTabState extends State<HeroStatsTab> {
   Map<String, dynamic>? _groupData;
   String? _villageName;
   bool _checkingTile = false;
 
-  // Format seconds to "Xm Ys"
   String _formatTime(int seconds) {
     if (seconds < 60) return '$seconds s';
     final minutes = seconds ~/ 60;
@@ -36,42 +33,31 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     return remaining == 0 ? '$minutes m' : '$minutes m $remaining s';
   }
 
-  // Format milliseconds to "Xm Ys"
   String _formatMsToMinutesSeconds(int ms) {
     final totalSeconds = ms ~/ 1000;
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds % 60;
-
     if (minutes == 0) return '$seconds s';
     if (seconds == 0) return '$minutes m';
     return '$minutes m $seconds s';
   }
 
-  // Load group data (make async)
   Future<void> _loadGroupData() async {
     final groupId = widget.hero.groupId;
     if (groupId == null) return;
 
-    final groupSnap = await FirebaseFirestore.instance
-        .collection('heroGroups')
-        .doc(groupId)
-        .get();
-
+    final groupSnap = await FirebaseFirestore.instance.collection('heroGroups').doc(groupId).get();
     final data = groupSnap.data();
     if (data == null) return;
 
-    setState(() {
-      _groupData = data;
-    });
+    setState(() => _groupData = data);
 
-    // Fetch the village name asynchronously
     if (_groupData!['insideVillage'] == true) {
       _villageName = await _getVillageName(_groupData!['tileX'], _groupData!['tileY']);
-      setState(() {});  // Ensure UI is updated when village name is fetched
+      setState(() {});
     }
   }
 
-  // Get village name
   Future<String?> _getVillageName(int x, int y) async {
     final query = await FirebaseFirestore.instance
         .collectionGroup('villages')
@@ -79,20 +65,16 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
         .where('tileY', isEqualTo: y)
         .limit(1)
         .get();
-
     if (query.docs.isNotEmpty) {
       return query.docs.first.data()['name'];
     }
     return null;
   }
 
-  // Can found village
   bool _canFoundVillage(HeroModel hero) {
-    // Implement your logic to check if a village can be founded here
-    return true; // Placeholder return, modify as needed
+    return true;
   }
 
-  // Handle found village
   Future<void> _handleFoundVillage(HeroModel hero) async {
     setState(() => _checkingTile = true);
 
@@ -169,8 +151,7 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
           if (hasMovement)
             _infoCard("🧭 Movement Status", [
               _statRow("Currently Moving", isMoving ? "Yes" : "No"),
-              if (hasQueuedWaypoints)
-                _statRow("Waypoints", "${hero.movementQueue?.length} queued"),
+              if (hasQueuedWaypoints) _statRow("Waypoints", "${hero.movementQueue?.length} queued"),
             ]),
 
           _infoCard("⚔️ Combat Stats", [
@@ -198,18 +179,18 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
             _statRow("Attack Min", hero.combat['attackMin'].toString()),
             _statRow("Attack Max", hero.combat['attackMax'].toString()),
             _statRow("Defense", hero.combat['defense'].toString()),
+            _statRowWithInfo("Attack Rating (at)", hero.combat['at'].toString(),
+                tooltip: "Used to calculate hit chance in combat."),
+            _statRowWithInfo("Defense Rating (def)", hero.combat['def'].toString(),
+                tooltip: "Used to resist attacks and avoid hits."),
+            _statRowWithInfo("Combat Level", hero.combat['combatLevel'].toString(),
+                tooltip: "Represents overall power. Used to match against enemies."),
             _statRowWithInfo("Regen per Tick", hero.combat['regenPerTick'].toString(),
                 tooltip: "HP regenerated per ~10s combat tick."),
-            _statRowWithInfo(
-              "Attack Speed",
-              _formatMsToMinutesSeconds(hero.combat['attackSpeedMs']),
-              tooltip: "Time between each attack. Affects combat pacing.",
-            ),
-            _statRowWithInfo(
-              "Estimated DPS",
-              _calculateDPS(hero.combat),
-              tooltip: "Average DPS = ((min+max)/2) / attack speed",
-            ),
+            _statRowWithInfo("Attack Speed", _formatMsToMinutesSeconds(hero.combat['attackSpeedMs']),
+                tooltip: "Time between each attack. Affects combat pacing."),
+            _statRowWithInfo("Estimated DPS", _calculateDPS(hero.combat),
+                tooltip: "Average DPS = ((min+max)/2) / attack speed"),
           ]),
 
           _infoCard("🌿 Survival & Regen", [
@@ -223,8 +204,8 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
           ]),
 
           _debugCard(hero),
-
           const SizedBox(height: 32),
+
           ElevatedButton.icon(
             icon: const Icon(Icons.edit_location_alt),
             label: Text(hero.state == 'idle' ? 'Move Hero' : 'Edit Movement'),
@@ -245,7 +226,6 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
                 ? null
                 : () => _handleFoundVillage(hero),
           ),
-
           if (hero.type == 'companion') ...[
             const SizedBox(height: 8),
             Text(
@@ -259,7 +239,6 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     );
   }
 
-  // Helper Methods
   Widget _infoCard(String title, List<Widget> children) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -269,10 +248,7 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
+            Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             ...children,
           ],
@@ -419,4 +395,3 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     return dps.toStringAsFixed(2);
   }
 }
-

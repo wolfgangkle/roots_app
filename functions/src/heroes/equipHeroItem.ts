@@ -1,14 +1,10 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import {
-  calculateHeroWeight,
-  calculateAdjustedMovementSpeed,
-} from '../helpers/heroWeight';
-import { updateGroupMovementSpeed } from '../helpers/groupUtils';
-import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats';
+import { updateHeroStats } from '../helpers/updateHeroStats';
+
+const db = admin.firestore();
 
 export async function equipHeroItem(request: any) {
-  const db = admin.firestore();
   const { heroId, villageId, tileKey, itemDocId, slot } = request.data;
   const userId = request.auth?.uid;
 
@@ -17,8 +13,12 @@ export async function equipHeroItem(request: any) {
   if (!itemDocId || typeof itemDocId !== 'string') throw new HttpsError('invalid-argument', 'Missing itemDocId.');
   if (!slot || typeof slot !== 'string') throw new HttpsError('invalid-argument', 'Missing or invalid slot.');
 
-  const heroRef = db.collection('heroes').doc(heroId);
+  const validSlots = ['mainHand', 'offHand', 'helmet', 'chest', 'legs', 'arms', 'belt', 'feet'];
+  if (!validSlots.includes(slot)) {
+    throw new HttpsError('invalid-argument', `Invalid slot: ${slot}`);
+  }
 
+  const heroRef = db.collection('heroes').doc(heroId);
   const sourceItemRef = villageId
     ? db.collection('users').doc(userId).collection('villages').doc(villageId).collection('items').doc(itemDocId)
     : tileKey
@@ -43,14 +43,10 @@ export async function equipHeroItem(request: any) {
   const craftedStats = itemData.craftedStats || {};
   const equipSlot = itemData.equipSlot?.toString().toLowerCase() ?? 'main_hand';
 
-  const validSlots = ['mainHand', 'offHand', 'helmet', 'chest', 'legs', 'arms', 'belt', 'feet'];
-  if (!validSlots.includes(slot)) {
-    throw new HttpsError('invalid-argument', `Invalid slot: ${slot}`);
-  }
-
-  const equipped = heroData.equipped || {};
+  const equipped = { ...(heroData.equipped || {}) };
   const oldItem = equipped[slot] || null;
 
+  // Prevent equipping offHand with two-hander in mainHand
   const mainHandItemId = equipped['mainHand']?.itemId;
   const mainHandEquipSlot = equipped['mainHand']?.equipSlot ?? null;
   if (slot === 'offHand' && mainHandItemId && mainHandEquipSlot === 'two_hand') {
@@ -59,7 +55,7 @@ export async function equipHeroItem(request: any) {
 
   const batch = db.batch();
 
-  // 1. Unequip offHand if equipping a two-handed mainHand
+  // 1. If equipping a two-hander, unequip offHand and return it
   if (slot === 'mainHand' && equipSlot === 'two_hand' && equipped['offHand']?.itemId && villageId) {
     const unequippedItem = equipped['offHand'];
     const backToVillage = db
@@ -81,7 +77,7 @@ export async function equipHeroItem(request: any) {
     equipped['offHand'] = null;
   }
 
-  // 2. Move previously equipped item back to appropriate source
+  // 2. Return previously equipped item
   if (oldItem?.itemId) {
     const returnToRef = villageId
       ? db.collection('users').doc(userId).collection('villages').doc(villageId).collection('items').doc()
@@ -100,85 +96,31 @@ export async function equipHeroItem(request: any) {
     }
   }
 
-  // 3. Remove item from source (village or tile)
+  // 3. Remove item from source
   batch.delete(sourceItemRef);
 
-  // 4. Equip the item
+  // 4. Equip the new item
   equipped[slot] = {
     itemId,
     craftedStats,
     equipSlot,
   };
 
-  // ✅ 5. Recalculate combat stats including new `at`, `def`
-  const {
-    attackMin,
-    attackMax,
-    attackSpeedMs,
-    defense,
-    at,
-    def,
-  } = calculateHeroCombatStats(heroData.stats, equipped);
-
-  const hpMax = heroData.hpMax ?? 100;
-  const manaMax = heroData.manaMax ?? 50;
-  const combatLevel = Math.floor((at + def) / 2 + hpMax / 10 + manaMax / 20);
-
-  // ✅ 6. Recalculate weight + movement
-  const backpack = heroData.backpack ?? [];
-  const currentWeight = calculateHeroWeight(equipped, backpack);
-  const baseSpeed = heroData.baseMovementSpeed ?? heroData.movementSpeed ?? 1200;
-  const carryCapacity = heroData.carryCapacity ?? 100;
-  const adjustedSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
-
-  // ✅ 7. Prepare update
-  const updatedHeroData = {
+  // 5. Write equipped changes first
+  batch.update(heroRef, {
     equipped,
-    combat: {
-      ...heroData.combat,
-      attackMin,
-      attackMax,
-      attackSpeedMs,
-      defense,
-      at,
-      def,
-      combatLevel,
-    },
-    currentWeight,
-    movementSpeed: adjustedSpeed,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  };
+  });
 
-  batch.update(heroRef, updatedHeroData);
   await batch.commit();
 
-  // ✅ 8. Update group combatLevel
-  if (heroData.groupId) {
-    const groupRef = db.collection('heroGroups').doc(heroData.groupId);
-    await groupRef.update({
-      combatLevel,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // ✅ 9. Recalculate group movement speed
-    await updateGroupMovementSpeed(heroData.groupId);
-  }
+  // 6. Recalculate stats and sync group
+  await updateHeroStats(heroId);
 
   console.log(`🛡 Hero ${heroId} equipped ${itemId} from ${villageId ? 'village' : tileKey} to slot ${slot}.`);
 
   return {
     success: true,
     equippedSlot: slot,
-    updatedStats: {
-      attackMin,
-      attackMax,
-      attackSpeedMs,
-      defense,
-      at,
-      def,
-      combatLevel,
-      weight: currentWeight,
-      movementSpeed: adjustedSpeed,
-    },
   };
 }

@@ -4,7 +4,7 @@ import {
   calculateHeroWeight,
   calculateAdjustedMovementSpeed,
 } from '../helpers/heroWeight';
-import { updateGroupMovementSpeed } from '../helpers/groupUtils'; // ✅ Added
+import { updateGroupMovementSpeed } from '../helpers/updateGroupMovementSpeed'; // ✅ Added
 
 export async function dropHeroItem(request: any) {
   const db = admin.firestore();

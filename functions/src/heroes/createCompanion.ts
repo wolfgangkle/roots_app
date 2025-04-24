@@ -1,9 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import {
-  calculateHeroCombatStats,
-  calculateNonCombatDerivedStats,
-} from '../helpers/calculateHeroCombatStats';
+import { heroStatFormulas } from '../helpers/heroStatFormulas';
 
 const db = admin.firestore();
 
@@ -87,12 +84,19 @@ export async function createCompanionLogic(request: any) {
     magicResistance: 0,
   };
 
-  const nonCombat = calculateNonCombatDerivedStats(baseStats);
-  const combat = calculateHeroCombatStats(baseStats, {});
-  const combatLevel = Math.floor(
-    (combat.at + combat.def) / 2 + nonCombat.hpMax / 10 + nonCombat.manaMax / 20
-  );
-  const baseMovementSpeed = Math.max(600, nonCombat.baseMovementSpeed + raceMovementOffset);
+  const {
+    hpMax,
+    manaMax,
+    hpRegen,
+    manaRegen,
+    maxWaypoints,
+    carryCapacity,
+    baseMovementSpeed: baseSpeedBeforeRace,
+    combatLevel,
+    combat,
+  } = heroStatFormulas(baseStats, {});
+
+  const baseMovementSpeed = Math.max(600, baseSpeedBeforeRace + raceMovementOffset);
 
   await db.runTransaction(async (tx) => {
     const heroData = {
@@ -105,28 +109,19 @@ export async function createCompanionLogic(request: any) {
       groupId: heroId,
       groupLeaderId: null,
       stats: baseStats,
-      hp: nonCombat.hpMax,
-      hpMax: nonCombat.hpMax,
-      mana: nonCombat.manaMax,
-      manaMax: nonCombat.manaMax,
-      combatLevel, // ✅ top-level field
-      combat: {
-        combatLevel, // ✅ also inside combat block
-        attackMin: combat.attackMin,
-        attackMax: combat.attackMax,
-        attackSpeedMs: combat.attackSpeedMs,
-        at: combat.at,
-        def: combat.def,
-        defense: combat.defense,
-        regenPerTick: 1,
-      },
-      hpRegen: nonCombat.hpRegen,
-      manaRegen: nonCombat.manaRegen,
+      hp: hpMax,
+      hpMax,
+      mana: manaMax,
+      manaMax,
+      combatLevel,
+      combat, // ✅ cleaned, no duplicate combatLevel
+      hpRegen,
+      manaRegen,
       foodDuration: 3600,
       baseMovementSpeed,
       movementSpeed: baseMovementSpeed,
-      maxWaypoints: nonCombat.maxWaypoints,
-      carryCapacity: nonCombat.carryCapacity,
+      maxWaypoints,
+      carryCapacity,
       currentWeight: 0,
       state: 'idle',
       createdAt: now,
@@ -145,7 +140,7 @@ export async function createCompanionLogic(request: any) {
       insideVillage: true,
       createdAt: now,
       updatedAt: now,
-      combatLevel, // ✅ store group combatLevel too
+      combatLevel,
     };
 
     tx.set(newHeroRef, heroData);
@@ -158,7 +153,7 @@ export async function createCompanionLogic(request: any) {
   });
 
   console.log(
-    `👥 Companion "${companionName}" created for ${userId} (${usedSlots + 1}/${currentMaxSlots} slots), baseMove=${baseStats.constitution}/con = ${baseMovementSpeed}s`
+    `👥 Companion "${companionName}" created for ${userId} (${usedSlots + 1}/${currentMaxSlots} slots), baseMove=${baseMovementSpeed}s`
   );
 
   return {

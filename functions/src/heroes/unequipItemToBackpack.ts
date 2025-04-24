@@ -1,13 +1,10 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats';
-import {
-  calculateHeroWeight,
-  calculateAdjustedMovementSpeed,
-} from '../helpers/heroWeight';
+import { updateHeroStats } from '../helpers/updateHeroStats';
+
+const db = admin.firestore();
 
 export async function unequipItemToBackpack(request: any) {
-  const db = admin.firestore();
   const { heroId, slot } = request.data;
   const userId = request.auth?.uid;
 
@@ -25,7 +22,7 @@ export async function unequipItemToBackpack(request: any) {
   if (!heroSnap.exists) throw new HttpsError('not-found', 'Hero not found.');
 
   const hero = heroSnap.data()!;
-  const equipped = hero.equipped || {};
+  const equipped = { ...(hero.equipped || {}) };
   const backpack = Array.isArray(hero.backpack) ? [...hero.backpack] : [];
 
   const item = equipped[slot];
@@ -33,10 +30,10 @@ export async function unequipItemToBackpack(request: any) {
     throw new HttpsError('not-found', `No item equipped in slot: ${slot}`);
   }
 
-  // 1. Remove from equipped
+  // Remove item from equipped
   equipped[slot] = null;
 
-  // 2. Add to backpack
+  // Add to backpack
   backpack.push({
     itemId: item.itemId,
     craftedStats: item.craftedStats || {},
@@ -45,72 +42,20 @@ export async function unequipItemToBackpack(request: any) {
     unequippedAt: admin.firestore.Timestamp.now(),
   });
 
-  // ✅ 3. Recalculate full combat stats
-  const {
-    attackMin,
-    attackMax,
-    attackSpeedMs,
-    defense,
-    at,
-    def,
-  } = calculateHeroCombatStats(hero.stats, equipped);
-
-  const hpMax = hero.hpMax ?? 100;
-  const manaMax = hero.manaMax ?? 50;
-  const combatLevel = Math.floor((at + def) / 2 + hpMax / 10 + manaMax / 20);
-
-  // ✅ 4. Recalculate weight + speed
-  const currentWeight = calculateHeroWeight(equipped, backpack);
-  const baseSpeed = hero.baseMovementSpeed ?? hero.movementSpeed ?? 1200;
-  const carryCapacity = hero.carryCapacity ?? 100;
-  const movementSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
-
-  const batch = db.batch();
-
-  batch.update(heroRef, {
+  // Write equipped + backpack update first
+  await heroRef.update({
     equipped,
     backpack,
-    combat: {
-      ...hero.combat,
-      attackMin,
-      attackMax,
-      attackSpeedMs,
-      defense,
-      at,
-      def,
-      combatLevel,
-    },
-    currentWeight,
-    movementSpeed,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  await batch.commit();
-
-  // ✅ 5. Update group combat level
-  if (hero.groupId) {
-    const groupRef = db.collection('heroGroups').doc(hero.groupId);
-    await groupRef.update({
-      combatLevel,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-  }
+  // Centralized stat update for hero and group
+  await updateHeroStats(heroId);
 
   console.log(`🎒 Unequipped ${item.itemId} from ${slot} → backpack for hero ${heroId}`);
 
   return {
     success: true,
     unequippedSlot: slot,
-    updatedStats: {
-      attackMin,
-      attackMax,
-      attackSpeedMs,
-      defense,
-      at,
-      def,
-      combatLevel,
-      currentWeight,
-      movementSpeed,
-    },
   };
 }

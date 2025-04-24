@@ -4,7 +4,7 @@ import {
   calculateHeroWeight,
   calculateAdjustedMovementSpeed,
 } from '../helpers/heroWeight';
-import { updateGroupMovementSpeed } from '../helpers/groupUtils'; // ✅ New import
+import { updateGroupMovementSpeed } from '../helpers/updateGroupMovementSpeed'; // ✅ New import
 
 export async function storeItemInBackpack(request: any) {
   const db = admin.firestore();

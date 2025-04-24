@@ -160,7 +160,7 @@ export async function transferHeroResources(request: any) {
   // ✅ Recalculate group movementSpeed after the transaction
   if (groupId) {
     try {
-      const { updateGroupMovementSpeed } = await import('../helpers/groupUtils.js');
+      const { updateGroupMovementSpeed } = await import('../helpers/updateGroupMovementSpeed.js');
       await Promise.race([
         updateGroupMovementSpeed(groupId),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout updating group speed')), 3000)),

@@ -1,9 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import {
-  calculateHeroCombatStats,
-  calculateNonCombatDerivedStats,
-} from '../helpers/calculateHeroCombatStats';
+import { heroStatFormulas } from '../helpers/heroStatFormulas';
 
 const db = admin.firestore();
 
@@ -53,20 +50,25 @@ export async function createHeroLogic(request: any) {
     magicResistance: 0,
   };
 
-  const nonCombat = calculateNonCombatDerivedStats(baseStats);
-  const combat = calculateHeroCombatStats(baseStats, {});
+  const {
+    hpMax,
+    manaMax,
+    hpRegen,
+    manaRegen,
+    maxWaypoints,
+    carryCapacity,
+    baseMovementSpeed: baseSpeedBeforeRace,
+    combatLevel,
+    combat,
+  } = heroStatFormulas(baseStats, {});
 
-  const combatLevel = Math.floor(
-    (combat.at + combat.def) / 2 + nonCombat.hpMax / 10 + nonCombat.manaMax / 20
-  );
-
-  const movementSpeedModifiers: Record<string, number> = {
+  const raceMovementModifiers: Record<string, number> = {
     human: 0,
     dwarf: 400,
   };
 
-  const raceMovementOffset = movementSpeedModifiers[normalizedRace] ?? 0;
-  const baseMovementSpeed = Math.max(600, nonCombat.baseMovementSpeed + raceMovementOffset);
+  const raceOffset = raceMovementModifiers[normalizedRace] ?? 0;
+  const baseMovementSpeed = Math.max(600, baseSpeedBeforeRace + raceOffset);
 
   const newHeroRef = db.collection('heroes').doc();
   const heroId = newHeroRef.id;
@@ -81,30 +83,21 @@ export async function createHeroLogic(request: any) {
     groupId: heroId,
     groupLeaderId: null,
     stats: baseStats,
-    hp: nonCombat.hpMax,
-    hpMax: nonCombat.hpMax,
-    mana: nonCombat.manaMax,
-    manaMax: nonCombat.manaMax,
-    combatLevel, // ✅ stored at root level for event matching
-    combat: {
-      combatLevel,
-      attackMin: combat.attackMin,
-      attackMax: combat.attackMax,
-      attackSpeedMs: combat.attackSpeedMs,
-      at: combat.at,
-      def: combat.def,
-      defense: combat.defense,
-      regenPerTick: 1,
-    },
+    hp: hpMax,
+    hpMax,
+    mana: manaMax,
+    manaMax,
+    combatLevel, // ✅ Only here
+    combat,      // ✅ Cleaned version (no combatLevel inside)
     state: 'idle',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    hpRegen: nonCombat.hpRegen,
-    manaRegen: nonCombat.manaRegen,
+    hpRegen,
+    manaRegen,
     foodDuration: 3600,
     baseMovementSpeed,
     movementSpeed: baseMovementSpeed,
-    maxWaypoints: nonCombat.maxWaypoints,
-    carryCapacity: nonCombat.carryCapacity,
+    maxWaypoints,
+    carryCapacity,
     currentWeight: 0,
   };
 
@@ -123,7 +116,7 @@ export async function createHeroLogic(request: any) {
     insideVillage: true,
     createdAt: now,
     updatedAt: now,
-    combatLevel,
+    combatLevel, // ✅ Group-level reference
   };
 
   await Promise.all([newHeroRef.set(heroData), heroGroupRef.set(heroGroupData)]);
