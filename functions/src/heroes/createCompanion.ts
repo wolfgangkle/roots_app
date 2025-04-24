@@ -2,7 +2,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import {
   calculateHeroCombatStats,
-  calculateNonCombatDerivedStats
+  calculateNonCombatDerivedStats,
 } from '../helpers/calculateHeroCombatStats';
 
 const db = admin.firestore();
@@ -25,11 +25,9 @@ export async function createCompanionLogic(request: any) {
   }
 
   const normalizedRace = profileData.race?.trim().toLowerCase() || 'unknown';
-  const companionName = typeof name === 'string' && name.trim().length > 0
-    ? name.trim()
-    : 'Unnamed Companion';
+  const companionName =
+    typeof name === 'string' && name.trim().length > 0 ? name.trim() : 'Unnamed Companion';
 
-  // ✅ Use race-based movement speed modifiers (in seconds)
   const movementModifiers: Record<string, number> = {
     human: 0,
     dwarf: 400,
@@ -43,7 +41,8 @@ export async function createCompanionLogic(request: any) {
   const maxSlotsRaceCap = profileData.slotLimits.maxSlots ?? 8;
   const usedSlots = usedVillages + usedCompanions;
 
-  const mageSnap = await db.collection('heroes')
+  const mageSnap = await db
+    .collection('heroes')
     .where('ownerId', '==', userId)
     .where('type', '==', 'mage')
     .limit(1)
@@ -62,11 +61,17 @@ export async function createCompanionLogic(request: any) {
   const currentMaxSlots = calculateMaxSlots(mageLevel);
 
   if (usedSlots >= currentMaxSlots) {
-    throw new HttpsError('failed-precondition', `You have used all available slots (${usedSlots}/${currentMaxSlots}).`);
+    throw new HttpsError(
+      'failed-precondition',
+      `You have used all available slots (${usedSlots}/${currentMaxSlots}).`
+    );
   }
 
   if (usedCompanions >= maxCompanions) {
-    throw new HttpsError('failed-precondition', `You have reached your companion limit (${usedCompanions}/${maxCompanions}).`);
+    throw new HttpsError(
+      'failed-precondition',
+      `You have reached your companion limit (${usedCompanions}/${maxCompanions}).`
+    );
   }
 
   const newHeroRef = db.collection('heroes').doc();
@@ -77,13 +82,16 @@ export async function createCompanionLogic(request: any) {
   const baseStats = {
     strength: 10,
     dexterity: 10,
-    intelligence: 3,
+    intelligence: 3, // Dumb bois unite
     constitution: 10,
     magicResistance: 0,
   };
 
   const nonCombat = calculateNonCombatDerivedStats(baseStats);
   const combat = calculateHeroCombatStats(baseStats, {});
+  const combatLevel = Math.floor(
+    (combat.at + combat.def) / 2 + nonCombat.hpMax / 10 + nonCombat.manaMax / 20
+  );
   const baseMovementSpeed = Math.max(600, nonCombat.baseMovementSpeed + raceMovementOffset);
 
   await db.runTransaction(async (tx) => {
@@ -101,12 +109,15 @@ export async function createCompanionLogic(request: any) {
       hpMax: nonCombat.hpMax,
       mana: nonCombat.manaMax,
       manaMax: nonCombat.manaMax,
+      combatLevel, // ✅ top-level field
       combat: {
-        combatLevel: 1,
+        combatLevel, // ✅ also inside combat block
         attackMin: combat.attackMin,
         attackMax: combat.attackMax,
         attackSpeedMs: combat.attackSpeedMs,
-        defense: 1,
+        at: combat.at,
+        def: combat.def,
+        defense: combat.defense,
         regenPerTick: 1,
       },
       hpRegen: nonCombat.hpRegen,
@@ -134,6 +145,7 @@ export async function createCompanionLogic(request: any) {
       insideVillage: true,
       createdAt: now,
       updatedAt: now,
+      combatLevel, // ✅ store group combatLevel too
     };
 
     tx.set(newHeroRef, heroData);
@@ -141,11 +153,13 @@ export async function createCompanionLogic(request: any) {
 
     tx.update(profileRef, {
       'currentSlotUsage.companions': admin.firestore.FieldValue.increment(1),
-      currentMaxSlots: currentMaxSlots,
+      currentMaxSlots,
     });
   });
 
-  console.log(`👥 Companion "${companionName}" created for ${userId} (${usedSlots + 1}/${currentMaxSlots} slots), baseMove=${baseStats.constitution}/con = ${baseMovementSpeed}s`);
+  console.log(
+    `👥 Companion "${companionName}" created for ${userId} (${usedSlots + 1}/${currentMaxSlots} slots), baseMove=${baseStats.constitution}/con = ${baseMovementSpeed}s`
+  );
 
   return {
     heroId,

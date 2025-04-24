@@ -2,7 +2,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import {
   calculateHeroCombatStats,
-  calculateNonCombatDerivedStats
+  calculateNonCombatDerivedStats,
 } from '../helpers/calculateHeroCombatStats';
 
 const db = admin.firestore();
@@ -19,7 +19,11 @@ export async function createHeroLogic(request: any) {
   const profileSnap = await db.doc(`users/${userId}/profile/main`).get();
   const profileData = profileSnap.data();
 
-  if (!profileData || typeof profileData.heroName !== 'string' || profileData.heroName.trim().length < 3) {
+  if (
+    !profileData ||
+    typeof profileData.heroName !== 'string' ||
+    profileData.heroName.trim().length < 3
+  ) {
     throw new HttpsError('invalid-argument', 'Main hero name not set or invalid in user profile.');
   }
 
@@ -31,7 +35,8 @@ export async function createHeroLogic(request: any) {
   const normalizedRace = profileData.race.trim().toLowerCase();
   const tileKey = `${tileX}_${tileY}`;
 
-  const existingSnapshot = await db.collection('heroes')
+  const existingSnapshot = await db
+    .collection('heroes')
     .where('ownerId', '==', userId)
     .where('type', '==', 'mage')
     .get();
@@ -48,14 +53,16 @@ export async function createHeroLogic(request: any) {
     magicResistance: 0,
   };
 
-  // ✅ Calculate core stats
   const nonCombat = calculateNonCombatDerivedStats(baseStats);
   const combat = calculateHeroCombatStats(baseStats, {});
 
-  // ✅ Apply race modifier to movement speed
+  const combatLevel = Math.floor(
+    (combat.at + combat.def) / 2 + nonCombat.hpMax / 10 + nonCombat.manaMax / 20
+  );
+
   const movementSpeedModifiers: Record<string, number> = {
-    human: 0,  // standard speed
-    dwarf: +400, // 100 seconds slower
+    human: 0,
+    dwarf: 400,
   };
 
   const raceMovementOffset = movementSpeedModifiers[normalizedRace] ?? 0;
@@ -78,12 +85,15 @@ export async function createHeroLogic(request: any) {
     hpMax: nonCombat.hpMax,
     mana: nonCombat.manaMax,
     manaMax: nonCombat.manaMax,
+    combatLevel, // ✅ stored at root level for event matching
     combat: {
-      combatLevel: 1,
+      combatLevel,
       attackMin: combat.attackMin,
       attackMax: combat.attackMax,
       attackSpeedMs: combat.attackSpeedMs,
-      defense: 1,
+      at: combat.at,
+      def: combat.def,
+      defense: combat.defense,
       regenPerTick: 1,
     },
     state: 'idle',
@@ -113,14 +123,14 @@ export async function createHeroLogic(request: any) {
     insideVillage: true,
     createdAt: now,
     updatedAt: now,
+    combatLevel,
   };
 
-  await Promise.all([
-    newHeroRef.set(heroData),
-    heroGroupRef.set(heroGroupData),
-  ]);
+  await Promise.all([newHeroRef.set(heroData), heroGroupRef.set(heroGroupData)]);
 
-  console.log(`🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, baseMove=${baseMovementSpeed}s`);
+  console.log(
+    `🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, baseMove=${baseMovementSpeed}s`
+  );
 
   return {
     heroId,

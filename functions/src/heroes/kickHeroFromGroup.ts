@@ -23,7 +23,6 @@ export async function kickHeroFromGroupLogic(request: any) {
       const groupRef = db.collection('heroGroups').doc(heroId);
       const soloGroupRef = db.collection('heroGroups').doc(targetHeroId);
 
-      // ✅ Read everything first
       const [heroSnap, targetSnap, groupSnap] = await Promise.all([
         tx.get(heroRef),
         tx.get(targetRef),
@@ -63,31 +62,36 @@ export async function kickHeroFromGroupLogic(request: any) {
       const updatedConnections = { ...(groupData.connections || {}) };
       delete updatedConnections[targetHeroId];
 
-      // ✅ Write all updates AFTER reads
       if (updatedMembers.length === 0) {
         tx.delete(groupRef);
       } else {
-        // Fetch movementSpeed of remaining members
-        const remainingRefs = updatedMembers.map((id: string) => db.collection('heroes').doc(id));
+        const remainingRefs = updatedMembers.map((id: string) =>
+          db.collection('heroes').doc(id)
+        );
         const remainingSnaps = await Promise.all(
           remainingRefs.map((ref: FirebaseFirestore.DocumentReference) => tx.get(ref))
         );
 
-
         const slowestSpeed = Math.max(
-          ...remainingSnaps.map(snap => snap.data()?.movementSpeed ?? 999999)
+          ...remainingSnaps.map((snap) => snap.data()?.movementSpeed ?? 999999)
         );
+
+        const totalCombatLevel = remainingSnaps.reduce((sum, snap) => {
+          const cl = snap.data()?.combatLevel ?? 0;
+          return sum + cl;
+        }, 0);
 
         tx.update(groupRef, {
           members: updatedMembers,
           connections: updatedConnections,
-          movementSpeed: slowestSpeed, // ✅ Recalculate new slowest
+          movementSpeed: slowestSpeed,
+          combatLevel: totalCombatLevel, // ✅ NEW
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }
 
+      const targetCombatLevel = targetData.combatLevel ?? 0;
 
-      // ✅ Create solo group with inherited position + insideVillage + own movementSpeed
       tx.set(soloGroupRef, {
         leaderHeroId: targetHeroId,
         members: [targetHeroId],
@@ -97,6 +101,8 @@ export async function kickHeroFromGroupLogic(request: any) {
         tileKey: groupData.tileKey,
         insideVillage: groupData.insideVillage ?? true,
         movementSpeed: targetData.movementSpeed ?? 1200,
+        baseMovementSpeed: targetData.baseMovementSpeed ?? 1200,
+        combatLevel: targetCombatLevel, // ✅ NEW
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });

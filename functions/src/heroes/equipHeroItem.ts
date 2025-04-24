@@ -5,7 +5,7 @@ import {
   calculateAdjustedMovementSpeed,
 } from '../helpers/heroWeight';
 import { updateGroupMovementSpeed } from '../helpers/groupUtils';
-import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats'; // ✅ New import
+import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats';
 
 export async function equipHeroItem(request: any) {
   const db = admin.firestore();
@@ -110,10 +110,21 @@ export async function equipHeroItem(request: any) {
     equipSlot,
   };
 
-  // ✅ 5. Recalculate combat stats with base stats and equipped gear
-  const { attackMin, attackMax, attackSpeedMs, defense } = calculateHeroCombatStats(heroData.stats, equipped);
+  // ✅ 5. Recalculate combat stats including new `at`, `def`
+  const {
+    attackMin,
+    attackMax,
+    attackSpeedMs,
+    defense,
+    at,
+    def,
+  } = calculateHeroCombatStats(heroData.stats, equipped);
 
-  // ✅ 6. Calculate current weight and adjusted movement speed
+  const hpMax = heroData.hpMax ?? 100;
+  const manaMax = heroData.manaMax ?? 50;
+  const combatLevel = Math.floor((at + def) / 2 + hpMax / 10 + manaMax / 20);
+
+  // ✅ 6. Recalculate weight + movement
   const backpack = heroData.backpack ?? [];
   const currentWeight = calculateHeroWeight(equipped, backpack);
   const baseSpeed = heroData.baseMovementSpeed ?? heroData.movementSpeed ?? 1200;
@@ -129,6 +140,9 @@ export async function equipHeroItem(request: any) {
       attackMax,
       attackSpeedMs,
       defense,
+      at,
+      def,
+      combatLevel,
     },
     currentWeight,
     movementSpeed: adjustedSpeed,
@@ -138,8 +152,15 @@ export async function equipHeroItem(request: any) {
   batch.update(heroRef, updatedHeroData);
   await batch.commit();
 
-  // ✅ 8. Recalculate group movementSpeed if needed
+  // ✅ 8. Update group combatLevel
   if (heroData.groupId) {
+    const groupRef = db.collection('heroGroups').doc(heroData.groupId);
+    await groupRef.update({
+      combatLevel,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // ✅ 9. Recalculate group movement speed
     await updateGroupMovementSpeed(heroData.groupId);
   }
 
@@ -153,6 +174,9 @@ export async function equipHeroItem(request: any) {
       attackMax,
       attackSpeedMs,
       defense,
+      at,
+      def,
+      combatLevel,
       weight: currentWeight,
       movementSpeed: adjustedSpeed,
     },

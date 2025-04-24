@@ -40,7 +40,6 @@ export async function equipItemFromBackpack(request: any) {
 
   if (equipSlot !== slot.toLowerCase()) {
     console.warn(`⚠️ Slot mismatch: trying to equip ${itemId} with slot ${equipSlot} into ${slot}`);
-    // Optional: throw or allow
   }
 
   const oldEquippedItem = equipped[slot];
@@ -65,8 +64,19 @@ export async function equipItemFromBackpack(request: any) {
     });
   }
 
-  // ✅ Recalculate all combat stats from base stats + gear
-  const { attackMin, attackMax, attackSpeedMs, defense } = calculateHeroCombatStats(hero.stats, equipped);
+  // ✅ Recalculate all combat stats including `at` and `def`
+  const {
+    attackMin,
+    attackMax,
+    attackSpeedMs,
+    defense,
+    at,
+    def,
+  } = calculateHeroCombatStats(hero.stats, equipped);
+
+  const hpMax = hero.hpMax ?? 100;
+  const manaMax = hero.manaMax ?? 50;
+  const combatLevel = Math.floor((at + def) / 2 + hpMax / 10 + manaMax / 20);
 
   // ✅ Recalculate weight and movement speed
   const currentWeight = calculateHeroWeight(equipped, backpack);
@@ -85,6 +95,9 @@ export async function equipItemFromBackpack(request: any) {
       attackMax,
       attackSpeedMs,
       defense,
+      at,
+      def,
+      combatLevel,
     },
     currentWeight,
     movementSpeed,
@@ -92,6 +105,15 @@ export async function equipItemFromBackpack(request: any) {
   });
 
   await batch.commit();
+
+  // ✅ Update group combatLevel if applicable
+  if (hero.groupId) {
+    const groupRef = db.collection('heroGroups').doc(hero.groupId);
+    await groupRef.update({
+      combatLevel,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
 
   console.log(`🛡 Hero ${heroId} equipped ${itemId} to slot ${slot} from backpack`);
 
@@ -103,6 +125,9 @@ export async function equipItemFromBackpack(request: any) {
       attackMax,
       attackSpeedMs,
       defense,
+      at,
+      def,
+      combatLevel,
       currentWeight,
       movementSpeed,
     },

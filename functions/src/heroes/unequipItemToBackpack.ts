@@ -46,7 +46,18 @@ export async function unequipItemToBackpack(request: any) {
   });
 
   // ✅ 3. Recalculate full combat stats
-  const { attackMin, attackMax, attackSpeedMs, defense } = calculateHeroCombatStats(hero.stats, equipped);
+  const {
+    attackMin,
+    attackMax,
+    attackSpeedMs,
+    defense,
+    at,
+    def,
+  } = calculateHeroCombatStats(hero.stats, equipped);
+
+  const hpMax = hero.hpMax ?? 100;
+  const manaMax = hero.manaMax ?? 50;
+  const combatLevel = Math.floor((at + def) / 2 + hpMax / 10 + manaMax / 20);
 
   // ✅ 4. Recalculate weight + speed
   const currentWeight = calculateHeroWeight(equipped, backpack);
@@ -65,6 +76,9 @@ export async function unequipItemToBackpack(request: any) {
       attackMax,
       attackSpeedMs,
       defense,
+      at,
+      def,
+      combatLevel,
     },
     currentWeight,
     movementSpeed,
@@ -72,6 +86,15 @@ export async function unequipItemToBackpack(request: any) {
   });
 
   await batch.commit();
+
+  // ✅ 5. Update group combat level
+  if (hero.groupId) {
+    const groupRef = db.collection('heroGroups').doc(hero.groupId);
+    await groupRef.update({
+      combatLevel,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
 
   console.log(`🎒 Unequipped ${item.itemId} from ${slot} → backpack for hero ${heroId}`);
 
@@ -83,6 +106,9 @@ export async function unequipItemToBackpack(request: any) {
       attackMax,
       attackSpeedMs,
       defense,
+      at,
+      def,
+      combatLevel,
       currentWeight,
       movementSpeed,
     },

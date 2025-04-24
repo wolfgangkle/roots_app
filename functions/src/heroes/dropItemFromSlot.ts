@@ -5,7 +5,7 @@ import {
   calculateAdjustedMovementSpeed,
 } from '../helpers/heroWeight';
 import { updateGroupMovementSpeed } from '../helpers/groupUtils';
-import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats'; // ✅ New import
+import { calculateHeroCombatStats } from '../helpers/calculateHeroCombatStats';
 
 export async function dropItemFromSlot(request: any) {
   const db = admin.firestore();
@@ -36,7 +36,6 @@ export async function dropItemFromSlot(request: any) {
   const itemId = item.itemId;
   const craftedStats = item.craftedStats || {};
 
-  // Determine where to drop the item
   const dropToRef = villageId
     ? db.collection('users').doc(userId).collection('villages').doc(villageId).collection('items').doc()
     : tileKey
@@ -47,11 +46,22 @@ export async function dropItemFromSlot(request: any) {
     throw new HttpsError('invalid-argument', 'Either villageId or tileKey must be provided.');
   }
 
-  // Remove the item from equipment slot
+  // Remove the item from the equipment slot
   equipped[slot] = null;
 
-  // ✅ Recalculate combat stats based on updated equipped items
-  const { attackMin, attackMax, attackSpeedMs, defense } = calculateHeroCombatStats(hero.stats, equipped);
+  // ✅ Recalculate combat stats
+  const {
+    attackMin,
+    attackMax,
+    attackSpeedMs,
+    defense,
+    at,
+    def,
+  } = calculateHeroCombatStats(hero.stats, equipped);
+
+  const hpMax = hero.hpMax ?? 100;
+  const manaMax = hero.manaMax ?? 50;
+  const combatLevel = Math.floor((at + def) / 2 + hpMax / 10 + manaMax / 20);
 
   // ✅ Recalculate weight and movement speed
   const backpack = hero.backpack ?? [];
@@ -62,7 +72,7 @@ export async function dropItemFromSlot(request: any) {
 
   const batch = db.batch();
 
-  // Drop the item to external location
+  // Drop the item into the world or village
   batch.set(dropToRef, {
     itemId,
     craftedStats,
@@ -72,7 +82,7 @@ export async function dropItemFromSlot(request: any) {
     droppedFromSlot: slot,
   });
 
-  // Update hero with new state
+  // Update hero with recalculated stats
   batch.update(heroRef, {
     equipped,
     combat: {
@@ -81,6 +91,9 @@ export async function dropItemFromSlot(request: any) {
       attackMax,
       attackSpeedMs,
       defense,
+      at,
+      def,
+      combatLevel,
     },
     currentWeight,
     movementSpeed,
@@ -89,8 +102,14 @@ export async function dropItemFromSlot(request: any) {
 
   await batch.commit();
 
-  // ✅ Update group movement speed if needed
+  // ✅ Update group data
   if (hero.groupId) {
+    const groupRef = db.collection('heroGroups').doc(hero.groupId);
+    await groupRef.update({
+      combatLevel,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
     await updateGroupMovementSpeed(hero.groupId);
   }
 
@@ -105,6 +124,9 @@ export async function dropItemFromSlot(request: any) {
       attackMax,
       attackSpeedMs,
       defense,
+      at,
+      def,
+      combatLevel,
       currentWeight,
       movementSpeed,
     },

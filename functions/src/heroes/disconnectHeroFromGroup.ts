@@ -45,10 +45,7 @@ export async function disconnectHeroFromGroupLogic(request: any) {
       const groupRef = db.collection('heroGroups').doc(heroData.groupId);
       const soloGroupRef = db.collection('heroGroups').doc(heroId);
 
-      // ✅ PRE-READ all group data BEFORE any writes
       const groupSnap = await tx.get(groupRef);
-
-      // ✅ Prepare updated group data
       let updatedMembers: string[] = [];
       let updatedConnections: Record<string, any> = {};
       let groupData: any = null;
@@ -60,11 +57,9 @@ export async function disconnectHeroFromGroupLogic(request: any) {
         delete updatedConnections[heroId];
       }
 
-      // ✅ Write group updates or delete group
       if (updatedMembers.length === 0) {
-        tx.delete(groupRef); // Empty group cleanup
+        tx.delete(groupRef); // ✅ Delete group if no one is left
       } else {
-        // 🔍 Recalculate slowest movementSpeed
         const remainingRefs = updatedMembers.map(id => db.collection('heroes').doc(id));
         const remainingSnaps = await Promise.all(remainingRefs.map(ref => tx.get(ref)));
 
@@ -72,30 +67,38 @@ export async function disconnectHeroFromGroupLogic(request: any) {
           ...remainingSnaps.map(snap => snap.data()?.movementSpeed ?? 999999)
         );
 
+        const totalCombatLevel = remainingSnaps.reduce((sum, snap) => {
+          const cl = snap.data()?.combatLevel ?? 0;
+          return sum + cl;
+        }, 0);
+
         tx.update(groupRef, {
           members: updatedMembers,
           connections: updatedConnections,
-          movementSpeed: slowestSpeed, // ✅ Recalculated
+          movementSpeed: slowestSpeed,
+          combatLevel: totalCombatLevel, // ✅ NEW
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }
 
+      const combatLevel = heroData.combatLevel ?? 0;
+      const movementSpeed = heroData.movementSpeed ?? 1200;
 
-      // ✅ Create solo group with tile + insideVillage + movementSpeed
       tx.set(soloGroupRef, {
         leaderHeroId: heroId,
         members: [heroId],
         connections: {},
-        tileX: groupData.tileX,
-        tileY: groupData.tileY,
-        tileKey: groupData.tileKey,
-        movementSpeed: heroData.movementSpeed ?? 1200,
-        insideVillage: groupData.insideVillage ?? true,
+        tileX: groupData?.tileX,
+        tileY: groupData?.tileY,
+        tileKey: groupData?.tileKey,
+        movementSpeed,
+        baseMovementSpeed: heroData.baseMovementSpeed ?? movementSpeed,
+        combatLevel, // ✅ NEW
+        insideVillage: groupData?.insideVillage ?? true,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // ✅ Update hero
       tx.update(heroRef, {
         groupId: heroId,
         groupLeaderId: null,

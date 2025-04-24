@@ -22,7 +22,6 @@ export async function connectHeroToGroupLogic(request: any) {
       const oldGroupRef = db.collection('heroGroups').doc(heroId);
       const groupRef = db.collection('heroGroups').doc(targetHeroId);
 
-      // ✅ Read all required docs
       const [heroSnap, targetSnap, oldGroupSnap, groupSnap] = await Promise.all([
         transaction.get(heroRef),
         transaction.get(targetRef),
@@ -73,17 +72,14 @@ export async function connectHeroToGroupLogic(request: any) {
         ancestorId = ancestorSnap.data()?.groupLeaderId;
       }
 
-      // ✅ Merge group metadata
       const existingGroupData = groupSnap.exists ? groupSnap.data() : null;
       const existingMembers: string[] = existingGroupData?.members || [targetHeroId];
       const allMembers = [...new Set([...existingMembers, heroId])];
 
       const newConnections = existingGroupData?.connections || {};
       newConnections[heroId] = targetHeroId;
-
       const insideVillage = existingGroupData?.insideVillage ?? false;
 
-      // ✅ Recalculate slowest movement speed of ALL members (before any writes!)
       const memberRefs = allMembers.map(id => db.collection('heroes').doc(id));
       const memberSnaps = await Promise.all(memberRefs.map(ref => transaction.get(ref)));
 
@@ -91,23 +87,27 @@ export async function connectHeroToGroupLogic(request: any) {
         ...memberSnaps.map(snap => snap.data()?.movementSpeed ?? 999999)
       );
 
-      // ✅ Update group
+      const totalCombatLevel = memberSnaps.reduce((sum, snap) => {
+        const cl = snap.data()?.combatLevel ?? 0;
+        return sum + cl;
+      }, 0);
+
+      // ✅ Update group with combined combatLevel
       transaction.set(groupRef, {
         members: allMembers,
         connections: newConnections,
         leaderHeroId: targetHeroId,
         movementSpeed: slowestSpeed,
         insideVillage,
+        combatLevel: totalCombatLevel, // ✅ NEW
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
 
-      // ✅ Update connecting hero (moved after reads)
       transaction.update(heroRef, {
         groupLeaderId: targetHeroId,
         groupId: targetHeroId,
       });
 
-      // ✅ Delete old solo group if it's empty
       if (oldGroupSnap.exists) {
         const oldData = oldGroupSnap.data();
         const oldMembers = oldData?.members || [];
