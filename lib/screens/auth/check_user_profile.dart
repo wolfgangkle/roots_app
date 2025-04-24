@@ -10,8 +10,6 @@ import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/settings/models/user_settings_model.dart';
 import 'package:roots_app/modules/map/providers/terrain_provider.dart';
 
-
-
 class CheckUserProfile extends StatefulWidget {
   const CheckUserProfile({super.key});
 
@@ -41,20 +39,19 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
       profileRef.doc('main').get().then((doc) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (doc.exists) {
-            final heroName = doc.data()?['heroName'] ?? '🧙 Nameless';
+            final data = doc.data();
 
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
                 builder: (_) => MultiProvider(
                   providers: [
                     ChangeNotifierProvider(
-                      create: (_) => UserProfileModel(heroName: heroName),
+                      create: (_) => UserProfileModel.fromJson(data ?? {}),
                     ),
                     ChangeNotifierProvider(
                       create: (_) => UserSettingsModel(),
                     ),
                   ],
-
                   child: const MainHomeScreen(),
                 ),
               ),

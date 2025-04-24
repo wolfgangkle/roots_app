@@ -24,6 +24,16 @@ export const createVillage = onCall(async (request) => {
 });
 
 
+/**
+ * 🛡️ createGuild (Creates a new guild with unique name and tag, assigns user as leader)
+ */
+
+export const createGuild = onCall(async (request) => {
+  const { createGuild } = await import('./guilds/createGuild.js');
+  return createGuild(request);
+});
+
+
 
 /**
  * 📦 updateVillageResources
