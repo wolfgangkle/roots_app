@@ -5,7 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
 import 'register_screen.dart';
-import 'package:roots_app/modules/village/data/items.dart'; // ✅ Import gameItems
+import 'package:roots_app/modules/village/data/items.dart'; // ✅ Crafting items
+import 'package:roots_app/modules/combat/data/enemy_data.dart'; // ✅ Enemies
+import 'package:roots_app/modules/combat/data/event_data.dart'; // ✅ Encounter events
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,9 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       debugPrint('Logged in user: ${user.email}');
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const CheckUserProfile(),
-        ),
+        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
       );
     }
   }
@@ -96,11 +96,44 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("🧪 Seeded all crafting items into Firestore!")),
+        const SnackBar(content: Text("⚒️ Seeded all crafting items into Firestore!")),
       );
     }
   }
 
+  Future<void> _seedEnemies() async {
+    final batch = FirebaseFirestore.instance.batch();
+    final ref = FirebaseFirestore.instance.collection('enemyTypes');
+
+    for (final enemy in enemyTypes) {
+      final docRef = ref.doc(enemy['id']);
+      batch.set(docRef, enemy, SetOptions(merge: true));
+    }
+
+    await batch.commit();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("💀 Seeded enemyTypes to Firestore!")),
+      );
+    }
+  }
+
+  Future<void> _seedEncounterEvents() async {
+    final batch = FirebaseFirestore.instance.batch();
+    final ref = FirebaseFirestore.instance.collection('encounterEvents');
+
+    for (final event in encounterEvents) {
+      final docRef = ref.doc(event['id']);
+      batch.set(docRef, event, SetOptions(merge: true));
+    }
+
+    await batch.commit();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("🧪 Seeded encounterEvents to Firestore!")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +243,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
             const SizedBox(height: 20),
 
-            // 🧼 MapTiles Cleanup Button
             ElevatedButton.icon(
               icon: const Icon(Icons.cleaning_services),
               label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
@@ -218,11 +250,24 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 🧪 Seed Crafting Items Button
             ElevatedButton.icon(
               icon: const Icon(Icons.bolt),
-              label: const Text("🧪 Seed Crafting Items"),
+              label: const Text("⚒️ Seed Crafting Items"),
               onPressed: _seedCraftingItems,
+            ),
+            const SizedBox(height: 12),
+
+            ElevatedButton.icon(
+              icon: const Icon(Icons.shield),
+              label: const Text("💀 Seed Enemies"),
+              onPressed: _seedEnemies,
+            ),
+            const SizedBox(height: 12),
+
+            ElevatedButton.icon(
+              icon: const Icon(Icons.local_fire_department),
+              label: const Text("🧪 Seed Encounter Events"),
+              onPressed: _seedEncounterEvents,
             ),
           ],
         ),
