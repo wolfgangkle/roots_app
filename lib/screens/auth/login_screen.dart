@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
 import 'register_screen.dart';
-import 'package:roots_app/modules/village/data/items.dart'; // ✅ Crafting items
-import 'package:roots_app/modules/combat/data/enemy_data.dart'; // ✅ Enemies
-import 'package:roots_app/modules/combat/data/event_data.dart'; // ✅ Encounter events
+import 'package:roots_app/modules/village/data/items.dart';
+import 'package:roots_app/modules/combat/data/enemy_data.dart';
+import 'package:roots_app/modules/combat/data/event_data.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,6 +47,46 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const CheckUserProfile()),
       );
+    }
+  }
+
+  Future<void> _triggerPeacefulAIEvent() async {
+    try {
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('generatePeacefulEventFromAI')
+          .call();
+
+      final msg = result.data['message'] ?? 'Generated';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🌿 $msg')));
+      }
+    } catch (e) {
+      debugPrint('❌ Error generating peaceful event: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Failed to generate peaceful event')),
+        );
+      }
+    }
+  }
+
+  Future<void> _triggerCombatAIEvent() async {
+    try {
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('generateCombatEventFromAI')
+          .call();
+
+      final msg = result.data['message'] ?? 'Generated';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('⚔️ $msg')));
+      }
+    } catch (e) {
+      debugPrint('❌ Error generating combat event: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Failed to generate combat event')),
+        );
+      }
     }
   }
 
@@ -107,7 +148,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     for (final enemy in enemyTypes) {
       final docRef = ref.doc(enemy['id']);
-      batch.set(docRef, enemy, SetOptions(merge: true));
+      batch.set(docRef, {
+        ...enemy,
+        'source': enemy['source'] ?? 'manual',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     }
 
     await batch.commit();
@@ -124,7 +169,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     for (final event in encounterEvents) {
       final docRef = ref.doc(event['id']);
-      batch.set(docRef, event, SetOptions(merge: true));
+      batch.set(docRef, {
+        ...event,
+        'source': event['source'] ?? 'Wolfgang',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     }
 
     await batch.commit();
@@ -142,8 +191,28 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // 💻 AI Dev Buttons (at the top)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text("🌿 AI Peaceful"),
+                    onPressed: _triggerPeacefulAIEvent,
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.auto_awesome_motion),
+                    label: const Text("⚔️ AI Combat"),
+                    onPressed: _triggerCombatAIEvent,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
@@ -175,74 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 20),
 
-            // 🚀 Dev Quick Login buttons
-            TextButton(
-              onPressed: () async {
-                final user = await AuthService().signIn("test3@roots.dev", "123456");
-                if (user != null) {
-                  debugPrint('Auto-logged in user: ${user.email}');
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                  );
-                } else {
-                  setState(() {
-                    errorMessage = "Auto-login failed 😬";
-                  });
-                }
-              },
-              child: const Text("🚀 Dev Auto-Login (test3@roots.dev)"),
-            ),
-            TextButton(
-              onPressed: () async {
-                final user = await AuthService().signIn("test2@roots.dev", "123456");
-                if (user != null) {
-                  debugPrint('Auto-logged in user: ${user.email}');
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                  );
-                } else {
-                  setState(() {
-                    errorMessage = "Auto-login failed 😬";
-                  });
-                }
-              },
-              child: const Text("🔁 Dev Auto-Login (test2@roots.dev)"),
-            ),
-            TextButton(
-              onPressed: () async {
-                final user = await AuthService().signIn("ivanna@roots.com", "123456");
-                if (user != null) {
-                  debugPrint('Auto-logged in user: ${user.email}');
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                  );
-                } else {
-                  setState(() {
-                    errorMessage = "Auto-login failed 😬";
-                  });
-                }
-              },
-              child: const Text("🧪 Dev Auto-Login (ivanna@roots.com)"),
-            ),
-            TextButton(
-              onPressed: () async {
-                final user = await AuthService().signIn("test@roots.dev", "123456");
-                if (user != null) {
-                  debugPrint('Auto-logged in user: ${user.email}');
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                  );
-                } else {
-                  setState(() {
-                    errorMessage = "Auto-login failed 😬";
-                  });
-                }
-              },
-              child: const Text("🧙 Dev Auto-Login (test@roots.dev)"),
-            ),
-
-            const SizedBox(height: 20),
-
+            // 🛠️ Seeder + Utility Buttons
             ElevatedButton.icon(
               icon: const Icon(Icons.cleaning_services),
               label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
@@ -268,6 +270,75 @@ class _LoginScreenState extends State<LoginScreen> {
               icon: const Icon(Icons.local_fire_department),
               label: const Text("🧪 Seed Encounter Events"),
               onPressed: _seedEncounterEvents,
+            ),
+            const SizedBox(height: 24),
+
+            // 🔁 Dev Auto Login Buttons (bottom)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    final user = await AuthService().signIn("test3@roots.dev", "123456");
+                    if (user != null) {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                      );
+                    } else {
+                      setState(() {
+                        errorMessage = "Auto-login failed 😬";
+                      });
+                    }
+                  },
+                  child: const Text("🚀 Dev Login (test3@roots.dev)"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final user = await AuthService().signIn("test2@roots.dev", "123456");
+                    if (user != null) {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                      );
+                    } else {
+                      setState(() {
+                        errorMessage = "Auto-login failed 😬";
+                      });
+                    }
+                  },
+                  child: const Text("🔁 Dev Login (test2@roots.dev)"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final user = await AuthService().signIn("ivanna@roots.com", "123456");
+                    if (user != null) {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                      );
+                    } else {
+                      setState(() {
+                        errorMessage = "Auto-login failed 😬";
+                      });
+                    }
+                  },
+                  child: const Text("🧪 Dev Login (ivanna@roots.com)"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final user = await AuthService().signIn("test@roots.dev", "123456");
+                    if (user != null) {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                      );
+                    } else {
+                      setState(() {
+                        errorMessage = "Auto-login failed 😬";
+                      });
+                    }
+                  },
+                  child: const Text("🧙 Dev Login (test@roots.dev)"),
+                ),
+              ],
             ),
           ],
         ),

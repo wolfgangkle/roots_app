@@ -11,6 +11,7 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.1,
       'max': 10,
     },
+    'source': 'Wolfgang',
   },
   {
     'id': 'goblin_raid',
@@ -24,6 +25,7 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.2,
       'max': 12,
     },
+    'source': 'Wolfgang',
   },
   {
     'id': 'crypt_awakening',
@@ -37,6 +39,7 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.15,
       'max': 8,
     },
+    'source': 'Wolfgang',
   },
   {
     'id': 'forest_crossroads',
@@ -50,6 +53,7 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.15,
       'max': 10,
     },
+    'source': 'Wolfgang',
   },
   {
     'id': 'haunted_battlefield',
@@ -63,16 +67,15 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.2,
       'max': 12,
     },
+    'source': 'Wolfgang',
   },
 
-
   // peaceful events
-
   {
     'id': 'crystal_clear_stream',
     'type': 'peaceful',
-    'description': 'You stumble upon a small, crystal-clear stream. The water sparkles unnaturally.',
     'title': 'Crystal Stream',
+    'description': 'You stumble upon a small, crystal-clear stream. The water sparkles unnaturally.',
     'minCombatLevel': 1,
     'maxCombatLevel': 12,
     'rarity': 1,
@@ -80,12 +83,13 @@ final List<Map<String, dynamic>> encounterEvents = [
       'effect': 'restore_health',
       'xp': 8,
     },
+    'source': 'Wolfgang',
   },
   {
     'id': 'abandoned_cart',
     'type': 'peaceful',
-    'description': 'An abandoned merchant cart lies overturned. Something valuable might remain.',
     'title': 'Abandoned Cart',
+    'description': 'An abandoned merchant cart lies overturned. Something valuable might remain.',
     'minCombatLevel': 5,
     'maxCombatLevel': 20,
     'rarity': 2,
@@ -94,12 +98,13 @@ final List<Map<String, dynamic>> encounterEvents = [
       'xp': 12,
       'gold': 30,
     },
+    'source': 'Wolfgang',
   },
   {
     'id': 'ancient_oak',
     'type': 'peaceful',
-    'description': 'A towering oak radiates a strange presence. As you approach, its bark shifts subtly.',
     'title': 'Ancient Oak',
+    'description': 'A towering oak radiates a strange presence. As you approach, its bark shifts subtly.',
     'minCombatLevel': 8,
     'maxCombatLevel': 30,
     'rarity': 3,
@@ -108,8 +113,6 @@ final List<Map<String, dynamic>> encounterEvents = [
       'xp': 18,
       'buff': 'minor_protection',
     },
+    'source': 'Wolfgang',
   }
-
-
-
 ];

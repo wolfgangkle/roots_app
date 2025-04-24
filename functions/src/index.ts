@@ -159,13 +159,16 @@ export const dropItemFromSlot = onCall(async (request) => {
 
 
 /**
- * 🧠 generateEventFromAI (on-demand OpenAI event generation)
+ * 🧠 generatePeacefulEventFromAI (on-demand OpenAI event generation)
  */
 export { generatePeacefulEventFromAI } from './events/generatePeacefulEventFromAI.js';
 
 
 
-
+/**
+ * 🧠 generateCombatEventFromAI (on-demand OpenAI event generation)
+ */
+export { generateCombatEventFromAI } from './events/generateCombatEventFromAI.js';
 
 
 

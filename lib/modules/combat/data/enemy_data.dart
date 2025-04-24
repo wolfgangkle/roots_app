@@ -13,7 +13,9 @@ final List<Map<String, dynamic>> enemyTypes = [
       'def': 14,
       'defense': 6,
     },
+    'xp': 10,
     'scaleWithEvent': true,
+    'source': 'Wolfgang',
   },
   {
     'id': 'goblin',
@@ -24,12 +26,14 @@ final List<Map<String, dynamic>> enemyTypes = [
       'hp': 80,
       'minDamage': 4,
       'maxDamage': 10,
-      'attackSpeedMs': 75000, // faster than most
+      'attackSpeedMs': 75000,
       'at': 16,
       'def': 12,
       'defense': 2,
     },
+    'xp': 7,
     'scaleWithEvent': true,
+    'source': 'Wolfgang',
   },
   {
     'id': 'skeleton',
@@ -45,6 +49,8 @@ final List<Map<String, dynamic>> enemyTypes = [
       'def': 15,
       'defense': 4,
     },
+    'xp': 9,
     'scaleWithEvent': true,
+    'source': 'Wolfgang',
   },
 ];

@@ -37,6 +37,8 @@ class HeroModel {
   final String? groupLeaderId;
   final String? guildId;
   final Timestamp? createdAt;
+  final int combatLevel;
+
 
   HeroModel({
     required this.id,
@@ -69,6 +71,7 @@ class HeroModel {
     required this.createdAt,
     required this.carryCapacity,
     required this.currentWeight,
+    required this.combatLevel,
     this.destinationX,
     this.destinationY,
     this.movementQueue,
@@ -134,6 +137,8 @@ class HeroModel {
           .toList(),
       ref: FirebaseFirestore.instance.collection('heroes').doc(id),
       createdAt: data['createdAt'],
+      combatLevel: data['combatLevel'] ?? 0,
+
     );
   }
 }

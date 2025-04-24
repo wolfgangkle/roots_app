@@ -2,7 +2,6 @@ import { onCall } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
 
-
 export const generatePeacefulEventFromAI = onCall(
   {
     secrets: ['OPENAI_API_KEY'],
@@ -12,11 +11,11 @@ export const generatePeacefulEventFromAI = onCall(
     if (!apiKey) throw new Error('Missing OpenAI API Key');
 
     const prompt = `
-Generate a JSON object representing a peaceful fantasy game event for a text-based browser RPG.
+The description must be immersive and detailed — at least 6–8 full sentences. Make it feel like a short story excerpt, not just a summary. Write it in second person (“you enter... you notice...”).
 All events must include:
 - id (snake_case string)
 - title (short event name)
-- description (1–2 sentences of flavor text)
+- description: an immersive short story-like scene, minimum 6–8 full sentences in second person
 - type: always "peaceful"
 - minCombatLevel (1–30)
 - maxCombatLevel (same or higher)
@@ -29,7 +28,7 @@ Here is an example:
 {
   "id": "shrine_of_silence",
   "title": "Shrine of Silence",
-  "description": "You encounter a moss-covered shrine deep in the woods. A strange calm surrounds it.",
+  "description": "You step into a meadow that glows faintly in the fading sunlight. The tall grass brushes your legs, and wildflowers sway as if greeting you. There's a hush here—not silence, but a reverent stillness. You pause, your breath slowing, your heart strangely calm. The wind carries something other than sound: a warmth that soothes your weariness. Then, just on the edge of your hearing, a voice—soft and ancient—whispers your name. You turn quickly, but no one is there. Only a pouch of gold rests at your feet, as though the meadow itself has offered tribute for your presence.",
   "type": "peaceful",
   "minCombatLevel": 5,
   "maxCombatLevel": 25,
@@ -46,7 +45,7 @@ Generate a new peaceful event:
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: 'You are a fantasy game event generator.' },
           { role: 'user', content: prompt },
@@ -64,14 +63,25 @@ Generate a new peaceful event:
     const raw = response.data.choices?.[0]?.message?.content;
     if (!raw) throw new Error('No content from OpenAI');
 
+    let cleaned = raw.trim();
+
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    }
+
     let event;
     try {
-      event = JSON.parse(raw);
+      event = JSON.parse(cleaned);
     } catch (e) {
+      console.error('❌ Raw content from OpenAI:\n', raw);
       throw new Error('Invalid JSON from OpenAI');
     }
 
-    // 🔍 Check for ID collisions in Firestore
+    // ✅ Add reward validation logic
+    if (event.reward?.effect === 'grant_gold' && typeof event.reward.gold !== 'number') {
+      throw new Error('Missing "gold" value in reward for effect: grant_gold');
+    }
+
     const baseId = event.id;
     let uniqueId = baseId;
     let attempt = 1;
@@ -82,13 +92,19 @@ Generate a new peaceful event:
       attempt++;
     }
 
-    event.id = uniqueId; // Update to resolved unique ID
-    await collectionRef.doc(uniqueId).set(event);
+    const fullEvent = {
+      ...event,
+      id: uniqueId,
+      source: 'AI',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    await collectionRef.doc(uniqueId).set(fullEvent);
 
     return {
       success: true,
       id: uniqueId,
-      message: `New event "${event.title}" saved to Firestore as "${uniqueId}"`,
+      message: `New peaceful event "${event.title}" saved as "${uniqueId}"`,
     };
   }
 );
