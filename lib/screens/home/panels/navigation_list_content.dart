@@ -14,6 +14,11 @@ import 'package:roots_app/modules/guild/views/create_guild_screen.dart';
 import 'package:roots_app/modules/guild/views/browse_guilds_placeholder.dart';
 import 'package:roots_app/profile/models/user_profile_model.dart';
 import 'package:roots_app/modules/guild/views/guild_members_screen.dart';
+import 'package:roots_app/modules/guild/views/guild_role_manager_screen.dart';
+import 'package:roots_app/modules/guild/views/guild_invite_inbox_screen.dart';
+
+
+
 
 
 class NavigationListContent extends StatelessWidget {
@@ -44,15 +49,20 @@ class NavigationListContent extends StatelessWidget {
       DevMode.enabled = true;
     }
 
+    final sectionHeaderStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: Theme.of(context).colorScheme.onSurface,
+    );
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text('🌍 World'),
+        Text('🌍 World', style: sectionHeaderStyle),
         const SizedBox(height: 12),
         _buildTabTile(context, isMobile, '🌍 Map', const MapGridView()),
 
         const SizedBox(height: 24),
-        const Text('🏰 Guild'),
+        Text('🏰 Guild', style: sectionHeaderStyle),
         const SizedBox(height: 12),
         if (!hasGuild) ...[
           _buildTabTile(context, isMobile, 'Create Guild', const CreateGuildScreen()),
@@ -61,36 +71,36 @@ class NavigationListContent extends StatelessWidget {
           _buildTabTile(context, isMobile, 'Guild Dashboard', const GuildScreen()),
           _buildTabTile(context, isMobile, 'Members', const GuildMembersScreen()),
           if (isLeader || isOfficer)
-            _buildTabTile(context, isMobile, 'Manage Roles', const Placeholder()),
+            _buildTabTile(context, isMobile, 'Manage Roles', const GuildRoleManagerScreen()),
           if (isLeader)
             _buildTabTile(context, isMobile, 'Guild Settings', const Placeholder()),
         ],
 
         const SizedBox(height: 24),
-        const Text('💬 Chat'),
+        Text('💬 Chat', style: sectionHeaderStyle),
         const SizedBox(height: 12),
         _buildTabTile(context, isMobile, 'Global Chat', ChatScreen()),
         if (hasGuild)
           _buildTabTile(context, isMobile, 'Guild Chat', const Placeholder()),
 
         const SizedBox(height: 24),
-        const Text('🔔 Notifications'),
+        Text('🔔 Notifications', style: sectionHeaderStyle),
         const SizedBox(height: 12),
         _buildTabTile(context, isMobile, 'Event Logs', const ReportsListScreen()),
         _buildTabTile(context, isMobile, 'Finished Jobs', const Placeholder()),
-        if (hasGuild)
-          _buildTabTile(context, isMobile, 'Guild Invites', const Placeholder()),
+        _buildTabTile(context, isMobile, 'Guild Invites', const GuildInviteInboxScreen()),
+
 
         const SizedBox(height: 24),
-        const Text('⚙️ Settings'),
+        Text('⚙️ Settings', style: sectionHeaderStyle),
         const SizedBox(height: 12),
         _buildTabTile(context, isMobile, 'Settings', const SettingsScreen()),
 
         const SizedBox(height: 24),
         const Divider(),
         ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('Logout'),
+          leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
+          title: Text('Logout', style: Theme.of(context).textTheme.bodyLarge),
           onTap: () async {
             await FirebaseAuth.instance.signOut();
             Navigator.pushReplacement(
@@ -105,8 +115,8 @@ class NavigationListContent extends StatelessWidget {
 
   Widget _buildTabTile(BuildContext context, bool isMobile, String title, Widget content) {
     return ListTile(
-      leading: const Icon(Icons.arrow_right),
-      title: Text(title),
+      leading: Icon(Icons.arrow_right, color: Theme.of(context).colorScheme.onSurface),
+      title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
       onTap: () {
         if (isInDrawer) Navigator.pop(context);
 

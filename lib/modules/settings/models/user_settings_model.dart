@@ -6,6 +6,14 @@ class UserSettingsModel extends ChangeNotifier {
   bool _showChatOverlay = true;
   bool get showChatOverlay => _showChatOverlay;
 
+  bool _darkMode = false;
+  bool get darkMode => _darkMode;
+
+  bool _isLoaded = false;
+  bool get isLoaded => _isLoaded;
+
+  bool _hasSetDarkMode = false; // ✅ added flag to detect local change
+
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
@@ -15,7 +23,12 @@ class UserSettingsModel extends ChangeNotifier {
 
   Future<void> _loadSettings() async {
     final user = _auth.currentUser;
-    if (user == null) return;
+
+    if (user == null) {
+      _isLoaded = true;
+      notifyListeners();
+      return;
+    }
 
     final doc = await _firestore
         .collection('users')
@@ -25,11 +38,19 @@ class UserSettingsModel extends ChangeNotifier {
         .get();
 
     if (doc.exists) {
-      _showChatOverlay = doc.data()?['showChatOverlay'] ?? true;
-      notifyListeners();
+      final data = doc.data()!;
+      _showChatOverlay = data['showChatOverlay'] ?? true;
+
+      // ✅ only overwrite darkMode if we didn't already change it
+      if (!_hasSetDarkMode) {
+        _darkMode = data['darkMode'] ?? false;
+      }
     } else {
-      await _saveSettings(); // Create default settings if missing
+      await _saveSettings(); // create default settings if missing
     }
+
+    _isLoaded = true;
+    notifyListeners();
   }
 
   Future<void> _saveSettings() async {
@@ -43,11 +64,20 @@ class UserSettingsModel extends ChangeNotifier {
         .doc('main')
         .set({
       'showChatOverlay': _showChatOverlay,
+      'darkMode': _darkMode,
     }, SetOptions(merge: true));
   }
 
   Future<void> setShowChatOverlay(bool value) async {
     _showChatOverlay = value;
+    notifyListeners();
+    await _saveSettings();
+  }
+
+  Future<void> setDarkMode(bool value) async {
+    debugPrint('🔥 setDarkMode called → $value');
+    _darkMode = value;
+    _hasSetDarkMode = true; // ✅ prevent load from overriding this
     notifyListeners();
     await _saveSettings();
   }

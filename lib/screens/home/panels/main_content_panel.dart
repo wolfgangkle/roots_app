@@ -14,7 +14,7 @@ class MainContentPanel extends StatelessWidget {
     debugPrint('[MainContentPanel] currentContent is: ${content != null ? content.runtimeType : 'null'}');
 
     return Container(
-      color: Colors.grey.shade100,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.all(16),
       child: content ??
           const Center(

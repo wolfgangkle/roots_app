@@ -49,56 +49,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<UserSettingsModel>();
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          SwitchListTile(
-            title: const Text('Show Global Chat Overlay'),
-            value: settings.showChatOverlay,
-            onChanged: settings.setShowChatOverlay,
-          ),
-
-          const Divider(),
-
-          // 🔒 Export to text field (temporarily disabled)
-          /*
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.text_snippet),
-            label: const Text("Export Tier 1 Map to Text"),
-            onPressed: _exportTier1MapToText,
-          ),
-        ),
-
-        if (exportController.text.isNotEmpty)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("📋 Copy-Paste Map Export:"),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 400,
-                child: TextField(
-                  controller: exportController,
-                  maxLines: null,
-                  expands: true,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                  ),
-                  style: const TextStyle(fontFamily: 'monospace'),
+          Card(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  title: const Text('Enable Dark Mode'),
+                  value: settings.darkMode,
+                  onChanged: settings.setDarkMode,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
-              ),
-            ],
+                const Divider(height: 0),
+                SwitchListTile(
+                  title: const Text('Show Global Chat Overlay'),
+                  value: settings.showChatOverlay,
+                  onChanged: settings.setShowChatOverlay,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+              ],
+            ),
           ),
-        */
+          const SizedBox(height: 16),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.text_snippet),
+                    label: const Text("Export Tier 1 Map to Text"),
+                    onPressed: _exportTier1MapToText,
+                  ),
+                  const SizedBox(height: 12),
+                  if (exportController.text.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("📋 Copy-Paste Map Export:"),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 300,
+                          child: TextField(
+                            controller: exportController,
+                            maxLines: null,
+                            expands: true,
+                            readOnly: true,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              filled: true,
+                              fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.1),
+                            ),
+                            style: const TextStyle(fontFamily: 'monospace'),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
