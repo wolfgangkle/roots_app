@@ -33,6 +33,30 @@ export const createGuild = onCall(async (request) => {
   return createGuild(request);
 });
 
+/**
+ * 🛡️ acceptGuildInvite (accept guild invite after invitation was sent)
+ */
+export const acceptGuildInvite = onCall(async (request) => {
+  const { acceptGuildInvite } = await import('./guilds/acceptGuildInvite.js');
+  return acceptGuildInvite(request);
+});
+
+
+/**
+ * 🛡️ updateGuildRole (Update guild roles)
+ */
+export const updateGuildRole = onCall(async (request) => {
+  const { updateGuildRole } = await import('./guilds/updateGuildRole.js');
+  return updateGuildRole(request);
+});
+
+
+
+
+
+
+
+
 
 
 /**

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -59,20 +60,19 @@ class GuildInviteInboxScreen extends StatelessWidget {
                             icon: const Icon(Icons.check, color: Colors.green),
                             tooltip: "Accept",
                             onPressed: () async {
-                              await FirebaseFirestore.instance
-                                  .doc('users/$currentUserId/profile/main')
-                                  .update({
-                                'guildId': guildId,
-                                'guildRole': 'member',
-                              });
+                              try {
+                                await FirebaseFunctions.instance
+                                    .httpsCallable('acceptGuildInvite')
+                                    .call({'guildId': guildId});
 
-                              await FirebaseFirestore.instance
-                                  .doc('guildInvites/$inviteId')
-                                  .update({'status': 'accepted'});
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Joined guild!")),
-                              );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Joined guild!")),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Error: $e")),
+                                );
+                              }
                             },
                           ),
                           IconButton(

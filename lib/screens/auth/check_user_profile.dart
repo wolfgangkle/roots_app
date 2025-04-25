@@ -32,19 +32,20 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
       final profileRef = FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .collection('profile');
+          .collection('profile')
+          .doc('main');
 
-      profileRef.doc('main').get().then((doc) {
+      profileRef.get().then((doc) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (doc.exists) {
-            final data = doc.data();
-
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
                 builder: (_) => MultiProvider(
                   providers: [
-                    ChangeNotifierProvider(
-                      create: (_) => UserProfileModel.fromJson(data ?? {}),
+                    StreamProvider<UserProfileModel>(
+                      create: (_) => profileRef.snapshots().map((snapshot) =>
+                          UserProfileModel.fromJson(snapshot.data() ?? {})),
+                      initialData: UserProfileModel(heroName: 'Loading...'),
                     ),
                     ChangeNotifierProvider(
                       create: (_) => UserSettingsModel(),

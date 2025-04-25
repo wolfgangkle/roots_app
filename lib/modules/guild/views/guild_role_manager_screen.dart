@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -35,6 +36,7 @@ class GuildRoleManagerScreen extends StatelessWidget {
           }
 
           final docs = snapshot.data!.docs;
+          final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -91,7 +93,7 @@ class _RoleActionsMenu extends StatelessWidget {
           context: context,
           builder: (_) => AlertDialog(
             title: const Text("Are you sure?"),
-            content: Text("This will change the member's role."),
+            content: const Text("This will change the member's role."),
             actions: [
               TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
               TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Confirm")),
@@ -101,7 +103,6 @@ class _RoleActionsMenu extends StatelessWidget {
 
         if (confirm != true) return;
 
-        // TODO: Replace with a Cloud Function or proper security-checked update.
         String? newRole;
         if (value == 'promote') {
           newRole = 'officer';
@@ -111,16 +112,21 @@ class _RoleActionsMenu extends StatelessWidget {
           newRole = null;
         }
 
-        final ref = FirebaseFirestore.instance.doc('users/$userId/profile/main');
+        try {
+          final callable = FirebaseFunctions.instance.httpsCallable('updateGuildRole');
+          await callable.call({
+            'targetUserId': userId,
+            'newRole': newRole, // Can be 'officer', 'member', or null (for kick)
+          });
 
-        await ref.update({
-          'guildRole': newRole,
-          if (newRole == null) 'guildId': FieldValue.delete(),
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(newRole == null ? "Member kicked." : "Role updated.")),
-        );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(newRole == null ? "Member kicked." : "Role updated.")),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $e")),
+          );
+        }
       },
       itemBuilder: (context) {
         return [
