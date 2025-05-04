@@ -55,6 +55,7 @@ class _CraftButtonState extends State<CraftButton> {
         'quantity': widget.quantity,
       });
 
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('🛠️ Crafting started: ${widget.itemId}')),

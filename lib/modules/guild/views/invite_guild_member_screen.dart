@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/profile/models/user_profile_model.dart';
@@ -14,6 +15,7 @@ class _InviteGuildMemberScreenState extends State<InviteGuildMemberScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isLoading = false;
+  bool _inviteInProgress = false; // 🔒 Add this
   List<DocumentSnapshot> _results = [];
 
   Future<void> _search() async {
@@ -36,27 +38,26 @@ class _InviteGuildMemberScreenState extends State<InviteGuildMemberScreen> {
   }
 
   Future<void> _sendInvite(String toUserId, String heroName) async {
-    final profile = context.read<UserProfileModel>();
-    final fromUserId = FirebaseFirestore.instance.app.options.projectId;
-    final guildId = profile.guildId;
+    setState(() => _inviteInProgress = true); // 🔒 Lock all buttons
 
-    if (guildId == null) return;
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('sendGuildInvite');
+      await callable.call({'toUserId': toUserId});
 
-    final inviteRef = FirebaseFirestore.instance
-        .collection('guildInvites')
-        .doc('${toUserId}_$guildId');
-
-    await inviteRef.set({
-      'fromUserId': fromUserId,
-      'toUserId': toUserId,
-      'guildId': guildId,
-      'status': 'pending',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Invitation sent to $heroName!')),
-    );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invitation sent to $heroName!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send invite: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _inviteInProgress = false); // 🔓 Unlock buttons
+    }
   }
 
   @override
@@ -101,8 +102,16 @@ class _InviteGuildMemberScreenState extends State<InviteGuildMemberScreen> {
                     trailing: alreadyInGuild
                         ? null
                         : ElevatedButton(
-                      onPressed: () => _sendInvite(userId!, heroName),
-                      child: const Text('Invite'),
+                      onPressed: _inviteInProgress
+                          ? null
+                          : () => _sendInvite(userId!, heroName),
+                      child: _inviteInProgress
+                          ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                          : const Text('Invite'),
                     ),
                   );
                 },

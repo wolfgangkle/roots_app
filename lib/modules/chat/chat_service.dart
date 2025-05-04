@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chat_message_model.dart';
-import 'package:roots_app/utils/firestore_logger.dart'; // ✅ Import your logger
+import 'package:roots_app/utils/firestore_logger.dart';
 
 class ChatService {
   static final _messagesRef = FirebaseFirestore.instance
@@ -8,7 +8,7 @@ class ChatService {
       .doc('global')
       .collection('messages');
 
-  /// Stream the latest [limit] messages (default: 100)
+  /// Stream the latest [limit] messages (default: 100) from global chat
   static Stream<List<ChatMessage>> getMessageStream({int limit = 100}) {
     FirestoreLogger.read("getMessageStream (limit: $limit)");
 
@@ -26,7 +26,7 @@ class ChatService {
     });
   }
 
-  /// Send a new message
+  /// Send a new global message
   static Future<void> sendMessage(String sender, String content) async {
     final trimmed = content.trim();
     if (trimmed.isEmpty) return;
@@ -60,5 +60,59 @@ class ChatService {
       await doc.reference.delete();
       FirestoreLogger.delete("prune - deleted doc ${doc.id}");
     }
+  }
+
+  /// Stream messages from guild chat
+  static Stream<List<ChatMessage>> getGuildMessageStream(String guildId, {int limit = 100}) {
+    final ref = FirebaseFirestore.instance
+        .collection('guilds')
+        .doc(guildId)
+        .collection('chat')
+        .orderBy('timestamp', descending: true)
+        .limit(limit);
+
+    return ref.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ChatMessage.fromDoc(doc))
+          .toList()
+          .reversed
+          .toList();
+    });
+  }
+
+  /// Send a message to the guild chat
+  static Future<void> sendGuildMessage(String guildId, String sender, String content) async {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return;
+
+    FirestoreLogger.write('sendGuildMessage from $sender to $guildId');
+
+    final ref = FirebaseFirestore.instance
+        .collection('guilds')
+        .doc(guildId)
+        .collection('chat');
+
+    await ref.add({
+      'sender': sender,
+      'content': trimmed,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Send a system message to the guild chat (e.g. "Ivanna joined the guild")
+  static Future<void> sendSystemGuildMessage(String guildId, String content) async {
+    FirestoreLogger.write('sendSystemGuildMessage to $guildId → "$content"');
+
+    final ref = FirebaseFirestore.instance
+        .collection('guilds')
+        .doc(guildId)
+        .collection('chat');
+
+    await ref.add({
+      'sender': 'System',
+      'content': content,
+      'type': 'system',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
   }
 }

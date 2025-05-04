@@ -3,8 +3,15 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class GuildInviteInboxScreen extends StatelessWidget {
+class GuildInviteInboxScreen extends StatefulWidget {
   const GuildInviteInboxScreen({super.key});
+
+  @override
+  State<GuildInviteInboxScreen> createState() => _GuildInviteInboxScreenState();
+}
+
+class _GuildInviteInboxScreenState extends State<GuildInviteInboxScreen> {
+  String? _inviteProcessing;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +55,7 @@ class GuildInviteInboxScreen extends StatelessWidget {
                 builder: (context, guildSnap) {
                   final guildName = guildSnap.data?.get('name') ?? 'Unknown Guild';
                   final guildTag = guildSnap.data?.get('tag') ?? '???';
+                  final isProcessing = _inviteProcessing == inviteId;
 
                   return Card(
                     child: ListTile(
@@ -57,35 +65,63 @@ class GuildInviteInboxScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.check, color: Colors.green),
+                            icon: isProcessing
+                                ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                                : const Icon(Icons.check, color: Colors.green),
                             tooltip: "Accept",
-                            onPressed: () async {
+                            onPressed: isProcessing
+                                ? null
+                                : () async {
+                              setState(() => _inviteProcessing = inviteId);
                               try {
                                 await FirebaseFunctions.instance
                                     .httpsCallable('acceptGuildInvite')
                                     .call({'guildId': guildId});
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Joined guild!")),
-                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Joined guild!")),
+                                  );
+                                }
                               } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Error: $e")),
-                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Error: $e")),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) setState(() => _inviteProcessing = null);
                               }
                             },
                           ),
                           IconButton(
                             icon: const Icon(Icons.close, color: Colors.red),
                             tooltip: "Decline",
-                            onPressed: () async {
-                              await FirebaseFirestore.instance
-                                  .doc('guildInvites/$inviteId')
-                                  .update({'status': 'declined'});
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Invitation declined.")),
-                              );
+                            onPressed: isProcessing
+                                ? null
+                                : () async {
+                              setState(() => _inviteProcessing = inviteId);
+                              try {
+                                await FirebaseFirestore.instance
+                                    .doc('guildInvites/$inviteId')
+                                    .update({'status': 'declined'});
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Invitation declined.")),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Error: $e")),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) setState(() => _inviteProcessing = null);
+                              }
                             },
                           ),
                         ],

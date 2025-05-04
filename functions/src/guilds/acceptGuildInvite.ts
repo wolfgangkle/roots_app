@@ -7,7 +7,10 @@ export async function acceptGuildInvite(request: any) {
   const userId = request.auth?.uid;
   const { guildId } = request.data;
 
-  if (!userId) throw new HttpsError('unauthenticated', 'User must be logged in.');
+  if (!userId) {
+    throw new HttpsError('unauthenticated', 'User must be logged in.');
+  }
+
   if (!guildId || typeof guildId !== 'string') {
     throw new HttpsError('invalid-argument', 'guildId must be provided.');
   }
@@ -31,7 +34,6 @@ export async function acceptGuildInvite(request: any) {
     throw new HttpsError('failed-precondition', 'Invite has already been accepted or declined.');
   }
 
-
   const profile = profileSnap.data();
   if (profile?.guildId) {
     throw new HttpsError('already-exists', 'You are already in a guild.');
@@ -40,6 +42,9 @@ export async function acceptGuildInvite(request: any) {
   if (!guildSnap.exists) {
     throw new HttpsError('not-found', 'Target guild does not exist.');
   }
+
+  const heroName = profile?.heroName ?? 'Someone';
+  const guildChatRef = db.collection('guilds').doc(guildId).collection('chat');
 
   await db.runTransaction(async (tx) => {
     tx.update(profileRef, {
@@ -51,9 +56,16 @@ export async function acceptGuildInvite(request: any) {
       status: 'accepted',
       acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    tx.set(guildChatRef.doc(), {
+      sender: 'System',
+      content: `🎉 ${heroName} has joined the guild!`,
+      type: 'system',
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
   });
 
-  console.log(`✅ ${userId} accepted invite to guild ${guildId}`);
+  console.log(`✅ ${userId} (${heroName}) accepted invite to guild ${guildId}`);
 
   return {
     guildId,

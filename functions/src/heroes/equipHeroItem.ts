@@ -15,7 +15,7 @@ export async function equipHeroItem(request: any) {
 
   const validSlots = ['mainHand', 'offHand', 'helmet', 'chest', 'legs', 'arms', 'belt', 'feet'];
   if (!validSlots.includes(slot)) {
-    throw new HttpsError('invalid-argument', `Invalid slot: ${slot}`);
+    throw new HttpsError('invalid-argument', `Invalid slot: ${slot}. Expected one of: ${validSlots.join(', ')}`);
   }
 
   const heroRef = db.collection('heroes').doc(heroId);
@@ -46,16 +46,21 @@ export async function equipHeroItem(request: any) {
   const equipped = { ...(heroData.equipped || {}) };
   const oldItem = equipped[slot] || null;
 
-  // Prevent equipping offHand with two-hander in mainHand
+  // ⛔️ Prevent equipping offHand while a two-hander is equipped in mainHand
   const mainHandItemId = equipped['mainHand']?.itemId;
   const mainHandEquipSlot = equipped['mainHand']?.equipSlot ?? null;
   if (slot === 'offHand' && mainHandItemId && mainHandEquipSlot === 'two_hand') {
     throw new HttpsError('failed-precondition', 'Cannot equip offhand item while using a two-handed weapon.');
   }
 
+  // ⛔️ Enforce two-handed weapons can only be equipped in mainHand
+  if (equipSlot === 'two_hand' && slot !== 'mainHand') {
+    throw new HttpsError('invalid-argument', 'Two-handed weapons must be equipped in mainHand.');
+  }
+
   const batch = db.batch();
 
-  // 1. If equipping a two-hander, unequip offHand and return it
+  // 🔁 If equipping a two-hander, unequip offHand and return it
   if (slot === 'mainHand' && equipSlot === 'two_hand' && equipped['offHand']?.itemId && villageId) {
     const unequippedItem = equipped['offHand'];
     const backToVillage = db
@@ -77,7 +82,7 @@ export async function equipHeroItem(request: any) {
     equipped['offHand'] = null;
   }
 
-  // 2. Return previously equipped item
+  // 🔁 Return previously equipped item in the same slot
   if (oldItem?.itemId) {
     const returnToRef = villageId
       ? db.collection('users').doc(userId).collection('villages').doc(villageId).collection('items').doc()
@@ -96,17 +101,17 @@ export async function equipHeroItem(request: any) {
     }
   }
 
-  // 3. Remove item from source
+  // ❌ Remove item from source inventory
   batch.delete(sourceItemRef);
 
-  // 4. Equip the new item
+  // ✅ Equip the new item to the correct slot
   equipped[slot] = {
     itemId,
     craftedStats,
     equipSlot,
   };
 
-  // 5. Write equipped changes first
+  // 📦 Write equipment update
   batch.update(heroRef, {
     equipped,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -114,7 +119,7 @@ export async function equipHeroItem(request: any) {
 
   await batch.commit();
 
-  // 6. Recalculate stats and sync group
+  // 🧠 Recalculate combat stats
   await updateHeroStats(heroId);
 
   console.log(`🛡 Hero ${heroId} equipped ${itemId} from ${villageId ? 'village' : tileKey} to slot ${slot}.`);

@@ -119,9 +119,12 @@ class _RoleActionsMenu extends StatelessWidget {
             'newRole': newRole, // Can be 'officer', 'member', or null (for kick)
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(newRole == null ? "Member kicked." : "Role updated.")),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Member kicked.")),
+            );
+          }
+
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Error: $e")),

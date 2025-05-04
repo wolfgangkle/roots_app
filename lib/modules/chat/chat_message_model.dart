@@ -1,5 +1,3 @@
-// lib/modules/chat/chat_message_model.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatMessage {
@@ -7,12 +5,14 @@ class ChatMessage {
   final String sender;
   final String content;
   final DateTime timestamp;
+  final String? type; // 👈 Support for system messages
 
   ChatMessage({
     required this.id,
     required this.sender,
     required this.content,
     required this.timestamp,
+    this.type,
   });
 
   factory ChatMessage.fromDoc(DocumentSnapshot doc) {
@@ -22,6 +22,7 @@ class ChatMessage {
       sender: data['sender'] ?? 'Unknown',
       content: data['content'] ?? '',
       timestamp: (data['timestamp'] as Timestamp).toDate(),
+      type: data['type'], // 👈 Deserializing system/admin/etc. types
     );
   }
 
@@ -29,5 +30,6 @@ class ChatMessage {
     'sender': sender,
     'content': content,
     'timestamp': FieldValue.serverTimestamp(),
+    if (type != null) 'type': type,
   };
 }

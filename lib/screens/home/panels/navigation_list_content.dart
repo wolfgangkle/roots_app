@@ -16,7 +16,8 @@ import 'package:roots_app/profile/models/user_profile_model.dart';
 import 'package:roots_app/modules/guild/views/guild_members_screen.dart';
 import 'package:roots_app/modules/guild/views/guild_role_manager_screen.dart';
 import 'package:roots_app/modules/guild/views/guild_invite_inbox_screen.dart';
-
+import 'package:roots_app/modules/guild/views/guild_settings_screen.dart';
+import 'package:roots_app/modules/chat/guild_chat_panel.dart';
 
 
 
@@ -73,7 +74,7 @@ class NavigationListContent extends StatelessWidget {
           if (isLeader || isOfficer)
             _buildTabTile(context, isMobile, 'Manage Roles', const GuildRoleManagerScreen()),
           if (isLeader)
-            _buildTabTile(context, isMobile, 'Guild Settings', const Placeholder()),
+            _buildTabTile(context, isMobile, 'Guild Settings', const GuildSettingsScreen()),
         ],
 
         const SizedBox(height: 24),
@@ -81,7 +82,8 @@ class NavigationListContent extends StatelessWidget {
         const SizedBox(height: 12),
         _buildTabTile(context, isMobile, 'Global Chat', ChatScreen()),
         if (hasGuild)
-          _buildTabTile(context, isMobile, 'Guild Chat', const Placeholder()),
+          _buildTabTile(context, isMobile, 'Guild Chat', const GuildChatPanel()),
+
 
         const SizedBox(height: 24),
         Text('🔔 Notifications', style: sectionHeaderStyle),
@@ -103,9 +105,9 @@ class NavigationListContent extends StatelessWidget {
           title: Text('Logout', style: Theme.of(context).textTheme.bodyLarge),
           onTap: () async {
             await FirebaseAuth.instance.signOut();
-            Navigator.pushReplacement(
-              context,
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
             );
           },
         ),

@@ -77,13 +77,19 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
               final isBlocked = slot == 'offHand' && isMainHandTwoHanded;
 
               return ListTile(
-                leading: Icon(isBlocked ? Icons.lock : Icons.check_circle_outline),
+                leading: Icon(
+                  isBlocked ? Icons.block : Icons.check_circle_outline,
+                  color: isBlocked ? Colors.grey : null,
+                ),
                 title: Text(
                   slot[0].toUpperCase() + slot.substring(1),
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 subtitle: isBlocked
-                    ? const Text('Blocked by two-handed weapon')
+                    ? const Text(
+                  'Blocked by two-handed weapon',
+                  style: TextStyle(color: Colors.grey),
+                )
                     : itemId != null
                     ? Text(meta?['name'] ?? itemId)
                     : const Text('Empty'),

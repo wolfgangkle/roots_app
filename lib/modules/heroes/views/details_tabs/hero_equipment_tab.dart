@@ -57,6 +57,13 @@ class HeroEquipmentTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 🆙 Weight bar moved to the top
+                  HeroWeightBar(
+                    currentWeight: currentWeight,
+                    carryCapacity: carryCapacity,
+                  ),
+                  const SizedBox(height: 16),
+
                   EquipmentSlotsView(
                     heroId: heroId,
                     tileX: tileX,
@@ -64,12 +71,6 @@ class HeroEquipmentTab extends StatelessWidget {
                     villageId: resolvedVillageId,
                     insideVillage: insideVillage,
                   ),
-                  const SizedBox(height: 12),
-                  HeroWeightBar(
-                    currentWeight: currentWeight.toDouble(),
-                    carryCapacity: (data['carryCapacity'] ?? 1).toDouble(),
-                  ),
-
                   const Divider(height: 24),
                   HeroBackpackList(
                     heroId: heroId,

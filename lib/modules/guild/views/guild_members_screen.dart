@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/profile/models/user_profile_model.dart';
-import 'package:roots_app/modules/guild/views/invite_guild_member_screen.dart'; // ✅ Import this
+import 'package:roots_app/modules/guild/views/invite_guild_member_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
 class GuildMembersScreen extends StatelessWidget {
@@ -24,12 +25,10 @@ class GuildMembersScreen extends StatelessWidget {
         .where('guildId', isEqualTo: guildId);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Guild Members'),
-      ),
+      appBar: AppBar(title: const Text('Guild Members')),
       body: Column(
         children: [
-          if (userRole == 'leader' || userRole == 'officer') // ✅ Show invite button for permitted roles
+          if (userRole == 'leader' || userRole == 'officer')
             Padding(
               padding: const EdgeInsets.all(16),
               child: ElevatedButton.icon(
@@ -86,6 +85,62 @@ class GuildMembersScreen extends StatelessWidget {
                             : null,
                       ),
                       subtitle: Text(role),
+                      trailing: isCurrentUser && role != 'leader'
+                          ? PopupMenuButton<String>(
+                        onSelected: (value) async {
+                          if (value == 'leave') {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text('Leave Guild?'),
+                                content: const Text(
+                                    'Are you sure you want to leave the guild? This cannot be undone.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: const Text("Cancel"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: const Text("Leave"),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm != true) return;
+
+                            try {
+                              await FirebaseFunctions.instance
+                                  .httpsCallable('leaveGuild')
+                                  .call();
+
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('You left the guild.')),
+                                );
+                              }
+
+                              // Optional: Redirect to Guild Dashboard or root screen
+                              // final controller = Provider.of<MainContentController>(context, listen: false);
+                              // controller.setCustomContent(const GuildScreen());
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Error: $e")),
+                                );
+                              }
+                            }
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'leave',
+                            child: Text('Leave Guild'),
+                          ),
+                        ],
+                      )
+                          : null,
                     );
                   },
                 );

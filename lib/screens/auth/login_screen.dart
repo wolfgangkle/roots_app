@@ -43,8 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } else {
       debugPrint('Logged in user: ${user.email}');
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+            (route) => false,
       );
     }
   }
@@ -191,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 💻 AI Dev Buttons (at the top)
+            // 💻 AI Dev Buttons
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -211,7 +212,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
@@ -229,7 +229,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Text('Login'),
             ),
             const SizedBox(height: 12),
-
             TextButton(
               onPressed: () {
                 Navigator.of(context).push(
@@ -242,106 +241,62 @@ class _LoginScreenState extends State<LoginScreen> {
             if (errorMessage.isNotEmpty)
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 20),
-
-            // 🛠️ Seeder + Utility Buttons
             ElevatedButton.icon(
               icon: const Icon(Icons.cleaning_services),
               label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
               onPressed: _cleanMapTiles,
             ),
             const SizedBox(height: 12),
-
             ElevatedButton.icon(
               icon: const Icon(Icons.bolt),
               label: const Text("⚒️ Seed Crafting Items"),
               onPressed: _seedCraftingItems,
             ),
             const SizedBox(height: 12),
-
             ElevatedButton.icon(
               icon: const Icon(Icons.shield),
               label: const Text("💀 Seed Enemies"),
               onPressed: _seedEnemies,
             ),
             const SizedBox(height: 12),
-
             ElevatedButton.icon(
               icon: const Icon(Icons.local_fire_department),
               label: const Text("🧪 Seed Encounter Events"),
               onPressed: _seedEncounterEvents,
             ),
             const SizedBox(height: 24),
-
-            // 🔁 Dev Auto Login Buttons (bottom)
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                TextButton(
-                  onPressed: () async {
-                    final user = await AuthService().signIn("test3@roots.dev", "123456");
-                    if (user != null) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                      );
-                    } else {
-                      setState(() {
-                        errorMessage = "Auto-login failed 😬";
-                      });
-                    }
-                  },
-                  child: const Text("🚀 Dev Login (test3@roots.dev)"),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final user = await AuthService().signIn("test2@roots.dev", "123456");
-                    if (user != null) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                      );
-                    } else {
-                      setState(() {
-                        errorMessage = "Auto-login failed 😬";
-                      });
-                    }
-                  },
-                  child: const Text("🔁 Dev Login (test2@roots.dev)"),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final user = await AuthService().signIn("ivanna@roots.com", "123456");
-                    if (user != null) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                      );
-                    } else {
-                      setState(() {
-                        errorMessage = "Auto-login failed 😬";
-                      });
-                    }
-                  },
-                  child: const Text("🧪 Dev Login (ivanna@roots.com)"),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final user = await AuthService().signIn("test@roots.dev", "123456");
-                    if (user != null) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                      );
-                    } else {
-                      setState(() {
-                        errorMessage = "Auto-login failed 😬";
-                      });
-                    }
-                  },
-                  child: const Text("🧙 Dev Login (test@roots.dev)"),
-                ),
+                _buildDevLoginButton("test3@roots.dev"),
+                _buildDevLoginButton("test2@roots.dev"),
+                _buildDevLoginButton("ivanna@roots.com"),
+                _buildDevLoginButton("test@roots.dev"),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDevLoginButton(String email) {
+    return TextButton(
+      onPressed: () async {
+        final user = await AuthService().signIn(email, "123456");
+        if (user != null) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const CheckUserProfile()),
+                (route) => false,
+          );
+        } else {
+          setState(() {
+            errorMessage = "Auto-login failed 😬";
+          });
+        }
+      },
+      child: Text("🚀 Dev Login ($email)"),
     );
   }
 }

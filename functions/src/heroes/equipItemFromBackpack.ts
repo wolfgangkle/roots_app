@@ -15,7 +15,7 @@ export async function equipItemFromBackpack(request: any) {
 
   const validSlots = ['mainHand', 'offHand', 'helmet', 'chest', 'legs', 'arms', 'belt', 'feet'];
   if (!validSlots.includes(slot)) {
-    throw new HttpsError('invalid-argument', `Invalid slot: ${slot}`);
+    throw new HttpsError('invalid-argument', `Invalid slot: ${slot}. Valid slots: ${validSlots.join(', ')}`);
   }
 
   const heroRef = db.collection('heroes').doc(heroId);
@@ -35,8 +35,34 @@ export async function equipItemFromBackpack(request: any) {
   const craftedStats = item.craftedStats || {};
   const equipSlot = item.equipSlot?.toString().toLowerCase() ?? 'main_hand';
 
+  // ⛔ Enforce that two-handers can only be equipped into mainHand
+  if (equipSlot === 'two_hand' && slot !== 'mainHand') {
+    throw new HttpsError('invalid-argument', 'Two-handed weapons must be equipped in mainHand.');
+  }
+
+  // ⛔ Block offHand equip if mainHand has a two-hander
+  if (
+    slot === 'offHand' &&
+    equipped['mainHand']?.equipSlot === 'two_hand'
+  ) {
+    throw new HttpsError('failed-precondition', 'Cannot equip offhand item while using a two-handed weapon.');
+  }
+
+  // 🧠 Warn if slot does not match equipSlot, but don't block
   if (equipSlot !== slot.toLowerCase()) {
-    console.warn(`⚠️ Slot mismatch: trying to equip ${itemId} with slot ${equipSlot} into ${slot}`);
+    console.warn(`⚠️ Slot mismatch: trying to equip ${itemId} with equipSlot=${equipSlot} into slot=${slot}`);
+  }
+
+  // 🔁 If equipping a two-hander, unequip offHand and return it to backpack
+  if (slot === 'mainHand' && equipSlot === 'two_hand' && equipped['offHand']?.itemId) {
+    const unequippedOffhand = equipped['offHand'];
+    backpack.push({
+      itemId: unequippedOffhand.itemId,
+      craftedStats: unequippedOffhand.craftedStats || {},
+      quantity: 1,
+      returnedFromSlot: 'offHand',
+    });
+    equipped['offHand'] = null;
   }
 
   const oldEquippedItem = equipped[slot];
@@ -61,14 +87,13 @@ export async function equipItemFromBackpack(request: any) {
     });
   }
 
-  // Update hero inventory and equipped state first
+  // Save new state
   await heroRef.update({
     equipped,
     backpack,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  // Use centralized helper to recalculate stats and group state
   await updateHeroStats(heroId);
 
   console.log(`🛡 Hero ${heroId} equipped ${itemId} to slot ${slot} from backpack`);
