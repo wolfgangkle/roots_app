@@ -4,7 +4,7 @@ import {
   calculateHeroWeight,
   calculateAdjustedMovementSpeed,
 } from '../helpers/heroWeight';
-import { updateGroupMovementSpeed } from '../helpers/updateGroupMovementSpeed'; // ✅ Added
+import { updateGroupMovementSpeed } from '../helpers/updateGroupMovementSpeed';
 
 export async function dropHeroItem(request: any) {
   const db = admin.firestore();
@@ -31,6 +31,7 @@ export async function dropHeroItem(request: any) {
   const itemId = item.itemId;
   const craftedStats = item.craftedStats || {};
   const itemQuantity = item.quantity || 1;
+  const equipSlot = item.equipSlot?.toString().toLowerCase() ?? null; // ✅ FIXED: extract before .set()
 
   if (quantity > itemQuantity) {
     throw new HttpsError('invalid-argument', 'Trying to drop more than you have.');
@@ -53,6 +54,7 @@ export async function dropHeroItem(request: any) {
   batch.set(dropToRef, {
     itemId,
     craftedStats,
+    equipSlot, // ✅ Store correctly
     quantity,
     droppedByHero: heroId,
     droppedAt: admin.firestore.FieldValue.serverTimestamp(),

@@ -59,6 +59,7 @@ export async function equipItemFromBackpack(request: any) {
     backpack.push({
       itemId: unequippedOffhand.itemId,
       craftedStats: unequippedOffhand.craftedStats || {},
+      equipSlot: unequippedOffhand.equipSlot ?? null, // ✅ preserve equipSlot
       quantity: 1,
       returnedFromSlot: 'offHand',
     });
@@ -82,6 +83,7 @@ export async function equipItemFromBackpack(request: any) {
     backpack.push({
       itemId: oldEquippedItem.itemId,
       craftedStats: oldEquippedItem.craftedStats || {},
+      equipSlot: oldEquippedItem.equipSlot ?? null, // ✅ preserve equipSlot
       quantity: 1,
       returnedFromSlot: slot,
     });

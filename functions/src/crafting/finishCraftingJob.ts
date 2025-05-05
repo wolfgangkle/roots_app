@@ -83,6 +83,7 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
       itemId,
       quantity,
       craftedStats,
+      equipSlot: itemData.equipSlot?.toString().toLowerCase(),
       craftedAt: admin.firestore.Timestamp.now(),
       craftedByVillageId: villageId,
     });

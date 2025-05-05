@@ -115,9 +115,15 @@ class _TileOrVillageItemListState extends State<TileOrVillageItemList> {
 
                               final stats = result.data['updatedStats'];
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('✅ Equipped to $slotName (Atk: ${stats['attackMin']}–${stats['attackMax']}, Def: ${stats['defense']})')),
-                                );
+                                if (stats != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('✅ Equipped to $slotName (Atk: ${stats['attackMin']}–${stats['attackMax']}, Def: ${stats['defense']})')),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('✅ Equipped to $slotName')),
+                                  );
+                                }
                               }
                             } catch (e) {
                               if (context.mounted) {
@@ -181,6 +187,8 @@ class _TileOrVillageItemListState extends State<TileOrVillageItemList> {
   String _normalizeSlotName(String raw) {
     switch (raw) {
       case 'main_hand':
+      case 'one_hand':
+      case 'two_hand': // ✅ Handle 2H weapons correctly
         return 'mainHand';
       case 'offhand':
         return 'offHand';

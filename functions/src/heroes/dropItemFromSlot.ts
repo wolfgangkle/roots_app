@@ -31,6 +31,7 @@ export async function dropItemFromSlot(request: any) {
 
   const itemId = item.itemId;
   const craftedStats = item.craftedStats || {};
+  const equipSlot = item.equipSlot?.toString().toLowerCase() ?? null; // ✅ Ensure equipSlot is preserved
 
   const dropToRef = villageId
     ? db.collection('users').doc(userId).collection('villages').doc(villageId).collection('items').doc()
@@ -50,6 +51,7 @@ export async function dropItemFromSlot(request: any) {
   batch.set(dropToRef, {
     itemId,
     craftedStats,
+    equipSlot, // ✅ Add it here
     quantity: 1,
     droppedByHero: heroId,
     droppedAt: admin.firestore.FieldValue.serverTimestamp(),

@@ -4,7 +4,7 @@ import {
   calculateHeroWeight,
   calculateAdjustedMovementSpeed,
 } from '../helpers/heroWeight';
-import { updateGroupMovementSpeed } from '../helpers/updateGroupMovementSpeed'; // ✅ New import
+import { updateGroupMovementSpeed } from '../helpers/updateGroupMovementSpeed';
 
 export async function storeItemInBackpack(request: any) {
   const db = admin.firestore();
@@ -37,11 +37,13 @@ export async function storeItemInBackpack(request: any) {
   const itemId = item.itemId;
   const craftedStats = item.craftedStats || {};
   const quantity = item.quantity ?? 1;
+  const equipSlot = item.equipSlot?.toString().toLowerCase() ?? null; // ✅ Add equipSlot
 
   // Add to backpack
   backpack.push({
     itemId,
     craftedStats,
+    equipSlot, // ✅ Preserve it
     quantity,
     movedFrom: villageId ? 'village' : tileKey,
     movedAt: admin.firestore.Timestamp.now(),

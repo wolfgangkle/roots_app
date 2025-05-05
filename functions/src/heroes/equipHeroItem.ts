@@ -46,14 +46,13 @@ export async function equipHeroItem(request: any) {
   const equipped = { ...(heroData.equipped || {}) };
   const oldItem = equipped[slot] || null;
 
-  // ⛔️ Prevent equipping offHand while a two-hander is equipped in mainHand
-  const mainHandItemId = equipped['mainHand']?.itemId;
+  // ⛔ Prevent equipping offHand while a two-hander is equipped in mainHand
   const mainHandEquipSlot = equipped['mainHand']?.equipSlot ?? null;
-  if (slot === 'offHand' && mainHandItemId && mainHandEquipSlot === 'two_hand') {
+  if (slot === 'offHand' && mainHandEquipSlot === 'two_hand') {
     throw new HttpsError('failed-precondition', 'Cannot equip offhand item while using a two-handed weapon.');
   }
 
-  // ⛔️ Enforce two-handed weapons can only be equipped in mainHand
+  // ⛔ Enforce that two-handers only go into mainHand
   if (equipSlot === 'two_hand' && slot !== 'mainHand') {
     throw new HttpsError('invalid-argument', 'Two-handed weapons must be equipped in mainHand.');
   }
@@ -74,6 +73,7 @@ export async function equipHeroItem(request: any) {
     batch.set(backToVillage, {
       itemId: unequippedItem.itemId,
       craftedStats: unequippedItem.craftedStats || {},
+      equipSlot: unequippedItem.equipSlot ?? null, // ✅ Preserve equipSlot
       quantity: 1,
       movedFromHeroId: heroId,
       movedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -94,6 +94,7 @@ export async function equipHeroItem(request: any) {
       batch.set(returnToRef, {
         itemId: oldItem.itemId,
         craftedStats: oldItem.craftedStats || {},
+        equipSlot: oldItem.equipSlot ?? null, // ✅ Preserve equipSlot
         quantity: 1,
         movedFromHeroId: heroId,
         movedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -101,7 +102,7 @@ export async function equipHeroItem(request: any) {
     }
   }
 
-  // ❌ Remove item from source inventory
+  // ❌ Remove the equipped item from source (tile or village)
   batch.delete(sourceItemRef);
 
   // ✅ Equip the new item to the correct slot

@@ -123,9 +123,15 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
 
                           final stats = result.data['updatedStats'];
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('🎒 Unequipped $slot (Atk: ${stats['attackMin']}–${stats['attackMax']}, Def: ${stats['defense']})')),
-                            );
+                            if (stats != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('🎒 Unequipped $slot (Atk: ${stats['attackMin']}–${stats['attackMax']}, Def: ${stats['defense']})')),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('🎒 Unequipped $slot')),
+                              );
+                            }
                           }
                         } catch (e) {
                           if (context.mounted) {

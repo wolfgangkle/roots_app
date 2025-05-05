@@ -109,13 +109,23 @@ class _HeroBackpackListState extends State<HeroBackpackList> {
 
                               if (context.mounted) {
                                 final stats = result.data['updatedStats'];
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "🛡 Equipped to $slot\nAtk: ${stats['attackMin']}-${stats['attackMax']}, Def: ${stats['defense']}",
-                                    ),
-                                  ),
-                                );
+                                if (context.mounted) {
+                                  if (stats != null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "🛡 Equipped to $slot\nAtk: ${stats['attackMin']}-${stats['attackMax']}, Def: ${stats['defense']}",
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text("🛡 Equipped to $slot"),
+                                      ),
+                                    );
+                                  }
+                                }
                               }
                             } catch (e) {
                               if (context.mounted) {
@@ -196,8 +206,11 @@ class _HeroBackpackListState extends State<HeroBackpackList> {
 
   String _determineEquipSlot(Map<String, dynamic> meta) {
     final raw = meta['equipSlot']?.toString().toLowerCase() ?? 'main_hand';
+
     switch (raw) {
       case 'main_hand':
+      case 'one_hand':
+      case 'two_hand': // 🛠️ NEW: two-handed weapons go into mainHand
         return 'mainHand';
       case 'offhand':
         return 'offHand';

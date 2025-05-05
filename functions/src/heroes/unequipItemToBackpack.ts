@@ -37,6 +37,7 @@ export async function unequipItemToBackpack(request: any) {
   backpack.push({
     itemId: item.itemId,
     craftedStats: item.craftedStats || {},
+    equipSlot: item.equipSlot ?? null, // ✅ Preserve equipSlot
     quantity: 1,
     unequippedFromSlot: slot,
     unequippedAt: admin.firestore.Timestamp.now(),
