@@ -12,6 +12,7 @@ dependencies:
   provider: ^6.1.1
   intl: ^0.18.1
   cupertino_icons: ^1.0.6
+  rxdart: ^0.28.0
 
   # ✅ Firebase packages - web compatible combo
   firebase_core: ^2.25.4

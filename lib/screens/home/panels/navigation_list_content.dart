@@ -50,84 +50,133 @@ class NavigationListContent extends StatelessWidget {
       color: Theme.of(context).colorScheme.onSurface,
     );
 
+    final inviteStream = FirebaseFirestore.instance
+        .collection('guildInvites')
+        .where('toUserId', isEqualTo: user?.uid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots();
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('guildInvites').where('toUserId', isEqualTo: user?.uid).where('status', isEqualTo: 'pending').snapshots(),
+      stream: inviteStream,
       builder: (context, guildInviteSnapshot) {
-        return hasGuild && isLeader
-            ? StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('guilds')
-              .doc(profile.guildId)
-              .collection('allianceInvites')
-              .snapshots(),
-          builder: (context, allianceInviteSnapshot) {
-            final hasGuildInvites = guildInviteSnapshot.data?.docs.isNotEmpty ?? false;
-            final hasAllianceInvites = allianceInviteSnapshot.data?.docs.isNotEmpty ?? false;
+        final hasGuildInvites = guildInviteSnapshot.data?.docs.isNotEmpty ?? false;
 
-            return ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              children: [
-                Text('🔔 Notifications', style: sectionHeaderStyle),
-                _buildTabTile(context, isMobile, 'Event Logs', const ReportsListScreen()),
-                _buildTabTile(context, isMobile, 'Finished Jobs', const Placeholder()),
-                if (hasGuildInvites)
-                  _buildTabTile(context, isMobile, 'Guild Invites', const GuildInviteInboxScreen()),
-                if (hasAllianceInvites)
-                  _buildTabTile(context, isMobile, 'Alliance Invites', const AllianceInviteInboxScreen()),
+        // Only try to query alliance invites if guildId is safe
+        if (hasGuild && isLeader && profile.guildId != null) {
+          return StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('guilds')
+                .doc(profile.guildId!)
+                .collection('allianceInvites')
+                .snapshots(),
+            builder: (context, allianceInviteSnapshot) {
+              final hasAllianceInvites = allianceInviteSnapshot.data?.docs.isNotEmpty ?? false;
+              return _buildNavigation(
+                context,
+                profile,
+                hasGuild,
+                isLeader,
+                isOfficer,
+                hasAlliance,
+                isMobile,
+                sectionHeaderStyle,
+                hasGuildInvites,
+                hasAllianceInvites,
+              );
+            },
+          );
+        }
 
-                const SizedBox(height: 12),
-                Text('🌍 World', style: sectionHeaderStyle),
-                _buildTabTile(context, isMobile, '🌍 Map', const MapGridView()),
+        // Fallback if no guild or not a leader
+        return _buildNavigation(
+          context,
+          profile,
+          hasGuild,
+          isLeader,
+          isOfficer,
+          hasAlliance,
+          isMobile,
+          sectionHeaderStyle,
+          hasGuildInvites,
+          false,
+        );
+      },
+    );
+  }
 
-                const SizedBox(height: 12),
-                Text('🏰 Guild', style: sectionHeaderStyle),
-                if (!hasGuild) ...[
-                  _buildTabTile(context, isMobile, 'Create Guild', const CreateGuildScreen()),
-                  _buildTabTile(context, isMobile, 'Browse Guilds', const BrowseGuildsPlaceholder()),
-                ] else ...[
-                  _buildTabTile(context, isMobile, 'Guild Dashboard', const GuildScreen()),
-                  _buildTabTile(context, isMobile, 'Members', const GuildMembersScreen()),
-                  if (isLeader)
-                    _buildTabTile(context, isMobile, 'Guild Settings', const GuildSettingsScreen()),
-                ],
+  Widget _buildNavigation(
+      BuildContext context,
+      UserProfileModel profile,
+      bool hasGuild,
+      bool isLeader,
+      bool isOfficer,
+      bool hasAlliance,
+      bool isMobile,
+      TextStyle? sectionHeaderStyle,
+      bool hasGuildInvites,
+      bool hasAllianceInvites,
+      ) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      children: [
+        Text('🔔 Notifications', style: sectionHeaderStyle),
+        _buildTabTile(context, isMobile, 'Event Logs', const ReportsListScreen()),
+        _buildTabTile(context, isMobile, 'Finished Jobs', const Placeholder()),
+        if (hasGuildInvites)
+          _buildTabTile(context, isMobile, 'Guild Invites', const GuildInviteInboxScreen()),
+        if (hasAllianceInvites)
+          _buildTabTile(context, isMobile, 'Alliance Invites', const AllianceInviteInboxScreen()),
 
-                const SizedBox(height: 12),
-                Text('🤝 Alliance', style: sectionHeaderStyle),
-                if (hasGuild && isLeader && !hasAlliance)
-                  _buildTabTile(context, isMobile, 'Create Alliance', const CreateAllianceScreen()),
-                if (hasAlliance)
-                  _buildTabTile(context, isMobile, 'Alliance Members', const AllianceMembersScreen()),
+        const SizedBox(height: 12),
+        Text('🌍 World', style: sectionHeaderStyle),
+        _buildTabTile(context, isMobile, '🌍 Map', const MapGridView()),
 
-                const SizedBox(height: 12),
-                Text('💬 Chat', style: sectionHeaderStyle),
-                _buildTabTile(context, isMobile, 'Global Chat', ChatScreen()),
-                if (hasGuild)
-                  _buildTabTile(context, isMobile, 'Guild Chat', const GuildChatPanel()),
+        const SizedBox(height: 12),
+        Text('🏰 Guild', style: sectionHeaderStyle),
+        if (!hasGuild) ...[
+          _buildTabTile(context, isMobile, 'Create Guild', const CreateGuildScreen()),
+          _buildTabTile(context, isMobile, 'Browse Guilds', const BrowseGuildsPlaceholder()),
+        ] else ...[
+          _buildTabTile(context, isMobile, 'Guild Dashboard', const GuildScreen()),
+          _buildTabTile(context, isMobile, 'Members', const GuildMembersScreen()),
+          if (isLeader)
+            _buildTabTile(context, isMobile, 'Guild Settings', const GuildSettingsScreen()),
+        ],
 
-                const SizedBox(height: 12),
-                Text('⚙️ Settings', style: sectionHeaderStyle),
-                _buildTabTile(context, isMobile, 'Settings', const SettingsScreen()),
+        if ((hasAlliance || (hasGuild && isLeader && !hasAlliance))) ...[
+          const SizedBox(height: 12),
+          Text('🤝 Alliance', style: sectionHeaderStyle),
+          if (hasGuild && isLeader && !hasAlliance)
+            _buildTabTile(context, isMobile, 'Create Alliance', const CreateAllianceScreen()),
+          if (hasAlliance)
+            _buildTabTile(context, isMobile, 'Alliance Members', const AllianceMembersScreen()),
+        ],
 
-                const Divider(),
-                ListTile(
-                  dense: true,
-                  visualDensity: VisualDensity.compact,
-                  leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
-                  title: Text('Logout', style: Theme.of(context).textTheme.bodyLarge),
-                  onTap: () async {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                          (route) => false,
-                    );
-                  },
-                ),
-              ],
+        const SizedBox(height: 12),
+        Text('💬 Chat', style: sectionHeaderStyle),
+        _buildTabTile(context, isMobile, 'Global Chat', ChatScreen()),
+        if (hasGuild)
+          _buildTabTile(context, isMobile, 'Guild Chat', const GuildChatPanel()),
+
+        const SizedBox(height: 12),
+        Text('⚙️ Settings', style: sectionHeaderStyle),
+        _buildTabTile(context, isMobile, 'Settings', const SettingsScreen()),
+
+        const Divider(),
+        ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
+          title: Text('Logout', style: Theme.of(context).textTheme.bodyLarge),
+          onTap: () async {
+            await FirebaseAuth.instance.signOut();
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
             );
           },
-        )
-            : const Center(child: CircularProgressIndicator());
-      },
+        ),
+      ],
     );
   }
 
