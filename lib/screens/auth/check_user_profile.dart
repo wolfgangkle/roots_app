@@ -43,8 +43,30 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
                 builder: (_) => MultiProvider(
                   providers: [
                     StreamProvider<UserProfileModel>(
-                      create: (_) => profileRef.snapshots().map((snapshot) =>
-                          UserProfileModel.fromJson(snapshot.data() ?? {})),
+                      create: (_) => profileRef.snapshots().asyncMap((snapshot) async {
+                        final data = snapshot.data() ?? {};
+
+                        String? allianceId;
+                        String? allianceRole;
+
+                        final guildId = data['guildId'];
+                        if (guildId != null) {
+                          final guildDoc = await FirebaseFirestore.instance
+                              .doc('guilds/$guildId')
+                              .get();
+                          final guildData = guildDoc.data();
+                          allianceId = guildData?['allianceId'];
+                          allianceRole = guildData?['allianceRole'];
+                        }
+
+                        return UserProfileModel(
+                          heroName: data['heroName'] ?? '🧙 Nameless',
+                          guildId: data['guildId'],
+                          guildRole: data['guildRole'],
+                          allianceId: allianceId,
+                          allianceRole: allianceRole,
+                        );
+                      }),
                       initialData: UserProfileModel(heroName: 'Loading...'),
                     ),
                     ChangeNotifierProvider(

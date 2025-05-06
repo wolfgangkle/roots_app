@@ -149,6 +149,43 @@ export const updateGuildRole = onCall(async (request) => {
   return updateGuildRole(request);
 });
 
+// === Alliances ===
+export const createAlliance = onCall(async (request) => {
+  const { createAlliance } = await import('./alliances/createAlliance.js');
+  return createAlliance(request);
+});
+
+export const sendAllianceInvite = onCall(async (request) => {
+  const { sendAllianceInvite } = await import('./alliances/sendAllianceInvite.js');
+  return sendAllianceInvite(request);
+});
+
+export const acceptAllianceInvite = onCall(async (request) => {
+  const { acceptAllianceInvite } = await import('./alliances/acceptAllianceInvite.js');
+  return acceptAllianceInvite(request);
+});
+
+export const leaveAlliance = onCall(async (request) => {
+  const { leaveAlliance } = await import('./alliances/leaveAlliance.js');
+  return leaveAlliance(request);
+});
+
+export const disbandAlliance = onCall(async (request) => {
+  const { disbandAlliance } = await import('./alliances/disbandAlliance.js');
+  return disbandAlliance(request);
+});
+
+export const kickGuildFromAlliance = onCall(async (request) => {
+  const { kickGuildFromAlliance } = await import('./alliances/kickGuildFromAlliance.js');
+  return kickGuildFromAlliance(request);
+});
+
+export const updateAllianceDescription = onCall(async (request) => {
+  const { updateAllianceDescription } = await import('./alliances/updateAllianceDescription.js');
+  return updateAllianceDescription(request);
+});
+
+
 // === AI Event Generators ===
 export { generatePeacefulEventFromAI } from './events/generatePeacefulEventFromAI.js';
 export { generateCombatEventFromAI } from './events/generateCombatEventFromAI.js';

@@ -24,11 +24,14 @@ class GuildMembersScreen extends StatelessWidget {
         .collectionGroup('profile')
         .where('guildId', isEqualTo: guildId);
 
+    final isLeader = userRole == 'leader';
+    final isOfficer = userRole == 'officer';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Guild Members')),
       body: Column(
         children: [
-          if (userRole == 'leader' || userRole == 'officer')
+          if (isLeader || isOfficer)
             Padding(
               padding: const EdgeInsets.all(16),
               child: ElevatedButton.icon(
@@ -49,15 +52,10 @@ class GuildMembersScreen extends StatelessWidget {
                 }
 
                 if (snapshot.hasError) {
-                  debugPrint("Guild member loading error: ${snapshot.error}");
                   return Center(child: Text("Error loading guild members:\n${snapshot.error}"));
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No guild members found."));
-                }
-
-                final docs = snapshot.data!.docs;
+                final docs = snapshot.data?.docs ?? [];
                 final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
                 return ListView.builder(
@@ -80,65 +78,18 @@ class GuildMembersScreen extends StatelessWidget {
                       ),
                       title: Text(
                         heroName + (isCurrentUser ? ' (You)' : ''),
-                        style: isCurrentUser
-                            ? const TextStyle(fontWeight: FontWeight.bold)
-                            : null,
+                        style: isCurrentUser ? const TextStyle(fontWeight: FontWeight.bold) : null,
                       ),
                       subtitle: Text(role),
-                      trailing: isCurrentUser && role != 'leader'
-                          ? PopupMenuButton<String>(
-                        onSelected: (value) async {
-                          if (value == 'leave') {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                title: const Text('Leave Guild?'),
-                                content: const Text(
-                                    'Are you sure you want to leave the guild? This cannot be undone.'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, false),
-                                    child: const Text("Cancel"),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, true),
-                                    child: const Text("Leave"),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (confirm != true) return;
-
-                            try {
-                              await FirebaseFunctions.instance
-                                  .httpsCallable('leaveGuild')
-                                  .call();
-
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('You left the guild.')),
-                                );
-                              }
-
-                              // Optional: Redirect to Guild Dashboard or root screen
-                              // final controller = Provider.of<MainContentController>(context, listen: false);
-                              // controller.setCustomContent(const GuildScreen());
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Error: $e")),
-                                );
-                              }
-                            }
-                          }
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: 'leave',
-                            child: Text('Leave Guild'),
-                          ),
-                        ],
+                      trailing: isCurrentUser
+                          ? role != 'leader'
+                          ? _LeaveGuildMenu()
+                          : null
+                          : (isLeader || (isOfficer && role != 'leader'))
+                          ? _RoleActionsMenu(
+                        userId: userId!,
+                        currentRole: role,
+                        isLeader: isLeader,
                       )
                           : null,
                     );
@@ -149,6 +100,120 @@ class GuildMembersScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LeaveGuildMenu extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (value) async {
+        if (value == 'leave') {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text('Leave Guild?'),
+              content: const Text('Are you sure you want to leave the guild? This cannot be undone.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Leave")),
+              ],
+            ),
+          );
+
+          if (confirmed != true) return;
+
+          try {
+            await FirebaseFunctions.instance.httpsCallable('leaveGuild').call();
+
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('You left the guild.')),
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Error: $e")),
+              );
+            }
+          }
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: 'leave',
+          child: Text('Leave Guild'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoleActionsMenu extends StatelessWidget {
+  final String userId;
+  final String currentRole;
+  final bool isLeader;
+
+  const _RoleActionsMenu({
+    required this.userId,
+    required this.currentRole,
+    required this.isLeader,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (value) async {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Are you sure?"),
+            content: const Text("This will change the member's role."),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Confirm")),
+            ],
+          ),
+        );
+
+        if (confirm != true) return;
+
+        String? newRole;
+        if (value == 'promote') {
+          newRole = 'officer';
+        } else if (value == 'demote') {
+          newRole = 'member';
+        } else if (value == 'kick') {
+          newRole = null;
+        }
+
+        try {
+          final callable = FirebaseFunctions.instance.httpsCallable('updateGuildRole');
+          await callable.call({
+            'targetUserId': userId,
+            'newRole': newRole,
+          });
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(newRole == null ? "Member kicked." : "Role updated.")),
+            );
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $e")),
+          );
+        }
+      },
+      itemBuilder: (context) {
+        return [
+          if (currentRole == 'member') const PopupMenuItem(value: 'promote', child: Text('Promote to Officer')),
+          if (currentRole == 'officer') const PopupMenuItem(value: 'demote', child: Text('Demote to Member')),
+          if (isLeader) const PopupMenuItem(value: 'kick', child: Text('Kick from Guild')),
+        ];
+      },
     );
   }
 }
