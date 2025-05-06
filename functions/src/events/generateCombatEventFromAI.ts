@@ -36,7 +36,8 @@ export const generateCombatEventFromAI = onCall(
         "base": 2,
         "scalePerLevel": 0.15,
         "max": 8
-      }
+      },
+      "terrain": ["forest"]
     }
 
     Enemy format:
@@ -58,10 +59,13 @@ export const generateCombatEventFromAI = onCall(
       "scaleWithEvent": true
     }
 
+    The "terrain" field must be an array of one or more strings chosen from the following: ["plains", "forest", "swamp", "snow", "tundra", "dungeon"]
+
     Sometimes reuse existing enemies (like "bandit", "goblin", "skeleton") and sometimes invent new ones.
 
     Return ONLY a valid JSON object. No markdown or explanation.
     `;
+
 
 
     const response = await axios.post(

@@ -11,12 +11,12 @@ export async function createGuild(request: any) {
   if (typeof name !== 'string' || name.trim().length < 3) {
     throw new HttpsError('invalid-argument', 'Guild name must be at least 3 characters.');
   }
-  if (typeof tag !== 'string' || tag.length < 2 || tag.length > 4 || !/^[A-Z]+$/.test(tag)) {
-    throw new HttpsError('invalid-argument', 'Tag must be 2–4 uppercase letters.');
+  if (typeof tag !== 'string' || tag.length < 2 || tag.length > 4 || !/^[a-zA-Z]+$/.test(tag)) {
+    throw new HttpsError('invalid-argument', 'Tag must be 2–4 letters (A–Z or a–z).');
   }
 
   const trimmedName = name.trim();
-  const trimmedTag = tag.trim().toUpperCase();
+  const trimmedTag = tag.trim();
   const trimmedDesc = typeof description === 'string' ? description.trim() : '';
 
   const guildsRef = db.collection('guilds');

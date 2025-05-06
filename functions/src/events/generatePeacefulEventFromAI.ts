@@ -11,36 +11,39 @@ export const generatePeacefulEventFromAI = onCall(
     if (!apiKey) throw new Error('Missing OpenAI API Key');
 
     const prompt = `
-The description must be immersive and detailed — at least 6–8 full sentences. Make it feel like a short story excerpt, not just a summary. Write it in second person (“you enter... you notice...”).
-All events must include:
-- id (snake_case string)
-- title (short event name)
-- description: an immersive short story-like scene, minimum 6–8 full sentences in second person
-- type: always "peaceful"
-- minCombatLevel (1–30)
-- maxCombatLevel (same or higher)
-- rarity (1 = common, 5 = ultra rare)
-- reward: an object with effect ("restore_health", "grant_gold", or "restore_mana") and xp (number)
+    The description must be immersive and detailed — at least 6–8 full sentences. Make it feel like a short story excerpt, not just a summary. Write it in second person (“you enter... you notice...”).
+    All events must include:
+    - id (snake_case string)
+    - title (short event name)
+    - description: an immersive short story-like scene, minimum 6–8 full sentences in second person
+    - type: always "peaceful"
+    - minCombatLevel (1–30)
+    - maxCombatLevel (same or higher)
+    - rarity (1 = common, 5 = ultra rare)
+    - reward: an object with effect ("restore_health", "grant_gold", or "restore_mana") and xp (number)
+    - terrain: an array of one or more allowed terrain strings from this list: ["plains", "forest", "swamp", "snow", "tundra", "dungeon"]
 
-✅ Output ONLY JSON. Do NOT include markdown, explanations, or formatting.
+    ✅ Output ONLY JSON. Do NOT include markdown, explanations, or formatting.
 
-Here is an example:
-{
-  "id": "shrine_of_silence",
-  "title": "Shrine of Silence",
-  "description": "You step into a meadow that glows faintly in the fading sunlight. The tall grass brushes your legs, and wildflowers sway as if greeting you. There's a hush here—not silence, but a reverent stillness. You pause, your breath slowing, your heart strangely calm. The wind carries something other than sound: a warmth that soothes your weariness. Then, just on the edge of your hearing, a voice—soft and ancient—whispers your name. You turn quickly, but no one is there. Only a pouch of gold rests at your feet, as though the meadow itself has offered tribute for your presence.",
-  "type": "peaceful",
-  "minCombatLevel": 5,
-  "maxCombatLevel": 25,
-  "rarity": 2,
-  "reward": {
-    "effect": "restore_mana",
-    "xp": 14
-  }
-}
+    Here is an example:
+    {
+      "id": "shrine_of_silence",
+      "title": "Shrine of Silence",
+      "description": "You step into a meadow that glows faintly in the fading sunlight. The tall grass brushes your legs, and wildflowers sway as if greeting you. There's a hush here—not silence, but a reverent stillness. You pause, your breath slowing, your heart strangely calm. The wind carries something other than sound: a warmth that soothes your weariness. Then, just on the edge of your hearing, a voice—soft and ancient—whispers your name. You turn quickly, but no one is there. Only a pouch of gold rests at your feet, as though the meadow itself has offered tribute for your presence.",
+      "type": "peaceful",
+      "minCombatLevel": 5,
+      "maxCombatLevel": 25,
+      "rarity": 2,
+      "terrain": ["plains"],
+      "reward": {
+        "effect": "restore_mana",
+        "xp": 14
+      }
+    }
 
-Generate a new peaceful event:
-`;
+    Generate a new peaceful event:
+    `;
+
 
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',

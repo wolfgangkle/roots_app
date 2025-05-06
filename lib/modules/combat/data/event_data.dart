@@ -11,6 +11,7 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.1,
       'max': 10,
     },
+    'terrain': ['plains'],
     'source': 'Wolfgang',
   },
   {
@@ -25,6 +26,7 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.2,
       'max': 12,
     },
+    'terrain': ['forest'],
     'source': 'Wolfgang',
   },
   {
@@ -39,6 +41,7 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.15,
       'max': 8,
     },
+    'terrain': ['dungeon'],
     'source': 'Wolfgang',
   },
   {
@@ -53,6 +56,7 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.15,
       'max': 10,
     },
+    'terrain': ['forest'],
     'source': 'Wolfgang',
   },
   {
@@ -67,10 +71,11 @@ final List<Map<String, dynamic>> encounterEvents = [
       'scalePerLevel': 0.2,
       'max': 12,
     },
+    'terrain': ['tundra', 'plains'], // battlefield could be on open ground
     'source': 'Wolfgang',
   },
 
-  // peaceful events
+  // Peaceful
   {
     'id': 'crystal_clear_stream',
     'type': 'peaceful',
@@ -79,6 +84,7 @@ final List<Map<String, dynamic>> encounterEvents = [
     'minCombatLevel': 1,
     'maxCombatLevel': 12,
     'rarity': 1,
+    'terrain': ['swamp', 'forest'],
     'reward': {
       'effect': 'restore_health',
       'xp': 8,
@@ -93,6 +99,7 @@ final List<Map<String, dynamic>> encounterEvents = [
     'minCombatLevel': 5,
     'maxCombatLevel': 20,
     'rarity': 2,
+    'terrain': ['plains'],
     'reward': {
       'effect': 'grant_gold',
       'xp': 12,
@@ -108,6 +115,7 @@ final List<Map<String, dynamic>> encounterEvents = [
     'minCombatLevel': 8,
     'maxCombatLevel': 30,
     'rarity': 3,
+    'terrain': ['forest'],
     'reward': {
       'effect': 'grant_buff',
       'xp': 18,

@@ -43,6 +43,7 @@ export async function disbandAlliance(request: any) {
     .where('allianceId', '==', allianceId)
     .get();
 
+  // Step 1: Remove references + delete alliance doc
   await db.runTransaction(async (tx) => {
     for (const doc of allGuildsQuery.docs) {
       tx.update(doc.ref, {
@@ -54,11 +55,17 @@ export async function disbandAlliance(request: any) {
     tx.delete(allianceRef);
   });
 
-  console.log(`💥 Alliance ${allianceId} disbanded by guild ${guildId}`);
+  // Step 2: Delete all logs in alliances/{id}/log
+  const logDocs = await db.collection(`alliances/${allianceId}/log`).listDocuments();
+  for (const doc of logDocs) {
+    await doc.delete();
+  }
+
+  console.log(`💥 Alliance ${allianceId} disbanded by guild ${guildId} — log cleared.`);
 
   return {
     status: 'disbanded',
     allianceId,
-    message: 'The alliance has been disbanded.',
+    message: 'The alliance and its logs have been deleted.',
   };
 }

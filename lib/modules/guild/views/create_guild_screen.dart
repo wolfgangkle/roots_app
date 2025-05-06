@@ -99,19 +99,24 @@ class _CreateGuildScreenState extends State<CreateGuildScreen> {
               controller: _tagController,
               inputFormatters: [
                 LengthLimitingTextInputFormatter(4),
-                FilteringTextInputFormatter.allow(RegExp(r'[A-Z]')),
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
               ],
-              textCapitalization: TextCapitalization.characters,
+              textCapitalization: TextCapitalization.characters, // optional: keep to help users
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return "Guild tag is required";
                 }
-                if (value.length < 2 || value.length > 4) {
+                final tag = value.trim();
+                if (tag.length < 2 || tag.length > 4) {
                   return "Tag must be 2 to 4 letters";
+                }
+                if (!RegExp(r'^[a-zA-Z]+$').hasMatch(tag)) {
+                  return "Only letters allowed (A–Z or a–z)";
                 }
                 return null;
               },
             ),
+
             const SizedBox(height: 24),
             const Text("Description (optional)", style: TextStyle(fontSize: 16)),
             TextFormField(

@@ -184,15 +184,59 @@ class _GuildSettingsScreenState extends State<GuildSettingsScreen> {
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text("Disband Guild?"),
-                      content: const Text("This will permanently delete your guild. Cannot be undone."),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-                        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Disband")),
-                      ],
-                    ),
+                    barrierDismissible: false,
+                    builder: (_) {
+                      bool isProcessing = false;
+
+                      return StatefulBuilder(
+                        builder: (context, setState) {
+                          return AlertDialog(
+                            title: const Text("Disband Guild?"),
+                            content: const Text("This will permanently delete your guild. Cannot be undone."),
+                            actions: [
+                              TextButton(
+                                onPressed: isProcessing ? null : () => Navigator.pop(context, false),
+                                child: const Text("Cancel"),
+                              ),
+                              TextButton(
+                                onPressed: isProcessing
+                                    ? null
+                                    : () async {
+                                  setState(() => isProcessing = true);
+                                  try {
+                                    await FirebaseFunctions.instance.httpsCallable('disbandGuild').call();
+
+                                    if (context.mounted) {
+                                      Navigator.pop(context, true);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Guild disbanded.")),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      setState(() => isProcessing = false);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text("Error: $e")),
+                                      );
+                                    }
+                                  }
+                                },
+
+                                child: isProcessing
+                                    ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                                    : const Text("Disband"),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
                   );
+
 
                   if (confirm != true) return;
 
