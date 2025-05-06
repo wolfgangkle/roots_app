@@ -86,7 +86,11 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
           ],
         ),
       ),
-      drawer: NavigationDrawerPanel(onSelectDynamicTab: setDynamicTab),
+      drawer: Consumer<UserProfileModel>(
+        builder: (context, profile, _) {
+          return NavigationDrawerPanel(onSelectDynamicTab: setDynamicTab);
+        },
+      ),
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {

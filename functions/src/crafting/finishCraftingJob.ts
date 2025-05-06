@@ -56,7 +56,7 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
   const baseStats = itemData.baseStats || {};
   const type = itemData.type || 'misc';
   const research = data.research?.[itemId] || {};
-  const craftedStats = buildCraftedStats(baseStats, research, type); // ✅
+  const craftedStats = buildCraftedStats(baseStats, research, type);
 
   // Build query
   let query = itemsRef.where('itemId', '==', itemId).limit(1);

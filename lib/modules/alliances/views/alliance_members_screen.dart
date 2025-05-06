@@ -46,8 +46,16 @@ class AllianceMembersScreen extends StatelessWidget {
                     icon: const Icon(Icons.group_add),
                     label: const Text("Invite Guild"),
                     onPressed: () {
-                      final controller = Provider.of<MainContentController>(context, listen: false);
-                      controller.setCustomContent(const InviteGuildToAllianceScreen());
+                      final isMobile = MediaQuery.of(context).size.width < 600;
+
+                      if (isMobile) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const InviteGuildToAllianceScreen()),
+                        );
+                      } else {
+                        final controller = Provider.of<MainContentController>(context, listen: false);
+                        controller.setCustomContent(const InviteGuildToAllianceScreen());
+                      }
                     },
                   ),
                 ),

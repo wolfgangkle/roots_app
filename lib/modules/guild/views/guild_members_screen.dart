@@ -38,8 +38,16 @@ class GuildMembersScreen extends StatelessWidget {
                 icon: const Icon(Icons.person_add),
                 label: const Text("Invite Member"),
                 onPressed: () {
-                  final controller = Provider.of<MainContentController>(context, listen: false);
-                  controller.setCustomContent(const InviteGuildMemberScreen());
+                  final isMobile = MediaQuery.of(context).size.width < 600;
+
+                  if (isMobile) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const InviteGuildMemberScreen()),
+                    );
+                  } else {
+                    final controller = Provider.of<MainContentController>(context, listen: false);
+                    controller.setCustomContent(const InviteGuildMemberScreen());
+                  }
                 },
               ),
             ),
