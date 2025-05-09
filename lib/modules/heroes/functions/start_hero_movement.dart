@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart'; // Required for debugPrint
 
 Future<bool> startHeroMovements({
   required String heroId,
@@ -8,7 +9,7 @@ Future<bool> startHeroMovements({
 }) async {
   try {
     final callable =
-        FirebaseFunctions.instance.httpsCallable('startHeroMovementsFunction');
+    FirebaseFunctions.instance.httpsCallable('startHeroMovementsFunction');
     final result = await callable.call({
       'heroId': heroId,
       'destinationX': destinationX,
@@ -18,7 +19,7 @@ Future<bool> startHeroMovements({
 
     return result.data['success'] == true;
   } catch (e) {
-    print('🔥 Error starting hero movement: $e');
+    debugPrint('🧨 startHeroMovements error: $e');
     return false;
   }
 }

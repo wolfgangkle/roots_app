@@ -9,10 +9,10 @@ class VillagePanel extends StatefulWidget {
   const VillagePanel({super.key, this.onVillageTap});
 
   @override
-  _VillagePanelState createState() => _VillagePanelState();
+  VillagePanelState createState() => VillagePanelState();
 }
 
-class _VillagePanelState extends State<VillagePanel> {
+class VillagePanelState extends State<VillagePanel> {
   final VillageService service = VillageService();
 
   @override

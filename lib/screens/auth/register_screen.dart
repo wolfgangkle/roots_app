@@ -23,7 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (email.isEmpty || password.length < 6) {
       setState(() {
         errorMessage =
-            'Please enter a valid email and password (min. 6 characters).';
+        'Please enter a valid email and password (min. 6 characters).';
       });
       return;
     }
@@ -33,10 +33,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final auth = AuthService();
     final user = await auth.register(email, password);
 
+    if (!mounted) return;
+
     if (user == null) {
       setState(() {
         errorMessage =
-            'Registration failed. Try again or use a different email.';
+        'Registration failed. Try again or use a different email.';
       });
     } else {
       debugPrint('Registered user: ${user.email}');

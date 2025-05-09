@@ -22,14 +22,14 @@ class UpgradeButton extends StatefulWidget {
     this.isGloballyDisabled = false,
     this.onGlobalUpgradeStart,
     this.onUpgradeComplete,
-    this.onOptimisticUpgrade, // NEW
+    this.onOptimisticUpgrade,
   });
 
   @override
-  _UpgradeButtonState createState() => _UpgradeButtonState();
+  UpgradeButtonState createState() => UpgradeButtonState();
 }
 
-class _UpgradeButtonState extends State<UpgradeButton> {
+class UpgradeButtonState extends State<UpgradeButton> {
   bool _isProcessing = false;
 
   Future<void> _handleUpgrade() async {
@@ -40,8 +40,6 @@ class _UpgradeButtonState extends State<UpgradeButton> {
     }
 
     widget.onGlobalUpgradeStart?.call();
-
-    /// 🔥 NEW: do the optimistic update immediately
     widget.onOptimisticUpgrade?.call();
 
     try {
@@ -71,7 +69,6 @@ class _UpgradeButtonState extends State<UpgradeButton> {
         });
       }
 
-      // ❗️You could call a `rollbackOptimisticUpgrade()` here if you add one
       widget.onUpgradeComplete?.call();
       return;
     }
@@ -99,13 +96,13 @@ class _UpgradeButtonState extends State<UpgradeButton> {
       ),
       child: _isProcessing
           ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Colors.white,
+        ),
+      )
           : Text(widget.label ?? 'Upgrade'),
     );
   }

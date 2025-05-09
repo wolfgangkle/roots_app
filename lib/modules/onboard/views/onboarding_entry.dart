@@ -53,7 +53,7 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
 
     try {
       final callable =
-          FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
+      FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
       await callable.call({
         'heroName': heroName!,
         'villageName': villageName!,
@@ -62,6 +62,7 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
       });
     } catch (e) {
       debugPrint("❌ Onboarding error: $e");
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error finalizing onboarding: $e")),
       );
@@ -71,6 +72,7 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
       }
     }
   }
+
 
   /// Allows the user to edit their choices. Here we simply restart the flow.
   void _editOnboarding() {

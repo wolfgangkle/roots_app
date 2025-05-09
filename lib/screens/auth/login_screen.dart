@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty || password.length < 6) {
       setState(() {
         errorMessage =
-            'Please enter a valid email and password (min. 6 characters).';
+        'Please enter a valid email and password (min. 6 characters).';
       });
       return;
     }
@@ -37,6 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final auth = AuthService();
     final user = await auth.signIn(email, password);
 
+    if (!mounted) return;
+
     if (user == null) {
       setState(() {
         errorMessage = 'Authentication failed. Please check your credentials.';
@@ -45,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('Logged in user: ${user.email}');
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-        (route) => false,
+            (route) => false,
       );
     }
   }
@@ -194,10 +196,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return TextButton(
       onPressed: () async {
         final user = await AuthService().signIn(email, "123456");
+
+        if (!mounted) return;
+
         if (user != null) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-            (route) => false,
+                (route) => false,
           );
         } else {
           setState(() {

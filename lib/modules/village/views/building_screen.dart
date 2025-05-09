@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/widgets/filter_bar.dart';
 import 'package:roots_app/widgets/top_tab_selector.dart';
-import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 import 'package:roots_app/modules/village/views/building_tab.dart';
 import 'package:roots_app/modules/village/views/crafting_tab.dart';
 
@@ -21,7 +20,6 @@ class _BuildingScreenState extends State<BuildingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final simulated = widget.village.simulatedResources;
 
     return Column(
       children: [

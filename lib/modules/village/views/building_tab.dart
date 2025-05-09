@@ -17,10 +17,10 @@ class BuildingTab extends StatefulWidget {
   });
 
   @override
-  _BuildingTabState createState() => _BuildingTabState();
+  BuildingTabState createState() => BuildingTabState();
 }
 
-class _BuildingTabState extends State<BuildingTab> {
+class BuildingTabState extends State<BuildingTab> {
   bool _globalUpgradeActive = false;
   Timer? _timer;
 
@@ -49,17 +49,17 @@ class _BuildingTabState extends State<BuildingTab> {
     final filtered = widget.selectedFilter == 'All'
         ? allUnlocked
         : allUnlocked.where((type) {
-            final def = buildingDefinitions[type];
-            if (def == null) return false;
-            if (widget.selectedFilter == 'Production' &&
-                def.baseProductionPerHour > 0) {
-              return true;
-            } else if (widget.selectedFilter == 'Storage' &&
-                def.displayName.contains('Storage')) {
-              return true;
-            }
-            return false;
-          }).toList();
+      final def = buildingDefinitions[type];
+      if (def == null) return false;
+      if (widget.selectedFilter == 'Production' &&
+          def.baseProductionPerHour > 0) {
+        return true;
+      } else if (widget.selectedFilter == 'Storage' &&
+          def.displayName.contains('Storage')) {
+        return true;
+      }
+      return false;
+    }).toList();
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -88,28 +88,27 @@ class _BuildingTabState extends State<BuildingTab> {
           village: widget.village,
           upgradeButtonWidget: canUpgrade
               ? UpgradeButton(
-                  buildingType: type,
-                  currentLevel: level,
-                  villageId: widget.village.id,
-                  isGloballyDisabled: _globalUpgradeActive,
-                  onGlobalUpgradeStart: () {
-                    setState(() {
-                      _globalUpgradeActive = true;
-                    });
-                  },
-                  onUpgradeComplete: () {
-                    setState(() {
-                      _globalUpgradeActive = false;
-                    });
-                  },
+            buildingType: type,
+            currentLevel: level,
+            villageId: widget.village.id,
+            isGloballyDisabled: _globalUpgradeActive,
+            onGlobalUpgradeStart: () {
+              setState(() {
+                _globalUpgradeActive = true;
+              });
+            },
+            onUpgradeComplete: () {
+              setState(() {
+                _globalUpgradeActive = false;
+              });
+            },
 
-                  /// 💥 Optimistic update: instantly simulate building progress
-                  onOptimisticUpgrade: () {
-                    widget.village
-                        .simulateUpgrade(type); // You'll implement this
-                    setState(() {});
-                  },
-                )
+            /// 💥 Optimistic update: instantly simulate building progress
+            onOptimisticUpgrade: () {
+              widget.village.simulateUpgrade(type);
+              setState(() {});
+            },
+          )
               : null,
         );
       },

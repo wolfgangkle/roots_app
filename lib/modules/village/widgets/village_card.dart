@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
-import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.dart'; // ✅ NEW
+import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 import 'package:roots_app/modules/village/extensions/building_model_extension.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,10 +18,10 @@ class VillageCard extends StatefulWidget {
   });
 
   @override
-  _VillageCardState createState() => _VillageCardState();
+  VillageCardState createState() => VillageCardState();
 }
 
-class _VillageCardState extends State<VillageCard> {
+class VillageCardState extends State<VillageCard> {
   Timer? _timer;
 
   @override
@@ -110,7 +110,6 @@ class _VillageCardState extends State<VillageCard> {
                 ),
               ],
 
-              // 🛠️ Crafting progress
               // 🛠️ Crafting progress
               if (crafting != null) ...[
                 const SizedBox(height: 8),

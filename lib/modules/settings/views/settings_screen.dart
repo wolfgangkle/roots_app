@@ -7,10 +7,10 @@ class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  SettingsScreenState createState() => SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController exportController = TextEditingController();
 
   Future<void> _exportTier1MapToText() async {
@@ -29,11 +29,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     buffer.writeln('};');
 
+    if (!mounted) return;
+
     setState(() {
       exportController.text = buffer.toString();
     });
 
-    if (context.mounted) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✅ Map exported into text field.")),
       );
@@ -102,12 +104,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             expands: true,
                             readOnly: true,
                             decoration: InputDecoration(
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                               isDense: true,
                               filled: true,
-                              fillColor: theme
-                                  .colorScheme.surfaceContainerHighest
-                                  .withOpacity(0.1),
+                              fillColor: theme.colorScheme.surfaceContainerHighest
+                                  .withAlpha((0.1 * 255).toInt()),
                             ),
                             style: const TextStyle(fontFamily: 'monospace'),
                           ),

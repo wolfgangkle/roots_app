@@ -130,7 +130,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                 width: double.infinity,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withAlpha((0.03 * 255).toInt()),
                 child: Text(
                   description,
                   style: Theme.of(context)
@@ -366,7 +366,6 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                       data['heroAttack'] != null) {
                     final dynamic heroAttackRaw = data['heroAttack'];
                     final targetEnemy = data['targetEnemyIndex'];
-                    final pveHeroHpAfter = data['heroHpAfter'];
                     List<TextSpan> spans = [const TextSpan(text: "🧙 ")];
                     if (heroAttackRaw is Map) {
                       final rawAttackerId =

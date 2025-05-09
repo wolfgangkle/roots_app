@@ -13,10 +13,10 @@ class CheckUserProfile extends StatefulWidget {
   const CheckUserProfile({super.key});
 
   @override
-  _CheckUserProfileState createState() => _CheckUserProfileState();
+  CheckUserProfileState createState() => CheckUserProfileState();
 }
 
-class _CheckUserProfileState extends State<CheckUserProfile> {
+class CheckUserProfileState extends State<CheckUserProfile> {
   @override
   void initState() {
     super.initState();
@@ -94,7 +94,7 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
       }
 
       final guildStream =
-          FirebaseFirestore.instance.doc('guilds/$guildId').snapshots();
+      FirebaseFirestore.instance.doc('guilds/$guildId').snapshots();
 
       return guildStream.map((guildSnap) {
         if (!guildSnap.exists) {
