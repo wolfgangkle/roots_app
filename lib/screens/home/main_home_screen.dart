@@ -17,25 +17,28 @@ class MainHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final contentController = Provider.of<MainContentController>(context, listen: false);
+    final contentController =
+        Provider.of<MainContentController>(context, listen: false);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenSize = LayoutHelper.getSizeCategory(screenWidth);
 
-    final showChat = context.watch<UserSettingsModel>().showChatOverlay; // ✅ watch toggle
+    final showChat =
+        context.watch<UserSettingsModel>().showChatOverlay; // ✅ watch toggle
 
     switch (screenSize) {
       case ScreenSizeCategory.small:
-      // 🟦 MOBILE - Swipeable + Tappable Tab Layout
+        // 🟦 MOBILE - Swipeable + Tappable Tab Layout
         return const MobileTabScaffold();
 
       case ScreenSizeCategory.medium:
-      // 🟩 MEDIUM - 3-column layout with drawer
+        // 🟩 MEDIUM - 3-column layout with drawer
         return Scaffold(
           appBar: AppBar(title: const Text('ROOTS')),
           drawer: NavigationDrawerPanel(),
           body: Row(
             children: [
-              SizedBox(width: 400, child: HeroPanel(controller: contentController)),
+              SizedBox(
+                  width: 400, child: HeroPanel(controller: contentController)),
               const VerticalDivider(width: 1),
               Expanded(
                 flex: 2,
@@ -44,15 +47,18 @@ class MainHomeScreen extends StatelessWidget {
               const VerticalDivider(width: 1),
               SizedBox(
                 width: 400,
-                child: VillagePanel(onVillageTap: contentController.showVillageCenter),
+                child: VillagePanel(
+                    onVillageTap: contentController.showVillageCenter),
               ),
             ],
           ),
-          floatingActionButton: showChat ? const ChatOverlay(usePositioned: false) : null, // ✅ toggle here
+          floatingActionButton: showChat
+              ? const ChatOverlay(usePositioned: false)
+              : null, // ✅ toggle here
         );
 
       case ScreenSizeCategory.large:
-      // 🟥 LARGE - Full 4-column layout
+        // 🟥 LARGE - Full 4-column layout
         return Scaffold(
           appBar: AppBar(title: const Text('ROOTS')),
           body: Stack(
@@ -62,7 +68,9 @@ class MainHomeScreen extends StatelessWidget {
                   children: [
                     const NavigationSidebarPanel(),
                     const VerticalDivider(width: 1),
-                    SizedBox(width: 400, child: HeroPanel(controller: contentController)),
+                    SizedBox(
+                        width: 400,
+                        child: HeroPanel(controller: contentController)),
                     const VerticalDivider(width: 1),
                     Expanded(
                       flex: 2,
@@ -71,12 +79,14 @@ class MainHomeScreen extends StatelessWidget {
                     const VerticalDivider(width: 1),
                     SizedBox(
                       width: 400,
-                      child: VillagePanel(onVillageTap: contentController.showVillageCenter),
+                      child: VillagePanel(
+                          onVillageTap: contentController.showVillageCenter),
                     ),
                   ],
                 ),
               ),
-              if (showChat) const ChatOverlay(usePositioned: true), // ✅ toggle here
+              if (showChat)
+                const ChatOverlay(usePositioned: true), // ✅ toggle here
             ],
           ),
         );

@@ -83,5 +83,4 @@ class DefaultFirebaseOptions {
     authDomain: 'roots-backend-ce2ec.firebaseapp.com',
     storageBucket: 'roots-backend-ce2ec.firebasestorage.app',
   );
-
 }

@@ -29,11 +29,11 @@ class MapTileWidget extends StatelessWidget {
       child: icon != null
           ? Icon(icon, size: 16, color: Colors.black87)
           : showCoords
-          ? Text(
-        "($x,$y)",
-        style: const TextStyle(fontSize: 8, color: Colors.black),
-      )
-          : null,
+              ? Text(
+                  "($x,$y)",
+                  style: const TextStyle(fontSize: 8, color: Colors.black),
+                )
+              : null,
     );
   }
 }

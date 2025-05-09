@@ -53,11 +53,13 @@ class _CreateCompanionScreenState extends State<CreateCompanionScreen> {
 
   Future<void> _createCompanion() async {
     final messenger = ScaffoldMessenger.of(context);
-    final controller = Provider.of<MainContentController>(context, listen: false);
+    final controller =
+        Provider.of<MainContentController>(context, listen: false);
 
     if (_selectedVillageId == null || _nameController.text.trim().length < 3) {
       messenger.showSnackBar(
-        const SnackBar(content: Text("Please enter a valid name and select a village.")),
+        const SnackBar(
+            content: Text("Please enter a valid name and select a village.")),
       );
       return;
     }
@@ -65,8 +67,10 @@ class _CreateCompanionScreenState extends State<CreateCompanionScreen> {
     setState(() => _isCreating = true);
 
     try {
-      final village = _villages.firstWhere((v) => v['id'] == _selectedVillageId);
-      final callable = FirebaseFunctions.instance.httpsCallable('createCompanion');
+      final village =
+          _villages.firstWhere((v) => v['id'] == _selectedVillageId);
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('createCompanion');
       final result = await callable.call({
         'tileX': village['tileX'],
         'tileY': village['tileY'],
@@ -74,20 +78,26 @@ class _CreateCompanionScreenState extends State<CreateCompanionScreen> {
       });
 
       final heroId = result.data['heroId'];
-      final heroDoc = await FirebaseFirestore.instance.collection('heroes').doc(heroId).get();
+      final heroDoc = await FirebaseFirestore.instance
+          .collection('heroes')
+          .doc(heroId)
+          .get();
 
       if (!mounted) return;
 
       if (heroDoc.exists) {
         final hero = HeroModel.fromFirestore(heroDoc.id, heroDoc.data()!);
         controller.setCustomContent(HeroDetailsScreen(hero: hero));
-        messenger.showSnackBar(const SnackBar(content: Text("Companion created successfully!")));
+        messenger.showSnackBar(
+            const SnackBar(content: Text("Companion created successfully!")));
       } else {
-        messenger.showSnackBar(const SnackBar(content: Text("Companion created, but not found.")));
+        messenger.showSnackBar(
+            const SnackBar(content: Text("Companion created, but not found.")));
       }
     } catch (e) {
       debugPrint("❌ Error: $e");
-      messenger.showSnackBar(SnackBar(content: Text("Failed to create companion: $e")));
+      messenger.showSnackBar(
+          SnackBar(content: Text("Failed to create companion: $e")));
     } finally {
       setState(() => _isCreating = false);
     }
@@ -108,38 +118,41 @@ class _CreateCompanionScreenState extends State<CreateCompanionScreen> {
         child: _villages.isEmpty
             ? const Center(child: Text('No villages available.'))
             : Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Companion name:", style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: "Enter companion name",
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Companion name:", style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: "Enter companion name",
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text("Select spawn village:",
+                      style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedVillageId,
+                    items: _villages.map((village) {
+                      return DropdownMenuItem<String>(
+                        value: village['id'],
+                        child: Text(
+                            "${village['name']} (${village['tileX']}, ${village['tileY']})"),
+                      );
+                    }).toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedVillageId = value),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.group_add),
+                    label: const Text("Create Companion"),
+                    onPressed: _isCreating ? null : _createCompanion,
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text("Select spawn village:", style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedVillageId,
-              items: _villages.map((village) {
-                return DropdownMenuItem<String>(
-                  value: village['id'],
-                  child: Text("${village['name']} (${village['tileX']}, ${village['tileY']})"),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedVillageId = value),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.group_add),
-              label: const Text("Create Companion"),
-              onPressed: _isCreating ? null : _createCompanion,
-            ),
-          ],
-        ),
       ),
     );
   }

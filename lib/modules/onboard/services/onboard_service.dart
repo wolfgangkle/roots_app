@@ -21,10 +21,10 @@ class FirestoreService {
 
     // 🔻 MAP ZONE COORDINATE BOUNDS — UPDATE THESE FREELY LATER 🔻
     final Map<String, Map<String, int>> zoneBounds = {
-      'north':  { 'minX': 0, 'maxX': 100, 'minY': 300, 'maxY': 400 },
-      'south':  { 'minX': 0, 'maxX': 100, 'minY': 0,   'maxY': 100 },
-      'east':   { 'minX': 300, 'maxX': 400, 'minY': 150, 'maxY': 250 },
-      'west':   { 'minX': 0, 'maxX': 100, 'minY': 150, 'maxY': 250 },
+      'north': {'minX': 0, 'maxX': 100, 'minY': 300, 'maxY': 400},
+      'south': {'minX': 0, 'maxX': 100, 'minY': 0, 'maxY': 100},
+      'east': {'minX': 300, 'maxX': 400, 'minY': 150, 'maxY': 250},
+      'west': {'minX': 0, 'maxX': 100, 'minY': 150, 'maxY': 250},
     };
     // 🔺 MAP ZONE COORDINATE BOUNDS — FEEL FREE TO EXPAND 🔺
 
@@ -40,7 +40,8 @@ class FirestoreService {
     final batch = _db.batch();
 
     // 1. Create user profile
-    final userProfileRef = _db.collection('users').doc(uid).collection('profile').doc('main');
+    final userProfileRef =
+        _db.collection('users').doc(uid).collection('profile').doc('main');
     batch.set(userProfileRef, {
       'characterName': heroName,
       'race': race,
@@ -81,7 +82,8 @@ class FirestoreService {
     });
 
     // 4. Optionally mark the tile as occupied
-    final tileRef = _db.collection('tiles').doc('tile_${tile['x']}_${tile['y']}');
+    final tileRef =
+        _db.collection('tiles').doc('tile_${tile['x']}_${tile['y']}');
     batch.set(tileRef, {
       'occupiedBy': villageId,
     });
@@ -90,18 +92,21 @@ class FirestoreService {
   }
 
   /// Randomly finds an available tile in the zone with minDistance to others
-  Future<Map<String, int>?> _findAvailableTile(
-      Map<String, int> bounds, {int minDistance = 5}) async {
+  Future<Map<String, int>?> _findAvailableTile(Map<String, int> bounds,
+      {int minDistance = 5}) async {
     final rand = Random();
     const maxTries = 50;
 
     for (int i = 0; i < maxTries; i++) {
-      final x = rand.nextInt(bounds['maxX']! - bounds['minX']!) + bounds['minX']!;
-      final y = rand.nextInt(bounds['maxY']! - bounds['minY']!) + bounds['minY']!;
+      final x =
+          rand.nextInt(bounds['maxX']! - bounds['minX']!) + bounds['minX']!;
+      final y =
+          rand.nextInt(bounds['maxY']! - bounds['minY']!) + bounds['minY']!;
 
       // 🧱 NEW CHECK: Exclude invalid terrain tiles (future-ready!)
       final tileDoc = await _db.collection('tiles').doc('tile_${x}_$y').get();
-      if (tileDoc.exists && ['water', 'mountain', 'ice', 'forest'].contains(tileDoc['terrain'])) {
+      if (tileDoc.exists &&
+          ['water', 'mountain', 'ice', 'forest'].contains(tileDoc['terrain'])) {
         continue; // Skip bad terrain tiles
       }
 
@@ -119,7 +124,7 @@ class FirestoreService {
       });
 
       if (!isTooClose) {
-        return { 'x': x, 'y': y };
+        return {'x': x, 'y': y};
       }
     }
 

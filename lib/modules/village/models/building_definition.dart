@@ -30,7 +30,8 @@ class BuildingDefinition {
   /// 💸 Returns estimated cost for display in UI only.
   Map<String, int> getCostForLevel(int level) {
     final multiplier = costMultiplierFormula?.call(level) ?? level;
-    return baseCost.map((resource, base) => MapEntry(resource, base * multiplier));
+    return baseCost
+        .map((resource, base) => MapEntry(resource, base * multiplier));
   }
 
   /// ⏳ Returns estimated duration for display in UI only.

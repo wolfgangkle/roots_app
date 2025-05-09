@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/profile/models/user_profile_model.dart';
@@ -21,7 +20,8 @@ class AllianceMembersScreen extends StatelessWidget {
       return const Center(child: Text("You are not in an alliance."));
     }
 
-    final allianceRef = FirebaseFirestore.instance.collection('alliances').doc(allianceId);
+    final allianceRef =
+        FirebaseFirestore.instance.collection('alliances').doc(allianceId);
 
     return FutureBuilder<DocumentSnapshot>(
       future: allianceRef.get(),
@@ -31,12 +31,15 @@ class AllianceMembersScreen extends StatelessWidget {
         }
 
         final alliance = snapshot.data!.data() as Map<String, dynamic>?;
-        if (alliance == null) return const Center(child: Text("Alliance data not found."));
+        if (alliance == null) {
+          return const Center(child: Text("Alliance data not found."));
+        }
 
         final guildIds = List<String>.from(alliance['guildIds'] ?? []);
 
         return Scaffold(
-          appBar: AppBar(title: Text('[${alliance['tag']}] ${alliance['name']}')),
+          appBar:
+              AppBar(title: Text('[${alliance['tag']}] ${alliance['name']}')),
           body: Column(
             children: [
               if (isAllianceLeader)
@@ -50,11 +53,16 @@ class AllianceMembersScreen extends StatelessWidget {
 
                       if (isMobile) {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const InviteGuildToAllianceScreen()),
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const InviteGuildToAllianceScreen()),
                         );
                       } else {
-                        final controller = Provider.of<MainContentController>(context, listen: false);
-                        controller.setCustomContent(const InviteGuildToAllianceScreen());
+                        final controller = Provider.of<MainContentController>(
+                            context,
+                            listen: false);
+                        controller.setCustomContent(
+                            const InviteGuildToAllianceScreen());
                       }
                     },
                   ),
@@ -62,14 +70,17 @@ class AllianceMembersScreen extends StatelessWidget {
               if (alliance['description'] != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(alliance['description'], style: const TextStyle(fontSize: 16)),
+                  child: Text(alliance['description'],
+                      style: const TextStyle(fontSize: 16)),
                 ),
               const SizedBox(height: 8),
               Expanded(
                 child: FutureBuilder<List<DocumentSnapshot>>(
                   future: _fetchGuilds(guildIds),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const CircularProgressIndicator();
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator();
+                    }
                     final docs = snapshot.data!;
                     final currentGuildId = profile.guildId;
 
@@ -89,17 +100,23 @@ class AllianceMembersScreen extends StatelessWidget {
                               style: isCurrentGuild
                                   ? const TextStyle(fontWeight: FontWeight.bold)
                                   : null),
-                          subtitle: isCurrentGuild ? const Text('Your Guild') : null,
+                          subtitle:
+                              isCurrentGuild ? const Text('Your Guild') : null,
                           trailing: isCurrentGuild && isGuildLeader
                               ? PopupMenuButton<String>(
-                            onSelected: (value) => _handleLeaveOrDisband(context, value == 'disband'),
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: isAllianceLeader ? 'disband' : 'leave',
-                                child: Text(isAllianceLeader ? 'Disband Alliance' : 'Leave Alliance'),
-                              ),
-                            ],
-                          )
+                                  onSelected: (value) => _handleLeaveOrDisband(
+                                      context, value == 'disband'),
+                                  itemBuilder: (context) => [
+                                    PopupMenuItem(
+                                      value: isAllianceLeader
+                                          ? 'disband'
+                                          : 'leave',
+                                      child: Text(isAllianceLeader
+                                          ? 'Disband Alliance'
+                                          : 'Leave Alliance'),
+                                    ),
+                                  ],
+                                )
                               : null,
                         );
                       },
@@ -116,7 +133,8 @@ class AllianceMembersScreen extends StatelessWidget {
 
   Future<List<DocumentSnapshot>> _fetchGuilds(List<String> guildIds) async {
     if (guildIds.isEmpty) return [];
-    final futures = guildIds.map((id) => FirebaseFirestore.instance.doc('guilds/$id').get());
+    final futures = guildIds
+        .map((id) => FirebaseFirestore.instance.doc('guilds/$id').get());
     return await Future.wait(futures);
   }
 
@@ -136,42 +154,53 @@ class AllianceMembersScreen extends StatelessWidget {
                   : 'Are you sure your guild wants to leave the alliance?'),
               actions: [
                 TextButton(
-                  onPressed: isProcessing ? null : () => Navigator.pop(context, false),
+                  onPressed:
+                      isProcessing ? null : () => Navigator.pop(context, false),
                   child: const Text("Cancel"),
                 ),
                 ElevatedButton(
                   onPressed: isProcessing
                       ? null
                       : () async {
-                    setState(() => isProcessing = true);
+                          setState(() => isProcessing = true);
 
-                    final callable = FirebaseFunctions.instance.httpsCallable(
-                      disband ? 'disbandAlliance' : 'leaveAlliance',
-                    );
+                          final callable =
+                              FirebaseFunctions.instance.httpsCallable(
+                            disband ? 'disbandAlliance' : 'leaveAlliance',
+                          );
 
-                    try {
-                      await callable.call();
+                          try {
+                            await callable.call();
 
-                      if (context.mounted) {
-                        Navigator.pop(context, true); // close the dialog
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(disband ? "Alliance disbanded." : "Guild left alliance.")),
-                        );
+                            if (context.mounted) {
+                              Navigator.pop(context, true); // close the dialog
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(disband
+                                        ? "Alliance disbanded."
+                                        : "Guild left alliance.")),
+                              );
 
-                        final controller = Provider.of<MainContentController>(context, listen: false);
-                        controller.setCustomContent(const Placeholder()); // redirect
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        setState(() => isProcessing = false);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Error: $e")),
-                        );
-                      }
-                    }
-                  },
+                              final controller =
+                                  Provider.of<MainContentController>(context,
+                                      listen: false);
+                              controller.setCustomContent(
+                                  const Placeholder()); // redirect
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              setState(() => isProcessing = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Error: $e")),
+                              );
+                            }
+                          }
+                        },
                   child: isProcessing
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : Text(disband ? "Disband" : "Leave"),
                 ),
               ],

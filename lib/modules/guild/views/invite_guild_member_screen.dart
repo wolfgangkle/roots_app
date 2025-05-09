@@ -1,21 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:roots_app/profile/models/user_profile_model.dart';
 
 class InviteGuildMemberScreen extends StatefulWidget {
   const InviteGuildMemberScreen({super.key});
 
   @override
-  State<InviteGuildMemberScreen> createState() => _InviteGuildMemberScreenState();
+  State<InviteGuildMemberScreen> createState() =>
+      _InviteGuildMemberScreenState();
 }
 
 class _InviteGuildMemberScreenState extends State<InviteGuildMemberScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isLoading = false;
-  bool _inviteInProgress = false; // 🔒 Add this
+  bool _inviteInProgress = false;
   List<DocumentSnapshot> _results = [];
 
   Future<void> _search() async {
@@ -27,7 +26,7 @@ class _InviteGuildMemberScreenState extends State<InviteGuildMemberScreen> {
     final query = await FirebaseFirestore.instance
         .collectionGroup('profile')
         .where('heroName', isGreaterThanOrEqualTo: _searchQuery)
-        .where('heroName', isLessThanOrEqualTo: _searchQuery + '\uf8ff')
+        .where('heroName', isLessThanOrEqualTo: '$_searchQuery\uf8ff')
         .limit(20)
         .get();
 
@@ -38,25 +37,26 @@ class _InviteGuildMemberScreenState extends State<InviteGuildMemberScreen> {
   }
 
   Future<void> _sendInvite(String toUserId, String heroName) async {
-    setState(() => _inviteInProgress = true); // 🔒 Lock all buttons
+    setState(() => _inviteInProgress = true);
+
+    final messenger = ScaffoldMessenger.of(context); // ✅ Capture before await
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('sendGuildInvite');
+      final callable =
+      FirebaseFunctions.instance.httpsCallable('sendGuildInvite');
       await callable.call({'toUserId': toUserId});
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invitation sent to $heroName!')),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Invitation sent to $heroName!')),
+      );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send invite: $e')),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to send invite: $e')),
+      );
     } finally {
-      if (mounted) setState(() => _inviteInProgress = false); // 🔓 Unlock buttons
+      if (mounted) {
+        setState(() => _inviteInProgress = false);
+      }
     }
   }
 
@@ -98,7 +98,9 @@ class _InviteGuildMemberScreenState extends State<InviteGuildMemberScreen> {
 
                   return ListTile(
                     title: Text(heroName),
-                    subtitle: Text(alreadyInGuild ? 'Already in a guild' : 'Not in a guild'),
+                    subtitle: Text(alreadyInGuild
+                        ? 'Already in a guild'
+                        : 'Not in a guild'),
                     trailing: alreadyInGuild
                         ? null
                         : ElevatedButton(
@@ -109,7 +111,8 @@ class _InviteGuildMemberScreenState extends State<InviteGuildMemberScreen> {
                           ? const SizedBox(
                         height: 16,
                         width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2),
                       )
                           : const Text('Invite'),
                     ),

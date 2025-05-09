@@ -17,7 +17,7 @@ class ReportsListScreen extends StatelessWidget {
     }
 
     final screenSize =
-    LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+        LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
     final isMobile = screenSize == ScreenSizeCategory.small;
 
     final reportsRef = FirebaseFirestore.instance
@@ -57,7 +57,8 @@ class ReportsListScreen extends StatelessWidget {
 
             final visibleReports = allDocs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              final hiddenList = List<String>.from(data['hiddenForUserIds'] ?? []);
+              final hiddenList =
+                  List<String>.from(data['hiddenForUserIds'] ?? []);
               final type = data['type'] ?? 'unknown';
               if (type == 'combat_xp') return false;
               return !hiddenList.contains(userId);
@@ -76,45 +77,46 @@ class ReportsListScreen extends StatelessWidget {
                 final id = doc.id;
                 final type = data['type'] ?? 'unknown';
                 final title = data['title'] ?? 'Untitled Event';
-                final createdAt =
-                (data['createdAt'] as Timestamp?)?.toDate();
+                final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
                 final formattedTime =
-                createdAt != null ? _formatDate(createdAt) : 'No date';
+                    createdAt != null ? _formatDate(createdAt) : 'No date';
                 final isCombat = type == 'combat';
 
                 return Card(
                   child: isCombat && data['combatId'] != null
                       ? FutureBuilder<DocumentSnapshot>(
-                    future: FirebaseFirestore.instance
-                        .collection('combats')
-                        .doc(data['combatId'])
-                        .get(),
-                    builder: (context, combatSnapshot) {
-                      final combatData = combatSnapshot.data?.data()
-                      as Map<String, dynamic>?;
-                      final combatState = combatData?['state'] ?? 'unknown';
-                      final isOngoing = combatState == 'ongoing';
-                      // Optionally add a combat message (e.g. a summary or XP info)
-                      final combatMessage = combatData?['message'];
-                      final subtitle = "$formattedTime • ${isOngoing ? 'Ongoing' : 'Completed'}${combatMessage != null && combatMessage.toString().isNotEmpty
-                              ? " • $combatMessage"
-                              : ""}";
-                      return ListTile(
-                        leading: Icon(_iconForType(type)),
-                        title: Text(title),
-                        subtitle: Text(subtitle),
-                        trailing: _reportMenu(userId, doc),
-                        onTap: () => _openDetail(context, isMobile, heroId, id),
-                      );
-                    },
-                  )
+                          future: FirebaseFirestore.instance
+                              .collection('combats')
+                              .doc(data['combatId'])
+                              .get(),
+                          builder: (context, combatSnapshot) {
+                            final combatData = combatSnapshot.data?.data()
+                                as Map<String, dynamic>?;
+                            final combatState =
+                                combatData?['state'] ?? 'unknown';
+                            final isOngoing = combatState == 'ongoing';
+                            // Optionally add a combat message (e.g. a summary or XP info)
+                            final combatMessage = combatData?['message'];
+                            final subtitle =
+                                "$formattedTime • ${isOngoing ? 'Ongoing' : 'Completed'}${combatMessage != null && combatMessage.toString().isNotEmpty ? " • $combatMessage" : ""}";
+                            return ListTile(
+                              leading: Icon(_iconForType(type)),
+                              title: Text(title),
+                              subtitle: Text(subtitle),
+                              trailing: _reportMenu(userId, doc),
+                              onTap: () =>
+                                  _openDetail(context, isMobile, heroId, id),
+                            );
+                          },
+                        )
                       : ListTile(
-                    leading: Icon(_iconForType(type)),
-                    title: Text(title),
-                    subtitle: Text(formattedTime),
-                    trailing: _reportMenu(userId, doc),
-                    onTap: () => _openDetail(context, isMobile, heroId, id),
-                  ),
+                          leading: Icon(_iconForType(type)),
+                          title: Text(title),
+                          subtitle: Text(formattedTime),
+                          trailing: _reportMenu(userId, doc),
+                          onTap: () =>
+                              _openDetail(context, isMobile, heroId, id),
+                        ),
                 );
               },
             );
@@ -142,7 +144,8 @@ class ReportsListScreen extends StatelessWidget {
     );
   }
 
-  void _openDetail(BuildContext context, bool isMobile, String heroId, String reportId) {
+  void _openDetail(
+      BuildContext context, bool isMobile, String heroId, String reportId) {
     final detailScreen = ReportDetailScreen(
       heroId: heroId,
       reportId: reportId,
@@ -154,7 +157,8 @@ class ReportsListScreen extends StatelessWidget {
         MaterialPageRoute(builder: (_) => detailScreen),
       );
     } else {
-      final controller = Provider.of<MainContentController>(context, listen: false);
+      final controller =
+          Provider.of<MainContentController>(context, listen: false);
       controller.setCustomContent(detailScreen);
     }
   }

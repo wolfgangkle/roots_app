@@ -1,10 +1,10 @@
+import 'package:flutter/foundation.dart'; // <== ADD THIS
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
 import 'config/firebase_options.dart';
 import 'package:roots_app/screens/auth/check_user_profile.dart';
-import 'package:roots_app/screens/dev/map_editor_screen.dart';
 import 'package:roots_app/screens/home/main_home_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/map/providers/terrain_provider.dart';
@@ -15,7 +15,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  print('✅ Firebase initialized successfully');
+
+  if (kDebugMode) {
+    debugPrint('✅ Firebase initialized successfully');
+  }
 
   final userSettingsModel = UserSettingsModel();
 
@@ -31,6 +34,7 @@ void main() async {
   );
 }
 
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -43,7 +47,8 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     final settings = context.watch<UserSettingsModel>();
 
-    debugPrint('🌙 BUILD → darkMode: ${settings.darkMode} | loaded: ${settings.isLoaded}');
+    debugPrint(
+        '🌙 BUILD → darkMode: ${settings.darkMode} | loaded: ${settings.isLoaded}');
 
     if (!settings.isLoaded) {
       return const MaterialApp(
@@ -62,7 +67,6 @@ class _MyAppState extends State<MyApp> {
           onPrimary: Colors.white,
           secondary: Color(0xFF8D8D8D),
           onSecondary: Colors.white,
-          background: Color(0xFFF5F5F5),
           surface: Colors.white,
           onSurface: Colors.black87,
         ),
@@ -90,9 +94,9 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         textTheme: ThemeData.light().textTheme.apply(
-          bodyColor: Colors.black87,
-          displayColor: Colors.black87,
-        ),
+              bodyColor: Colors.black87,
+              displayColor: Colors.black87,
+            ),
       ),
       darkTheme: ThemeData(
         colorScheme: const ColorScheme.dark(
@@ -100,7 +104,6 @@ class _MyAppState extends State<MyApp> {
           onPrimary: Colors.black,
           secondary: Color(0xFF03DAC6),
           onSecondary: Colors.black,
-          background: Color(0xFF121212),
           surface: Color(0xFF1E1E1E),
           onSurface: Colors.white,
         ),
@@ -128,13 +131,12 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         textTheme: ThemeData.dark().textTheme.apply(
-          bodyColor: Colors.white,
-          displayColor: Colors.white,
-        ),
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+            ),
       ),
       themeMode: settings.darkMode ? ThemeMode.dark : ThemeMode.light,
       routes: {
-        '/map_editor': (_) => const MapEditorScreen(),
         '/village': (_) => const MainHomeScreen(),
       },
       home: const CheckUserProfile(),

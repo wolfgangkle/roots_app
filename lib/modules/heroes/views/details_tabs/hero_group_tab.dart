@@ -18,7 +18,8 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
   Future<void> connectToHero(String targetHeroId) async {
     setState(() => _isProcessing = true);
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('connectHeroToGroup');
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('connectHeroToGroup');
       final result = await callable.call({
         'heroId': widget.hero.id,
         'targetHeroId': targetHeroId,
@@ -43,7 +44,8 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
   Future<void> leaveGroup() async {
     setState(() => _isProcessing = true);
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('disconnectHeroFromGroup');
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('disconnectHeroFromGroup');
       final result = await callable.call({'heroId': widget.hero.id});
       debugPrint("✅ Disconnected from group: ${result.data}");
 
@@ -65,7 +67,8 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
   Future<void> kickHero(String targetHeroId) async {
     setState(() => _isProcessing = true);
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('kickHeroFromGroup');
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('kickHeroFromGroup');
       final result = await callable.call({
         'heroId': widget.hero.id,
         'targetHeroId': targetHeroId,
@@ -90,7 +93,9 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
   @override
   Widget build(BuildContext context) {
     final heroRef = FirebaseFirestore.instance.collection('heroes');
-    final groupRef = FirebaseFirestore.instance.collection('heroGroups').doc(widget.hero.groupId);
+    final groupRef = FirebaseFirestore.instance
+        .collection('heroGroups')
+        .doc(widget.hero.groupId);
 
     return FutureBuilder<DocumentSnapshot>(
       future: groupRef.get(),
@@ -105,7 +110,9 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
         final tileX = groupData['tileX'] ?? -9999;
         final tileY = groupData['tileY'] ?? -9999;
 
-        final groupQuery = heroRef.where('groupId', isEqualTo: widget.hero.groupId).snapshots();
+        final groupQuery = heroRef
+            .where('groupId', isEqualTo: widget.hero.groupId)
+            .snapshots();
         final isRootLeader = widget.hero.groupId == widget.hero.id;
         final isInGroup = widget.hero.groupId != null;
 
@@ -114,19 +121,23 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("🧑‍🤝‍🧑 Group Info", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text("🧑‍🤝‍🧑 Group Info",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text("Hero: ${widget.hero.heroName}"),
               const SizedBox(height: 8),
-              Text("Current Group: ${isRootLeader ? "Solo (you)" : widget.hero.groupId}"),
-              Text("Group Leader: ${widget.hero.groupLeaderId ?? "You (leader)"}"),
+              Text(
+                  "Current Group: ${isRootLeader ? "Solo (you)" : widget.hero.groupId}"),
+              Text(
+                  "Group Leader: ${widget.hero.groupLeaderId ?? "You (leader)"}"),
               const SizedBox(height: 16),
-
               if (isInGroup)
                 StreamBuilder<QuerySnapshot>(
                   stream: groupQuery,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const CircularProgressIndicator();
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator();
+                    }
 
                     final heroes = snapshot.data!.docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
@@ -134,7 +145,7 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
                     }).toList();
 
                     final leader = heroes.firstWhere(
-                          (h) => h.id == widget.hero.groupId,
+                      (h) => h.id == widget.hero.groupId,
                       orElse: () => widget.hero,
                     );
 
@@ -144,7 +155,8 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
                         const Text("📊 Group Structure:"),
                         const SizedBox(height: 8),
                         if (heroes.length <= 1)
-                          const Text("You are currently not connected to any other heroes."),
+                          const Text(
+                              "You are currently not connected to any other heroes."),
                         if (heroes.length > 1)
                           HeroTreeNode(
                             hero: leader,
@@ -160,81 +172,98 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
                           _isProcessing
                               ? const Center(child: CircularProgressIndicator())
                               : ElevatedButton.icon(
-                            onPressed: widget.hero.state == 'idle' ? leaveGroup : null,
-                            icon: const Icon(Icons.logout),
-                            label: const Text("Leave Group"),
-                          ),
+                                  onPressed: widget.hero.state == 'idle'
+                                      ? leaveGroup
+                                      : null,
+                                  icon: const Icon(Icons.logout),
+                                  label: const Text("Leave Group"),
+                                ),
                       ],
                     );
                   },
                 ),
-
               const SizedBox(height: 24),
               const Text("Nearby Heroes (same tile):"),
               const SizedBox(height: 8),
-
               StreamBuilder<QuerySnapshot>(
                 stream: heroRef.where('state', isEqualTo: 'idle').snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const CircularProgressIndicator();
+                  if (!snapshot.hasData) {
+                    return const CircularProgressIndicator();
+                  }
 
-                  final docs = snapshot.data!.docs.where((doc) => doc.id != widget.hero.id).toList();
+                  final docs = snapshot.data!.docs
+                      .where((doc) => doc.id != widget.hero.id)
+                      .toList();
                   if (docs.isEmpty) return const Text("• No heroes nearby.");
 
                   final isCurrentHeroLeader = widget.hero.groupLeaderId == null;
 
-                  return FutureBuilder<List<MapEntry<HeroModel, Map<String, dynamic>>>>(
+                  return FutureBuilder<
+                      List<MapEntry<HeroModel, Map<String, dynamic>>>>(
                     future: Future.wait(docs.map((doc) async {
                       final data = doc.data() as Map<String, dynamic>;
                       final hero = HeroModel.fromFirestore(doc.id, data);
-                      final groupSnap = await FirebaseFirestore.instance.collection('heroGroups').doc(hero.groupId).get();
+                      final groupSnap = await FirebaseFirestore.instance
+                          .collection('heroGroups')
+                          .doc(hero.groupId)
+                          .get();
                       final groupData = groupSnap.data();
 
                       return MapEntry(hero, groupData ?? {});
                     })),
                     builder: (context, groupSnapshot) {
-                      if (!groupSnapshot.hasData) return const CircularProgressIndicator();
+                      if (!groupSnapshot.hasData) {
+                        return const CircularProgressIndicator();
+                      }
 
                       final sameTileHeroes = groupSnapshot.data!
                           .where((entry) =>
-                      entry.value['tileX'] == tileX &&
-                          entry.value['tileY'] == tileY)
+                              entry.value['tileX'] == tileX &&
+                              entry.value['tileY'] == tileY)
                           .toList();
 
-                      if (sameTileHeroes.isEmpty) return const Text("• No heroes nearby.");
+                      if (sameTileHeroes.isEmpty) {
+                        return const Text("• No heroes nearby.");
+                      }
 
                       return Column(
                         children: sameTileHeroes.map((entry) {
                           final otherHero = entry.key;
-                          final isGroupLeader = otherHero.groupLeaderId == null || otherHero.groupLeaderId == otherHero.id;
-                          final isSameGroup = otherHero.groupId == widget.hero.groupId;
+                          final isGroupLeader =
+                              otherHero.groupLeaderId == null ||
+                                  otherHero.groupLeaderId == otherHero.id;
+                          final isSameGroup =
+                              otherHero.groupId == widget.hero.groupId;
                           final canConnect = isGroupLeader && !isSameGroup;
 
                           return ListTile(
                             leading: const Icon(Icons.person),
                             title: Text(otherHero.heroName),
-                            subtitle: Text("Group: ${isSameGroup ? "Same group" : otherHero.groupId}"),
+                            subtitle: Text(
+                                "Group: ${isSameGroup ? "Same group" : otherHero.groupId}"),
                             trailing: canConnect && isCurrentHeroLeader
                                 ? _isProcessing
-                                ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                                : ElevatedButton(
-                              onPressed: widget.hero.state == 'idle'
-                                  ? () => connectToHero(otherHero.id)
-                                  : null,
-                              child: const Text("Connect"),
-                            )
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      )
+                                    : ElevatedButton(
+                                        onPressed: widget.hero.state == 'idle'
+                                            ? () => connectToHero(otherHero.id)
+                                            : null,
+                                        child: const Text("Connect"),
+                                      )
                                 : Text(
-                              isSameGroup
-                                  ? "In your group"
-                                  : !isGroupLeader
-                                  ? "Not a leader"
-                                  : "Not the leader (you)",
-                              style: const TextStyle(color: Colors.grey),
-                            ),
+                                    isSameGroup
+                                        ? "In your group"
+                                        : !isGroupLeader
+                                            ? "Not a leader"
+                                            : "Not the leader (you)",
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
                           );
                         }).toList(),
                       );
@@ -242,7 +271,6 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
                   );
                 },
               ),
-
               const SizedBox(height: 24),
               Text(
                 "⚠️ Only the group leader can move the party. Others must leave or be kicked to act independently.",
@@ -278,7 +306,8 @@ class HeroTreeNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final children = allHeroes.where((h) => h.groupLeaderId == hero.id).toList();
+    final children =
+        allHeroes.where((h) => h.groupLeaderId == hero.id).toList();
     final canKick = isRootLeader && hero.id != currentHeroId;
 
     return Column(
@@ -287,35 +316,39 @@ class HeroTreeNode extends StatelessWidget {
         Row(
           children: [
             Padding(
-              padding: EdgeInsets.only(left: (hero.id == currentHeroId ? 0 : 16.0)),
+              padding:
+                  EdgeInsets.only(left: (hero.id == currentHeroId ? 0 : 16.0)),
               child: Text(
                 "${hero.heroName}${hero.id == currentHeroGroupId ? " (leader)" : ""}",
-                style: TextStyle(fontWeight: hero.id == currentHeroId ? FontWeight.bold : FontWeight.normal),
+                style: TextStyle(
+                    fontWeight: hero.id == currentHeroId
+                        ? FontWeight.bold
+                        : FontWeight.normal),
               ),
             ),
             if (canKick)
               isProcessing
                   ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : IconButton(
-                icon: const Icon(Icons.remove_circle, color: Colors.red),
-                tooltip: "Kick from group",
-                onPressed: () => onKick(hero.id),
-              ),
+                      icon: const Icon(Icons.remove_circle, color: Colors.red),
+                      tooltip: "Kick from group",
+                      onPressed: () => onKick(hero.id),
+                    ),
           ],
         ),
         ...children.map((child) => HeroTreeNode(
-          hero: child,
-          allHeroes: allHeroes,
-          currentHeroId: currentHeroId,
-          currentHeroGroupId: currentHeroGroupId,
-          isRootLeader: isRootLeader,
-          onKick: onKick,
-          isProcessing: isProcessing,
-        )),
+              hero: child,
+              allHeroes: allHeroes,
+              currentHeroId: currentHeroId,
+              currentHeroGroupId: currentHeroGroupId,
+              isRootLeader: isRootLeader,
+              onKick: onKick,
+              isProcessing: isProcessing,
+            )),
       ],
     );
   }

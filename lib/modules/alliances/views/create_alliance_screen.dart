@@ -31,7 +31,8 @@ class _CreateAllianceScreenState extends State<CreateAllianceScreen> {
     final desc = _descController.text.trim();
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('createAlliance');
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('createAlliance');
       final result = await callable.call({
         'name': name,
         'tag': tag,
@@ -46,7 +47,8 @@ class _CreateAllianceScreenState extends State<CreateAllianceScreen> {
         SnackBar(content: Text("Alliance '${data['name']}' created!")),
       );
 
-      final controller = Provider.of<MainContentController>(context, listen: false);
+      final controller =
+          Provider.of<MainContentController>(context, listen: false);
       controller.setCustomContent(const AllianceMembersScreen());
     } catch (e) {
       debugPrint("🔥 Error creating alliance: $e");
@@ -91,7 +93,8 @@ class _CreateAllianceScreenState extends State<CreateAllianceScreen> {
               },
             ),
             const SizedBox(height: 24),
-            const Text("Alliance Tag (2–4 letters)", style: TextStyle(fontSize: 16)),
+            const Text("Alliance Tag (2–4 letters)",
+                style: TextStyle(fontSize: 16)),
             TextFormField(
               controller: _tagController,
               enabled: !_isSubmitting,
@@ -111,7 +114,8 @@ class _CreateAllianceScreenState extends State<CreateAllianceScreen> {
               },
             ),
             const SizedBox(height: 24),
-            const Text("Description (optional)", style: TextStyle(fontSize: 16)),
+            const Text("Description (optional)",
+                style: TextStyle(fontSize: 16)),
             TextFormField(
               controller: _descController,
               enabled: !_isSubmitting,
@@ -121,7 +125,10 @@ class _CreateAllianceScreenState extends State<CreateAllianceScreen> {
             const SizedBox(height: 36),
             ElevatedButton.icon(
               icon: _isSubmitting
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.check),
               label: Text(_isSubmitting ? "Creating..." : "Create Alliance"),
               onPressed: _isSubmitting ? null : _submit,

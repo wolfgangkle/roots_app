@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
 import 'register_screen.dart';
-import 'package:roots_app/modules/village/data/items.dart';
-import 'package:roots_app/modules/combat/data/enemy_data.dart';
-import 'package:roots_app/modules/combat/data/event_data.dart';
+import 'package:roots_app/screens/dev/seed_functions.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,7 +15,10 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _devPasswordController = TextEditingController();
+
   String errorMessage = '';
+  bool _devModeEnabled = false;
 
   void _submit() async {
     final email = _emailController.text.trim();
@@ -27,7 +26,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty || password.length < 6) {
       setState(() {
-        errorMessage = 'Please enter a valid email and password (min. 6 characters).';
+        errorMessage =
+            'Please enter a valid email and password (min. 6 characters).';
       });
       return;
     }
@@ -45,141 +45,21 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('Logged in user: ${user.email}');
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-            (route) => false,
+        (route) => false,
       );
     }
   }
 
-  Future<void> _triggerPeacefulAIEvent() async {
-    try {
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('generatePeacefulEventFromAI')
-          .call();
-
-      final msg = result.data['message'] ?? 'Generated';
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🌿 $msg')));
-      }
-    } catch (e) {
-      debugPrint('❌ Error generating peaceful event: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Failed to generate peaceful event')),
-        );
-      }
-    }
-  }
-
-  Future<void> _triggerCombatAIEvent() async {
-    try {
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('generateCombatEventFromAI')
-          .call();
-
-      final msg = result.data['message'] ?? 'Generated';
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('⚔️ $msg')));
-      }
-    } catch (e) {
-      debugPrint('❌ Error generating combat event: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Failed to generate combat event')),
-        );
-      }
-    }
-  }
-
-  Future<void> _cleanMapTiles() async {
-    final tilesRef = FirebaseFirestore.instance.collection('mapTiles');
-    final snapshot = await tilesRef.get();
-
-    int cleaned = 0;
-
-    for (final doc in snapshot.docs) {
-      final data = doc.data();
-      final cleanedData = {
-        'terrain': data['terrain'],
-        'x': data['x'],
-        'y': data['y'],
-      };
-
-      final shouldClean = data.keys.any((k) => !['terrain', 'x', 'y'].contains(k));
-      if (shouldClean) {
-        await doc.reference.set(cleanedData, SetOptions(merge: false));
-        cleaned++;
-      }
-    }
-
-    if (mounted) {
+  void _tryEnableDevMode() {
+    final password = _devPasswordController.text.trim();
+    if (password == 'iamthedev') {
+      setState(() => _devModeEnabled = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("🧹 Cleaned $cleaned mapTiles")),
+        const SnackBar(content: Text("🔓 Dev mode activated")),
       );
-    }
-  }
-
-  Future<void> _seedCraftingItems() async {
-    final batch = FirebaseFirestore.instance.batch();
-    final itemsRef = FirebaseFirestore.instance.collection('items');
-
-    for (final entry in gameItems.entries) {
-      final itemId = entry.key;
-      final data = entry.value;
-
-      final docRef = itemsRef.doc(itemId);
-      batch.set(docRef, {
-        'itemId': itemId,
-        ...data,
-      }, SetOptions(merge: true));
-    }
-
-    await batch.commit();
-
-    if (mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚒️ Seeded all crafting items into Firestore!")),
-      );
-    }
-  }
-
-  Future<void> _seedEnemies() async {
-    final batch = FirebaseFirestore.instance.batch();
-    final ref = FirebaseFirestore.instance.collection('enemyTypes');
-
-    for (final enemy in enemyTypes) {
-      final docRef = ref.doc(enemy['id']);
-      batch.set(docRef, {
-        ...enemy,
-        'source': enemy['source'] ?? 'manual',
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    }
-
-    await batch.commit();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("💀 Seeded enemyTypes to Firestore!")),
-      );
-    }
-  }
-
-  Future<void> _seedEncounterEvents() async {
-    final batch = FirebaseFirestore.instance.batch();
-    final ref = FirebaseFirestore.instance.collection('encounterEvents');
-
-    for (final event in encounterEvents) {
-      final docRef = ref.doc(event['id']);
-      batch.set(docRef, {
-        ...event,
-        'source': event['source'] ?? 'Wolfgang',
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    }
-
-    await batch.commit();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("🧪 Seeded encounterEvents to Firestore!")),
+        const SnackBar(content: Text("❌ Wrong dev password")),
       );
     }
   }
@@ -192,26 +72,72 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 💻 AI Dev Buttons
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
+            if (_devModeEnabled) ...[
+              // 🌿 AI + Seeding Buttons (only in dev mode)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.auto_awesome),
+                      label: const Text("🌿 AI Peaceful"),
+                      onPressed: () => triggerPeacefulAIEvent(context),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.auto_awesome_motion),
+                      label: const Text("⚔️ AI Combat"),
+                      onPressed: () => triggerCombatAIEvent(context),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.cleaning_services),
+                label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
+                onPressed: () => cleanMapTiles(context),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.bolt),
+                label: const Text("⚒️ Seed Crafting Items"),
+                onPressed: () => seedCraftingItems(context),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.shield),
+                label: const Text("💀 Seed Enemies"),
+                onPressed: () => seedEnemies(context),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.local_fire_department),
+                label: const Text("🧪 Seed Encounter Events"),
+                onPressed: () => seedEncounterEvents(context),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.auto_fix_high),
+                label: const Text("✨ Seed Spells"),
+                onPressed: () => seedSpells(context),
+              ),
+
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.auto_awesome),
-                    label: const Text("🌿 AI Peaceful"),
-                    onPressed: _triggerPeacefulAIEvent,
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.auto_awesome_motion),
-                    label: const Text("⚔️ AI Combat"),
-                    onPressed: _triggerCombatAIEvent,
-                  ),
+                  _buildDevLoginButton("test3@roots.dev"),
+                  _buildDevLoginButton("test2@roots.dev"),
+                  _buildDevLoginButton("ivanna@roots.com"),
+                  _buildDevLoginButton("test@roots.dev"),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
+              const Divider(height: 32),
+            ],
+
+            // Login Fields
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
@@ -240,40 +166,23 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 10),
             if (errorMessage.isNotEmpty)
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.cleaning_services),
-              label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
-              onPressed: _cleanMapTiles,
+
+            // 🛠️ Dev Mode Entry
+            const SizedBox(height: 30),
+            const Divider(),
+            TextField(
+              controller: _devPasswordController,
+              decoration: const InputDecoration(
+                labelText: 'Dev Mode Password',
+                suffixIcon: Icon(Icons.lock),
+              ),
+              obscureText: true,
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
-              icon: const Icon(Icons.bolt),
-              label: const Text("⚒️ Seed Crafting Items"),
-              onPressed: _seedCraftingItems,
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.shield),
-              label: const Text("💀 Seed Enemies"),
-              onPressed: _seedEnemies,
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.local_fire_department),
-              label: const Text("🧪 Seed Encounter Events"),
-              onPressed: _seedEncounterEvents,
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildDevLoginButton("test3@roots.dev"),
-                _buildDevLoginButton("test2@roots.dev"),
-                _buildDevLoginButton("ivanna@roots.com"),
-                _buildDevLoginButton("test@roots.dev"),
-              ],
+              icon: const Icon(Icons.vpn_key),
+              label: const Text("Enter Dev Mode"),
+              onPressed: _tryEnableDevMode,
             ),
           ],
         ),
@@ -288,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (user != null) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const CheckUserProfile()),
-                (route) => false,
+            (route) => false,
           );
         } else {
           setState(() {

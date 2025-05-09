@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart'; // ✅ for kDebugMode and debugPrint
 
 /// Calls the Firebase Cloud Function `createHero` to create the main hero (mage).
 ///
@@ -23,10 +24,14 @@ Future<String?> createHero({
     final data = result.data as Map<String, dynamic>;
     return data['heroId'] as String?;
   } on FirebaseFunctionsException catch (e) {
-    print('🔥 FirebaseFunctionsException: ${e.code} - ${e.message}');
+    if (kDebugMode) {
+      debugPrint('🔥 FirebaseFunctionsException: ${e.code} - ${e.message}');
+    }
     return null;
   } catch (e) {
-    print('🔥 Unexpected error calling createHero: $e');
+    if (kDebugMode) {
+      debugPrint('🔥 Unexpected error calling createHero: $e');
+    }
     return null;
   }
 }

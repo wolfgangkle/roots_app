@@ -35,7 +35,8 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
       return const Center(child: Text("⚠️ Not logged in."));
     }
 
-    final heroRef = FirebaseFirestore.instance.collection('heroes').doc(widget.heroId);
+    final heroRef =
+        FirebaseFirestore.instance.collection('heroes').doc(widget.heroId);
 
     return StreamBuilder<DocumentSnapshot>(
       stream: heroRef.snapshots(),
@@ -60,14 +61,16 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
 
         final mainHandItem = equipped['mainHand'];
         final isMainHandTwoHanded =
-            (mainHandItem?['equipSlot'] ?? '').toString().toLowerCase() == 'two_hand';
+            (mainHandItem?['equipSlot'] ?? '').toString().toLowerCase() ==
+                'two_hand';
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Padding(
               padding: EdgeInsets.all(8),
-              child: Text('🎽 Equipped Items', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text('🎽 Equipped Items',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             ...slots.map((slot) {
               final item = equipped[slot];
@@ -87,117 +90,142 @@ class _EquipmentSlotsViewState extends State<EquipmentSlotsView> {
                 ),
                 subtitle: isBlocked
                     ? const Text(
-                  'Blocked by two-handed weapon',
-                  style: TextStyle(color: Colors.grey),
-                )
+                        'Blocked by two-handed weapon',
+                        style: TextStyle(color: Colors.grey),
+                      )
                     : itemId != null
-                    ? Text(meta?['name'] ?? itemId)
-                    : const Text('Empty'),
+                        ? Text(meta?['name'] ?? itemId)
+                        : const Text('Empty'),
                 tileColor: isBlocked ? Colors.grey.shade100 : null,
                 trailing: (itemId != null && !isBlocked)
                     ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: (_isLoading && _activeSlot == slot)
-                          ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                          : const Icon(Icons.backpack),
-                      tooltip: 'Unequip to Backpack',
-                      onPressed: _isLoading
-                          ? null
-                          : () async {
-                        setState(() {
-                          _isLoading = true;
-                          _activeSlot = slot;
-                        });
-                        try {
-                          final callable = FirebaseFunctions.instance.httpsCallable('unequipItemToBackpack');
-                          final result = await callable.call({
-                            'heroId': widget.heroId,
-                            'slot': slot,
-                          });
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: (_isLoading && _activeSlot == slot)
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.backpack),
+                            tooltip: 'Unequip to Backpack',
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    setState(() {
+                                      _isLoading = true;
+                                      _activeSlot = slot;
+                                    });
+                                    try {
+                                      final callable = FirebaseFunctions
+                                          .instance
+                                          .httpsCallable(
+                                              'unequipItemToBackpack');
+                                      final result = await callable.call({
+                                        'heroId': widget.heroId,
+                                        'slot': slot,
+                                      });
 
-                          final stats = result.data['updatedStats'];
-                          if (context.mounted) {
-                            if (stats != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('🎒 Unequipped $slot (Atk: ${stats['attackMin']}–${stats['attackMax']}, Def: ${stats['defense']})')),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('🎒 Unequipped $slot')),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("❌ Failed to unequip: $e")),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() {
-                              _isLoading = false;
-                              _activeSlot = null;
-                            });
-                          }
-                        }
-                      },
-                    ),
-                    IconButton(
-                      icon: (_isLoading && _activeSlot == slot)
-                          ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                          : const Icon(Icons.backspace),
-                      tooltip: 'Drop Item',
-                      onPressed: _isLoading
-                          ? null
-                          : () async {
-                        setState(() {
-                          _isLoading = true;
-                          _activeSlot = slot;
-                        });
-                        final tileKey = "${widget.tileX}_${widget.tileY}";
-                        try {
-                          final callable = FirebaseFunctions.instance.httpsCallable('dropItemFromSlot');
-                          await callable.call({
-                            'heroId': widget.heroId,
-                            'slot': slot,
-                            if (widget.insideVillage) 'villageId': widget.villageId,
-                            if (!widget.insideVillage) 'tileKey': tileKey,
-                          });
+                                      final stats = result.data['updatedStats'];
+                                      if (context.mounted) {
+                                        if (stats != null) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                                content: Text(
+                                                    '🎒 Unequipped $slot (Atk: ${stats['attackMin']}–${stats['attackMax']}, Def: ${stats['defense']})')),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                                content: Text(
+                                                    '🎒 Unequipped $slot')),
+                                          );
+                                        }
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(
+                                                  "❌ Failed to unequip: $e")),
+                                        );
+                                      }
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() {
+                                          _isLoading = false;
+                                          _activeSlot = null;
+                                        });
+                                      }
+                                    }
+                                  },
+                          ),
+                          IconButton(
+                            icon: (_isLoading && _activeSlot == slot)
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.backspace),
+                            tooltip: 'Drop Item',
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    setState(() {
+                                      _isLoading = true;
+                                      _activeSlot = slot;
+                                    });
+                                    final tileKey =
+                                        "${widget.tileX}_${widget.tileY}";
+                                    try {
+                                      final callable = FirebaseFunctions
+                                          .instance
+                                          .httpsCallable('dropItemFromSlot');
+                                      await callable.call({
+                                        'heroId': widget.heroId,
+                                        'slot': slot,
+                                        if (widget.insideVillage)
+                                          'villageId': widget.villageId,
+                                        if (!widget.insideVillage)
+                                          'tileKey': tileKey,
+                                      });
 
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("📦 Dropped item from slot")),
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("❌ Failed to drop item: $e")),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() {
-                              _isLoading = false;
-                              _activeSlot = null;
-                            });
-                          }
-                        }
-                      },
-                    ),
-                  ],
-                )
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  "📦 Dropped item from slot")),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(
+                                                  "❌ Failed to drop item: $e")),
+                                        );
+                                      }
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() {
+                                          _isLoading = false;
+                                          _activeSlot = null;
+                                        });
+                                      }
+                                    }
+                                  },
+                          ),
+                        ],
+                      )
                     : null,
               );
             }),

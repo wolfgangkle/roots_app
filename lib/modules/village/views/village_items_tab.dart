@@ -48,10 +48,18 @@ class _VillageItemsTabState extends State<VillageItemsTab> {
           fillColor: Colors.blue,
           color: Colors.black,
           children: const [
-            Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('All')),
-            Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('Weapons')),
-            Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('Armor')),
-            Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('Other')),
+            Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('All')),
+            Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('Weapons')),
+            Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('Armor')),
+            Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('Other')),
           ],
         ),
         const SizedBox(height: 12),
@@ -63,7 +71,8 @@ class _VillageItemsTabState extends State<VillageItemsTab> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("🪶 No items stored in this village."));
+                return const Center(
+                    child: Text("🪶 No items stored in this village."));
               }
 
               final itemDocs = snapshot.data!.docs;
@@ -72,7 +81,8 @@ class _VillageItemsTabState extends State<VillageItemsTab> {
                 final itemData = doc.data() as Map<String, dynamic>;
                 final itemId = itemData['itemId'];
                 final base = itemId != null ? gameItems[itemId] ?? {} : {};
-                final type = (base['type'] ?? 'unknown').toString().toLowerCase();
+                final type =
+                    (base['type'] ?? 'unknown').toString().toLowerCase();
 
                 if (selectedFilter == 'All') return true;
                 if (selectedFilter == 'Weapons') return type == 'weapon';
@@ -81,16 +91,19 @@ class _VillageItemsTabState extends State<VillageItemsTab> {
               }).toList();
 
               return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: filteredItems.length,
                 itemBuilder: (context, index) {
-                  final itemData = filteredItems[index].data() as Map<String, dynamic>;
+                  final itemData =
+                      filteredItems[index].data() as Map<String, dynamic>;
                   final quantity = itemData['quantity'] ?? 1;
                   final itemId = itemData['itemId'] as String?;
                   final base = itemId != null ? gameItems[itemId] ?? {} : {};
                   final name = base['name'] ?? 'Unknown Item';
                   final description = base['description'] ?? '';
-                  final craftedStats = itemData['craftedStats'] as Map<String, dynamic>? ?? {};
+                  final craftedStats =
+                      itemData['craftedStats'] as Map<String, dynamic>? ?? {};
                   final stats = {
                     ...?base['baseStats'] as Map<String, dynamic>?,
                     ...craftedStats,
@@ -126,9 +139,12 @@ class _VillageItemsTabState extends State<VillageItemsTab> {
                         children: [
                           Text(
                             '$name ×$quantity',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           if (isExpanded) ...[
                             const SizedBox(height: 6),
@@ -145,7 +161,8 @@ class _VillageItemsTabState extends State<VillageItemsTab> {
                                       .bodySmall
                                       ?.copyWith(color: Colors.grey.shade600)),
                               ...stats.entries.map(
-                                    (e) => Text('• ${_capitalize(e.key)}: ${e.value}'),
+                                (e) =>
+                                    Text('• ${_capitalize(e.key)}: ${e.value}'),
                               ),
                             ],
                           ],

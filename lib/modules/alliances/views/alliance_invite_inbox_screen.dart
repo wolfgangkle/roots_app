@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/profile/models/user_profile_model.dart';
@@ -9,10 +8,12 @@ class AllianceInviteInboxScreen extends StatefulWidget {
   const AllianceInviteInboxScreen({super.key});
 
   @override
-  State<AllianceInviteInboxScreen> createState() => _AllianceInviteInboxScreenState();
+  State<AllianceInviteInboxScreen> createState() =>
+      _AllianceInviteInboxScreenState();
 }
 
-class _AllianceInviteInboxScreenState extends State<AllianceInviteInboxScreen> {
+class _AllianceInviteInboxScreenState
+    extends State<AllianceInviteInboxScreen> {
   String? _inviteProcessing;
 
   @override
@@ -22,7 +23,8 @@ class _AllianceInviteInboxScreenState extends State<AllianceInviteInboxScreen> {
     final isLeader = profile.guildRole == 'leader';
 
     if (!isLeader || guildId == null) {
-      return const Center(child: Text("Only guild leaders can view alliance invites."));
+      return const Center(
+          child: Text("Only guild leaders can view alliance invites."));
     }
 
     final invitesQuery = FirebaseFirestore.instance
@@ -57,19 +59,27 @@ class _AllianceInviteInboxScreenState extends State<AllianceInviteInboxScreen> {
               final isProcessing = _inviteProcessing == inviteId;
 
               return FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.doc('alliances/$allianceId').get(),
+                future: FirebaseFirestore.instance
+                    .doc('alliances/$allianceId')
+                    .get(),
                 builder: (context, allianceSnap) {
-                  final allianceData = allianceSnap.data?.data() as Map<String, dynamic>? ?? {};
-                  final allianceName = allianceData['name'] ?? 'Unknown Alliance';
+                  final allianceData =
+                      allianceSnap.data?.data() as Map<String, dynamic>? ?? {};
+                  final allianceName =
+                      allianceData['name'] ?? 'Unknown Alliance';
                   final allianceTag = allianceData['tag'] ?? '???';
 
                   return Card(
                     child: ListTile(
                       title: Text("[$allianceTag] $allianceName"),
                       subtitle: FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance.doc('guilds/$invitedByGuildId').get(),
+                        future: FirebaseFirestore.instance
+                            .doc('guilds/$invitedByGuildId')
+                            .get(),
                         builder: (context, guildSnap) {
-                          final guildData = guildSnap.data?.data() as Map<String, dynamic>? ?? {};
+                          final guildData =
+                              guildSnap.data?.data() as Map<String, dynamic>? ??
+                                  {};
                           final byTag = guildData['tag'] ?? '???';
                           final byName = guildData['name'] ?? 'Unknown Guild';
                           return Text("Invited by: [$byTag] $byName");
@@ -83,31 +93,36 @@ class _AllianceInviteInboxScreenState extends State<AllianceInviteInboxScreen> {
                                 ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
                             )
                                 : const Icon(Icons.check, color: Colors.green),
                             tooltip: "Accept",
                             onPressed: isProcessing
                                 ? null
                                 : () async {
-                              setState(() => _inviteProcessing = inviteId);
+                              final messenger =
+                              ScaffoldMessenger.of(context);
+                              setState(() =>
+                              _inviteProcessing = inviteId);
                               try {
                                 await FirebaseFunctions.instance
                                     .httpsCallable('acceptAllianceInvite')
                                     .call({'allianceId': allianceId});
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Joined alliance!")),
-                                  );
-                                }
+
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                      content: Text("Joined alliance!")),
+                                );
                               } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Error: $e")),
-                                  );
-                                }
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text("Error: $e")),
+                                );
                               } finally {
-                                if (mounted) setState(() => _inviteProcessing = null);
+                                if (mounted) {
+                                  setState(
+                                          () => _inviteProcessing = null);
+                                }
                               }
                             },
                           ),
@@ -117,24 +132,30 @@ class _AllianceInviteInboxScreenState extends State<AllianceInviteInboxScreen> {
                             onPressed: isProcessing
                                 ? null
                                 : () async {
-                              setState(() => _inviteProcessing = inviteId);
+                              final messenger =
+                              ScaffoldMessenger.of(context);
+                              setState(() =>
+                              _inviteProcessing = inviteId);
                               try {
                                 await FirebaseFirestore.instance
-                                    .doc('guilds/$guildId/allianceInvites/$inviteId')
+                                    .doc(
+                                    'guilds/$guildId/allianceInvites/$inviteId')
                                     .delete();
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Invitation declined.")),
-                                  );
-                                }
+
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                      Text("Invitation declined.")),
+                                );
                               } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Error: $e")),
-                                  );
-                                }
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text("Error: $e")),
+                                );
                               } finally {
-                                if (mounted) setState(() => _inviteProcessing = null);
+                                if (mounted) {
+                                  setState(
+                                          () => _inviteProcessing = null);
+                                }
                               }
                             },
                           ),

@@ -16,7 +16,7 @@ class ReportDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenSize =
-    LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+        LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
     final isMobile = screenSize == ScreenSizeCategory.small;
 
     final reportRef = FirebaseFirestore.instance
@@ -59,8 +59,7 @@ class ReportDetailScreen extends StatelessWidget {
           }
 
           // Now try to retrieve the document data as a Map
-          final data =
-          snapshot.data!.data() as Map<String, dynamic>?;
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
           if (data == null) {
             return const Center(child: Text("Report data is empty."));
           }
@@ -87,8 +86,7 @@ class ReportDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: Theme.of(context).textTheme.headlineSmall),
+                Text(title, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
                 Text(message),
                 if (xp != null) ...[

@@ -56,7 +56,8 @@ class _HeroMiniMapOverlayState extends State<HeroMiniMapOverlay> {
     final heroX = widget.hero.tileX;
     final heroY = widget.hero.tileY;
 
-    final snapshot = await FirebaseFirestore.instance.collection('heroes').get();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('heroes').get();
     final others = snapshot.docs.where((doc) {
       final data = doc.data();
       if (doc.id == widget.hero.id) return false;
@@ -69,11 +70,13 @@ class _HeroMiniMapOverlayState extends State<HeroMiniMapOverlay> {
     });
 
     setState(() {
-      nearbyHeroes = others.map((doc) => {
-        'id': doc.id,
-        'tileX': doc['tileX'],
-        'tileY': doc['tileY'],
-      }).toList();
+      nearbyHeroes = others
+          .map((doc) => {
+                'id': doc.id,
+                'tileX': doc['tileX'],
+                'tileY': doc['tileY'],
+              })
+          .toList();
     });
   }
 
@@ -98,8 +101,10 @@ class _HeroMiniMapOverlayState extends State<HeroMiniMapOverlay> {
             final delta = details.localPosition - dragStart!;
             dragStart = details.localPosition;
 
-            final dx = (panOffset.dx - delta.dx / tileSize).clamp(0, mapSize - visibleTiles);
-            final dy = (panOffset.dy - delta.dy / tileSize).clamp(0, mapSize - visibleTiles);
+            final dx = (panOffset.dx - delta.dx / tileSize)
+                .clamp(0, mapSize - visibleTiles);
+            final dy = (panOffset.dy - delta.dy / tileSize)
+                .clamp(0, mapSize - visibleTiles);
 
             setState(() {
               panOffset = Offset(dx.toDouble(), dy.toDouble());
@@ -113,7 +118,6 @@ class _HeroMiniMapOverlayState extends State<HeroMiniMapOverlay> {
               child: Stack(
                 children: [
                   Container(color: const Color(0xFFA5D6A7)),
-
                   GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
                     padding: EdgeInsets.zero,
@@ -127,8 +131,10 @@ class _HeroMiniMapOverlayState extends State<HeroMiniMapOverlay> {
                       final y = panOffset.dy.toInt() + (index ~/ visibleTiles);
                       final tileKey = '${x}_$y';
                       final terrainId = tier1Map[tileKey] ?? 'plains';
-                      final isHero = (x == widget.hero.tileX && y == widget.hero.tileY);
-                      final isWaypoint = widget.waypoints.any((wp) => wp['x'] == x && wp['y'] == y);
+                      final isHero =
+                          (x == widget.hero.tileX && y == widget.hero.tileY);
+                      final isWaypoint = widget.waypoints
+                          .any((wp) => wp['x'] == x && wp['y'] == y);
                       final hasVillage = villageTiles.contains(tileKey);
                       final isOther = isOtherHero(x, y);
 
@@ -136,13 +142,21 @@ class _HeroMiniMapOverlayState extends State<HeroMiniMapOverlay> {
                         children: [
                           MapTileWidget(x: x, y: y, terrainId: terrainId),
                           if (hasVillage)
-                            const Center(child: Text("🏰", style: TextStyle(fontSize: 16))),
+                            const Center(
+                                child:
+                                    Text("🏰", style: TextStyle(fontSize: 16))),
                           if (isOther)
-                            const Center(child: Text("🗡️", style: TextStyle(fontSize: 16))),
+                            const Center(
+                                child: Text("🗡️",
+                                    style: TextStyle(fontSize: 16))),
                           if (isHero)
-                            const Center(child: Text("🧙", style: TextStyle(fontSize: 16))),
+                            const Center(
+                                child:
+                                    Text("🧙", style: TextStyle(fontSize: 16))),
                           if (isWaypoint)
-                            const Center(child: Icon(Icons.circle, size: 10, color: Colors.orange)),
+                            const Center(
+                                child: Icon(Icons.circle,
+                                    size: 10, color: Colors.orange)),
                         ],
                       );
                     },

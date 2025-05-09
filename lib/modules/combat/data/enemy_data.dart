@@ -20,7 +20,8 @@ final List<Map<String, dynamic>> enemyTypes = [
   {
     'id': 'goblin',
     'name': 'Goblin',
-    'description': 'A sneaky goblin with a rusty dagger and questionable hygiene.',
+    'description':
+        'A sneaky goblin with a rusty dagger and questionable hygiene.',
     'combatLevel': 8,
     'baseStats': {
       'hp': 80,

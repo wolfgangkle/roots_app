@@ -54,14 +54,14 @@ class _BuildingScreenState extends State<BuildingScreen> {
         Expanded(
           child: currentTab == 'Buildings'
               ? BuildingTab(
-            village: widget.village,
-            selectedFilter: currentFilter,
-          )
+                  village: widget.village,
+                  selectedFilter: currentFilter,
+                )
               : CraftingTab(
-            villageId: widget.village.id,
-            currentCraftingJob: widget.village.currentCraftingJob,
-            selectedFilter: currentFilter,
-          ),
+                  villageId: widget.village.id,
+                  currentCraftingJob: widget.village.currentCraftingJob,
+                  selectedFilter: currentFilter,
+                ),
         ),
       ],
     );

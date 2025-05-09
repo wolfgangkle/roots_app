@@ -76,7 +76,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -106,7 +105,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               border: OutlineInputBorder(),
                               isDense: true,
                               filled: true,
-                              fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.1),
+                              fillColor: theme
+                                  .colorScheme.surfaceContainerHighest
+                                  .withOpacity(0.1),
                             ),
                             style: const TextStyle(fontFamily: 'monospace'),
                           ),

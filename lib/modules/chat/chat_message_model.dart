@@ -27,9 +27,9 @@ class ChatMessage {
   }
 
   Map<String, dynamic> toMap() => {
-    'sender': sender,
-    'content': content,
-    'timestamp': FieldValue.serverTimestamp(),
-    if (type != null) 'type': type,
-  };
+        'sender': sender,
+        'content': content,
+        'timestamp': FieldValue.serverTimestamp(),
+        if (type != null) 'type': type,
+      };
 }

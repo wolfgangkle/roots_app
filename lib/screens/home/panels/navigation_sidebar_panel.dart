@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:roots_app/screens/home/panels/navigation_list_content.dart';
 
 class NavigationSidebarPanel extends StatelessWidget {
-  final void Function({required String title, required Widget content})? onSelectDynamicTab;
+  final void Function({required String title, required Widget content})?
+      onSelectDynamicTab;
 
   const NavigationSidebarPanel({super.key, this.onSelectDynamicTab});
 

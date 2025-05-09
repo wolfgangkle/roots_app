@@ -7,7 +7,8 @@ class GuildInviteInboxScreen extends StatefulWidget {
   const GuildInviteInboxScreen({super.key});
 
   @override
-  State<GuildInviteInboxScreen> createState() => _GuildInviteInboxScreenState();
+  State<GuildInviteInboxScreen> createState() =>
+      _GuildInviteInboxScreenState();
 }
 
 class _GuildInviteInboxScreenState extends State<GuildInviteInboxScreen> {
@@ -49,13 +50,14 @@ class _GuildInviteInboxScreenState extends State<GuildInviteInboxScreen> {
               final guildId = data['guildId'];
               final fromUserId = data['fromUserId'];
               final inviteId = doc.id;
+              final isProcessing = _inviteProcessing == inviteId;
 
               return FutureBuilder<DocumentSnapshot>(
                 future: FirebaseFirestore.instance.doc('guilds/$guildId').get(),
                 builder: (context, guildSnap) {
-                  final guildName = guildSnap.data?.get('name') ?? 'Unknown Guild';
+                  final guildName =
+                      guildSnap.data?.get('name') ?? 'Unknown Guild';
                   final guildTag = guildSnap.data?.get('tag') ?? '???';
-                  final isProcessing = _inviteProcessing == inviteId;
 
                   return Card(
                     child: ListTile(
@@ -69,31 +71,35 @@ class _GuildInviteInboxScreenState extends State<GuildInviteInboxScreen> {
                                 ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
                             )
                                 : const Icon(Icons.check, color: Colors.green),
                             tooltip: "Accept",
                             onPressed: isProcessing
                                 ? null
                                 : () async {
-                              setState(() => _inviteProcessing = inviteId);
+                              final messenger =
+                              ScaffoldMessenger.of(context);
+                              setState(() =>
+                              _inviteProcessing = inviteId);
                               try {
                                 await FirebaseFunctions.instance
                                     .httpsCallable('acceptGuildInvite')
                                     .call({'guildId': guildId});
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Joined guild!")),
-                                  );
-                                }
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                      content: Text("Joined guild!")),
+                                );
                               } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Error: $e")),
-                                  );
-                                }
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text("Error: $e")),
+                                );
                               } finally {
-                                if (mounted) setState(() => _inviteProcessing = null);
+                                if (mounted) {
+                                  setState(
+                                          () => _inviteProcessing = null);
+                                }
                               }
                             },
                           ),
@@ -103,24 +109,28 @@ class _GuildInviteInboxScreenState extends State<GuildInviteInboxScreen> {
                             onPressed: isProcessing
                                 ? null
                                 : () async {
-                              setState(() => _inviteProcessing = inviteId);
+                              final messenger =
+                              ScaffoldMessenger.of(context);
+                              setState(() =>
+                              _inviteProcessing = inviteId);
                               try {
                                 await FirebaseFirestore.instance
                                     .doc('guildInvites/$inviteId')
                                     .update({'status': 'declined'});
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Invitation declined.")),
-                                  );
-                                }
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                      Text("Invitation declined.")),
+                                );
                               } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Error: $e")),
-                                  );
-                                }
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text("Error: $e")),
+                                );
                               } finally {
-                                if (mounted) setState(() => _inviteProcessing = null);
+                                if (mounted) {
+                                  setState(
+                                          () => _inviteProcessing = null);
+                                }
                               }
                             },
                           ),

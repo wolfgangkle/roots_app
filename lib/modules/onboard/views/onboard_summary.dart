@@ -82,13 +82,13 @@ class OnboardSummaryScreen extends StatelessWidget {
                     onPressed: isLoading ? null : () => _handleConfirm(context),
                     child: isLoading
                         ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : const Text("Confirm"),
                   ),
                 ),

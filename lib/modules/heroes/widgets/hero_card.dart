@@ -11,8 +11,10 @@ class HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percentHp = hero.hpMax > 0 ? (hero.hp / hero.hpMax).clamp(0.0, 1.0) : 0.0;
-    final groupRef = FirebaseFirestore.instance.collection('heroGroups').doc(hero.groupId);
+    final percentHp =
+        hero.hpMax > 0 ? (hero.hp / hero.hpMax).clamp(0.0, 1.0) : 0.0;
+    final groupRef =
+        FirebaseFirestore.instance.collection('heroGroups').doc(hero.groupId);
 
     return FutureBuilder<DocumentSnapshot>(
       future: groupRef.get(),
@@ -30,7 +32,8 @@ class HeroCard extends StatelessWidget {
         return Card(
           elevation: 2,
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: onTap,
@@ -45,7 +48,10 @@ class HeroCard extends StatelessWidget {
                     children: [
                       Text(
                         hero.heroName,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -59,14 +65,16 @@ class HeroCard extends StatelessWidget {
                             ),
                           ),
                           if (positionText.isNotEmpty)
-                            Text(positionText, style: Theme.of(context).textTheme.bodySmall),
+                            Text(positionText,
+                                style: Theme.of(context).textTheme.bodySmall),
                         ],
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 4),
-                  Text("Level ${hero.level} • ${hero.race}", style: Theme.of(context).textTheme.bodyMedium),
+                  Text("Level ${hero.level} • ${hero.race}",
+                      style: Theme.of(context).textTheme.bodyMedium),
 
                   const SizedBox(height: 8),
 
@@ -78,19 +86,23 @@ class HeroCard extends StatelessWidget {
                     minHeight: 6,
                   ),
                   const SizedBox(height: 4),
-                  Text("HP: ${hero.hp} / ${hero.hpMax}", style: Theme.of(context).textTheme.bodySmall),
+                  Text("HP: ${hero.hp} / ${hero.hpMax}",
+                      style: Theme.of(context).textTheme.bodySmall),
 
                   /// Mana bar
                   if (hero.type == 'mage') ...[
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
-                      value: hero.manaMax > 0 ? (hero.mana / hero.manaMax).clamp(0.0, 1.0) : 0.0,
+                      value: hero.manaMax > 0
+                          ? (hero.mana / hero.manaMax).clamp(0.0, 1.0)
+                          : 0.0,
                       backgroundColor: Colors.grey.shade300,
                       color: Theme.of(context).colorScheme.primary,
                       minHeight: 6,
                     ),
                     const SizedBox(height: 4),
-                    Text("Mana: ${hero.mana} / ${hero.manaMax}", style: Theme.of(context).textTheme.bodySmall),
+                    Text("Mana: ${hero.mana} / ${hero.manaMax}",
+                        style: Theme.of(context).textTheme.bodySmall),
                   ],
 
                   /// Countdown
@@ -151,7 +163,8 @@ class _LiveCountdownState extends State<_LiveCountdown> {
   void initState() {
     super.initState();
     _updateRemaining();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+    _timer =
+        Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
   }
 
   void _updateRemaining() {

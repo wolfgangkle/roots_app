@@ -23,8 +23,8 @@ class HeroPanel extends StatelessWidget {
         .where('ownerId', isEqualTo: user.uid)
         .snapshots()
         .map((query) => query.docs.map((doc) {
-      return HeroModel.fromFirestore(doc.id, doc.data());
-    }).toList());
+              return HeroModel.fromFirestore(doc.id, doc.data());
+            }).toList());
   }
 
   Future<Map<String, dynamic>?> _loadProfile() async {
@@ -89,7 +89,6 @@ class HeroPanel extends StatelessWidget {
         }
 
         // 🧙 Otherwise, continue as usual
-        final mainHero = heroes.firstWhere((h) => h.type == 'mage', orElse: () => heroes.first);
 
         return FutureBuilder<Map<String, dynamic>?>(
           future: _loadProfile(),
@@ -101,9 +100,9 @@ class HeroPanel extends StatelessWidget {
             final usedCompanions = current['companions'] ?? 0;
             final usedVillages = current['villages'] ?? 0;
             final maxCompanions = limits['maxCompanions'] ?? 0;
-            final maxVillages = limits['maxVillages'] ?? 0;
 
-            final currentMaxSlots = slotInfo?['currentMaxSlots'] ?? (limits['maxSlots'] ?? 0);
+            final currentMaxSlots =
+                slotInfo?['currentMaxSlots'] ?? (limits['maxSlots'] ?? 0);
             final usedTotal = usedCompanions + usedVillages;
 
             final canAddCompanion =
@@ -114,35 +113,36 @@ class HeroPanel extends StatelessWidget {
               children: [
                 if (canAddCompanion)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        controller.setCustomContent(const CreateCompanionScreen());
+                        controller
+                            .setCustomContent(const CreateCompanionScreen());
                       },
                       icon: const Icon(Icons.add),
                       label: const Text("Create Companion"),
                     ),
                   ),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text("Slots used: $usedTotal / $currentMaxSlots",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey)),
                       const SizedBox(height: 2),
                       Text("Companions: $usedCompanions",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey)),
                       Text("Villages: $usedVillages",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                 ),
-
-
                 const SizedBox(height: 8),
-
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -161,7 +161,8 @@ class HeroPanel extends StatelessWidget {
                               ),
                             );
                           } else {
-                            controller.setCustomContent(HeroDetailsScreen(hero: hero));
+                            controller.setCustomContent(
+                                HeroDetailsScreen(hero: hero));
                           }
                         },
                       );

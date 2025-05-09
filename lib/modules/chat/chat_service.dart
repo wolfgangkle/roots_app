@@ -17,7 +17,8 @@ class ChatService {
         .limit(limit)
         .snapshots()
         .map((snapshot) {
-      FirestoreLogger.read("getMessageStream → snapshot (${snapshot.docs.length} docs)");
+      FirestoreLogger.read(
+          "getMessageStream → snapshot (${snapshot.docs.length} docs)");
       return snapshot.docs
           .map((doc) => ChatMessage.fromDoc(doc))
           .toList()
@@ -44,16 +45,16 @@ class ChatService {
 
   /// Delete messages beyond the latest [maxMessages]
   static Future<void> _pruneOldMessages({int maxMessages = 100}) async {
-    final allMessages = await _messagesRef
-        .orderBy('timestamp', descending: true)
-        .get();
+    final allMessages =
+        await _messagesRef.orderBy('timestamp', descending: true).get();
 
     FirestoreLogger.read("prune - total messages: ${allMessages.docs.length}");
 
     final docsToDelete = allMessages.docs.skip(maxMessages).toList();
 
     if (docsToDelete.isNotEmpty) {
-      FirestoreLogger.delete("prune - deleting ${docsToDelete.length} message(s)");
+      FirestoreLogger.delete(
+          "prune - deleting ${docsToDelete.length} message(s)");
     }
 
     for (final doc in docsToDelete) {
@@ -63,7 +64,8 @@ class ChatService {
   }
 
   /// Stream messages from guild chat
-  static Stream<List<ChatMessage>> getGuildMessageStream(String guildId, {int limit = 100}) {
+  static Stream<List<ChatMessage>> getGuildMessageStream(String guildId,
+      {int limit = 100}) {
     final ref = FirebaseFirestore.instance
         .collection('guilds')
         .doc(guildId)
@@ -81,7 +83,8 @@ class ChatService {
   }
 
   /// Send a message to the guild chat
-  static Future<void> sendGuildMessage(String guildId, String sender, String content) async {
+  static Future<void> sendGuildMessage(
+      String guildId, String sender, String content) async {
     final trimmed = content.trim();
     if (trimmed.isEmpty) return;
 
@@ -100,7 +103,8 @@ class ChatService {
   }
 
   /// Send a system message to the guild chat (e.g. "Ivanna joined the guild")
-  static Future<void> sendSystemGuildMessage(String guildId, String content) async {
+  static Future<void> sendSystemGuildMessage(
+      String guildId, String content) async {
     FirestoreLogger.write('sendSystemGuildMessage to $guildId → "$content"');
 
     final ref = FirebaseFirestore.instance

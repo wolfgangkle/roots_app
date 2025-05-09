@@ -93,7 +93,8 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
         ));
       }
 
-      final guildStream = FirebaseFirestore.instance.doc('guilds/$guildId').snapshots();
+      final guildStream =
+          FirebaseFirestore.instance.doc('guilds/$guildId').snapshots();
 
       return guildStream.map((guildSnap) {
         if (!guildSnap.exists) {
@@ -116,7 +117,6 @@ class _CheckUserProfileState extends State<CheckUserProfile> {
           allianceRole: guildData['allianceRole'],
         );
       });
-
     });
   }
 }

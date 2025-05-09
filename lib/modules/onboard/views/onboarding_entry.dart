@@ -52,7 +52,8 @@ class _OnboardingEntryState extends State<OnboardingEntry> {
     setState(() => _isSubmitting = true);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('finalizeOnboarding');
       await callable.call({
         'heroName': heroName!,
         'villageName': villageName!,

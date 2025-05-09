@@ -24,7 +24,8 @@ class CraftingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = itemData['name'] ?? 'Unnamed';
     final type = itemData['type'] ?? 'Unknown';
-    final craftingCost = itemData['craftingCost'] as Map<String, dynamic>? ?? {};
+    final craftingCost =
+        itemData['craftingCost'] as Map<String, dynamic>? ?? {};
     final baseStats = itemData['baseStats'] as Map<String, dynamic>? ?? {};
 
     final costString = craftingCost.entries
@@ -34,8 +35,8 @@ class CraftingCard extends StatelessWidget {
     final buildTimeSeconds = itemData['buildTime'] ?? 0;
     final buildTimeText = _formatDuration(Duration(seconds: buildTimeSeconds));
 
-    final isCraftingThisItem = currentCraftingJob != null &&
-        currentCraftingJob!['itemId'] == itemId;
+    final isCraftingThisItem =
+        currentCraftingJob != null && currentCraftingJob!['itemId'] == itemId;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -67,28 +68,27 @@ class CraftingCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text('💸 Cost: $costString'),
           Text('⏳ Craft Time: $buildTimeText'),
-
           if (baseStats.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text('📊 Stats:', style: TextStyle(color: Colors.grey.shade600)),
-            ...baseStats.entries.map((e) => Text('• ${_capitalize(e.key)}: ${e.value}')),
+            ...baseStats.entries
+                .map((e) => Text('• ${_capitalize(e.key)}: ${e.value}')),
           ],
-
           const SizedBox(height: 12),
-
           if (craftingButtonWidget != null)
             Align(
               alignment: Alignment.centerRight,
               child: craftingButtonWidget!,
             ),
-
           if (isCraftingThisItem) ...[
             const SizedBox(height: 12),
             CraftingProgressIndicator(
-              startedAt: (currentCraftingJob!['startedAt'] as Timestamp).toDate(),
+              startedAt:
+                  (currentCraftingJob!['startedAt'] as Timestamp).toDate(),
               endsAt: (currentCraftingJob!['startedAt'] as Timestamp)
                   .toDate()
-                  .add(Duration(seconds: currentCraftingJob!['durationSeconds'] ?? 0)),
+                  .add(Duration(
+                      seconds: currentCraftingJob!['durationSeconds'] ?? 0)),
               villageId: villageId,
             ),
           ],

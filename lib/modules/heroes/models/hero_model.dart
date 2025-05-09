@@ -26,8 +26,8 @@ class HeroModel {
   final int hpRegen;
   final int manaRegen;
   final int foodDuration;
-  final int movementSpeed;           // 🆕 New
-  final int maxWaypoints;            // 🆕 New
+  final int movementSpeed; // 🆕 New
+  final int maxWaypoints; // 🆕 New
   final int carryCapacity;
   final Map<String, dynamic> combat; // 🆕 New
   final DateTime? arrivesAt;
@@ -38,7 +38,6 @@ class HeroModel {
   final String? guildId;
   final Timestamp? createdAt;
   final int combatLevel;
-
 
   HeroModel({
     required this.id,
@@ -94,35 +93,38 @@ class HeroModel {
       mana: data['mana'] ?? 50,
       manaMax: data['manaMax'] ?? 50,
       magicResistance: data['magicResistance'] ?? 0,
-      stats: Map<String, int>.from(data['stats'] ?? {
-        'strength': 10,
-        'dexterity': 10,
-        'intelligence': 10,
-        'constitution': 10,
-      }),
+      stats: Map<String, int>.from(data['stats'] ??
+          {
+            'strength': 10,
+            'dexterity': 10,
+            'intelligence': 10,
+            'constitution': 10,
+          }),
       tileX: data['tileX'] ?? 0,
       tileY: data['tileY'] ?? 0,
       tileKey: data['tileKey'] ?? '${data['tileX']}_${data['tileY']}',
-      carriedResources: Map<String, int>.from(data['carriedResources'] ?? {
-        'wood': 0,
-        'stone': 0,
-        'iron': 0,
-        'food': 0,
-        'gold': 0,
-      }),
+      carriedResources: Map<String, int>.from(data['carriedResources'] ??
+          {
+            'wood': 0,
+            'stone': 0,
+            'iron': 0,
+            'food': 0,
+            'gold': 0,
+          }),
       state: data['state'] ?? 'idle',
       hpRegen: data['hpRegen'] ?? 300,
       manaRegen: data['manaRegen'] ?? 60,
       foodDuration: data['foodDuration'] ?? 3600,
       movementSpeed: data['movementSpeed'] ?? 1000, // default fallback
-      maxWaypoints: data['maxWaypoints'] ?? 5,       // default fallback
-      combat: Map<String, dynamic>.from(data['combat'] ?? {
-        'attackMin': 1,
-        'attackMax': 2,
-        'defense': 0,
-        'regenPerTick': 0,
-        'attackSpeedMs': 1000,
-      }),
+      maxWaypoints: data['maxWaypoints'] ?? 5, // default fallback
+      combat: Map<String, dynamic>.from(data['combat'] ??
+          {
+            'attackMin': 1,
+            'attackMax': 2,
+            'defense': 0,
+            'regenPerTick': 0,
+            'attackSpeedMs': 1000,
+          }),
       groupId: data['groupId'],
       groupLeaderId: data['groupLeaderId'],
       guildId: data['guildId'],
@@ -138,7 +140,6 @@ class HeroModel {
       ref: FirebaseFirestore.instance.collection('heroes').doc(id),
       createdAt: data['createdAt'],
       combatLevel: data['combatLevel'] ?? 0,
-
     );
   }
 }

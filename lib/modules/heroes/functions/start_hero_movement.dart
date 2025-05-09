@@ -7,7 +7,8 @@ Future<bool> startHeroMovements({
   required List<Map<String, dynamic>> movementQueue,
 }) async {
   try {
-    final callable = FirebaseFunctions.instance.httpsCallable('startHeroMovementsFunction');
+    final callable =
+        FirebaseFunctions.instance.httpsCallable('startHeroMovementsFunction');
     final result = await callable.call({
       'heroId': heroId,
       'destinationX': destinationX,

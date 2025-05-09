@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:roots_app/profile/models/user_profile_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-
 class GuildSettingsScreen extends StatefulWidget {
   const GuildSettingsScreen({super.key});
 
@@ -36,9 +35,8 @@ class _GuildSettingsScreenState extends State<GuildSettingsScreen> {
     final guildId = userDoc.data()?['guildId'];
     if (guildId == null) return;
 
-    final guildDoc = await FirebaseFirestore.instance
-        .doc('guilds/$guildId')
-        .get();
+    final guildDoc =
+        await FirebaseFirestore.instance.doc('guilds/$guildId').get();
 
     final description = guildDoc.data()?['description'] ?? '';
     setState(() {
@@ -65,10 +63,8 @@ class _GuildSettingsScreenState extends State<GuildSettingsScreen> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-
             const Text("📝 Guild Description"),
             const SizedBox(height: 8),
-
             if (!_isEditing)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,52 +110,59 @@ class _GuildSettingsScreenState extends State<GuildSettingsScreen> {
                       ElevatedButton.icon(
                         icon: _isSaving
                             ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
                             : const Icon(Icons.save),
                         label: Text(_isSaving ? "Saving..." : "Save"),
                         onPressed: _isSaving
                             ? null
                             : () async {
-                          final newDescription = _descController.text.trim();
-                          if (newDescription.length > 500) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Max 500 characters.")),
-                            );
-                            return;
-                          }
+                                final newDescription =
+                                    _descController.text.trim();
+                                if (newDescription.length > 500) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text("Max 500 characters.")),
+                                  );
+                                  return;
+                                }
 
-                          setState(() => _isSaving = true);
-                          try {
-                            await FirebaseFunctions.instance
-                                .httpsCallable('updateGuildDescription')
-                                .call({
-                              'guildId': guildId,
-                              'description': newDescription,
-                            });
+                                setState(() => _isSaving = true);
+                                try {
+                                  await FirebaseFunctions.instance
+                                      .httpsCallable('updateGuildDescription')
+                                      .call({
+                                    'guildId': guildId,
+                                    'description': newDescription,
+                                  });
 
-                            if (context.mounted) {
-                              setState(() {
-                                _currentDescription = newDescription;
-                                _isEditing = false;
-                              });
+                                  if (context.mounted) {
+                                    setState(() {
+                                      _currentDescription = newDescription;
+                                      _isEditing = false;
+                                    });
 
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Description updated!")),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Error: $e")),
-                              );
-                            }
-                          } finally {
-                            if (mounted) setState(() => _isSaving = false);
-                          }
-                        },
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content:
+                                              Text("Description updated!")),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text("Error: $e")),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) {
+                                    setState(() => _isSaving = false);
+                                  }
+                                }
+                              },
                       ),
                       const SizedBox(width: 12),
                       TextButton(
@@ -173,9 +176,7 @@ class _GuildSettingsScreenState extends State<GuildSettingsScreen> {
                   ),
                 ],
               ),
-
             const Divider(height: 40),
-
             if (isLeader)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -192,42 +193,53 @@ class _GuildSettingsScreenState extends State<GuildSettingsScreen> {
                         builder: (context, setState) {
                           return AlertDialog(
                             title: const Text("Disband Guild?"),
-                            content: const Text("This will permanently delete your guild. Cannot be undone."),
+                            content: const Text(
+                                "This will permanently delete your guild. Cannot be undone."),
                             actions: [
                               TextButton(
-                                onPressed: isProcessing ? null : () => Navigator.pop(context, false),
+                                onPressed: isProcessing
+                                    ? null
+                                    : () => Navigator.pop(context, false),
                                 child: const Text("Cancel"),
                               ),
                               TextButton(
                                 onPressed: isProcessing
                                     ? null
                                     : () async {
-                                  setState(() => isProcessing = true);
-                                  try {
-                                    await FirebaseFunctions.instance.httpsCallable('disbandGuild').call();
+                                        setState(() => isProcessing = true);
+                                        try {
+                                          await FirebaseFunctions.instance
+                                              .httpsCallable('disbandGuild')
+                                              .call();
 
-                                    if (context.mounted) {
-                                      Navigator.pop(context, true);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text("Guild disbanded.")),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      setState(() => isProcessing = false);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text("Error: $e")),
-                                      );
-                                    }
-                                  }
-                                },
-
+                                          if (context.mounted) {
+                                            Navigator.pop(context, true);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content:
+                                                      Text("Guild disbanded.")),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            setState(
+                                                () => isProcessing = false);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                  content: Text("Error: $e")),
+                                            );
+                                          }
+                                        }
+                                      },
                                 child: isProcessing
                                     ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      )
                                     : const Text("Disband"),
                               ),
                             ],
@@ -237,11 +249,12 @@ class _GuildSettingsScreenState extends State<GuildSettingsScreen> {
                     },
                   );
 
-
                   if (confirm != true) return;
 
                   try {
-                    await FirebaseFunctions.instance.httpsCallable('disbandGuild').call();
+                    await FirebaseFunctions.instance
+                        .httpsCallable('disbandGuild')
+                        .call();
 
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

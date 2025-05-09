@@ -16,7 +16,8 @@ class MainContentController extends ChangeNotifier {
 
   /// Shows the village center screen in the middle column
   void showVillageCenter(VillageModel village) {
-    debugPrint('[MainContentController] showVillageCenter() called for ${village.name}');
+    debugPrint(
+        '[MainContentController] showVillageCenter() called for ${village.name}');
     _currentContent = VillageCenterScreen(village: village);
     _currentType = MainContentType.village;
     notifyListeners();
@@ -24,7 +25,8 @@ class MainContentController extends ChangeNotifier {
 
   /// Manually set any widget as center content
   void setCustomContent(Widget widget) {
-    debugPrint('[MainContentController] setCustomContent() called with ${widget.runtimeType}');
+    debugPrint(
+        '[MainContentController] setCustomContent() called with ${widget.runtimeType}');
     _currentContent = widget;
     _currentType = MainContentType.custom;
     notifyListeners();

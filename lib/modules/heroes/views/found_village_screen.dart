@@ -18,14 +18,16 @@ class _FoundVillageScreenState extends State<FoundVillageScreen> {
 
   Future<void> _submit() async {
     final name = _controller.text.trim();
+    final messenger = ScaffoldMessenger.of(context); // ✅ capture early
+    final navigator = Navigator.of(context);         // ✅ capture early
+
     if (name.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Village name must be at least 3 characters.')),
       );
       return;
     }
 
-    // 🧠 Confirm companion sacrifice
     if (widget.hero.type == 'companion') {
       final confirm = await showDialog<bool>(
         context: context,
@@ -37,11 +39,11 @@ class _FoundVillageScreenState extends State<FoundVillageScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => navigator.pop(false),
               child: const Text("Cancel"),
             ),
             ElevatedButton.icon(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => navigator.pop(true),
               icon: const Icon(Icons.check),
               label: const Text("Yes, Convert"),
             ),
@@ -61,19 +63,20 @@ class _FoundVillageScreenState extends State<FoundVillageScreen> {
         'villageName': name,
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text(result.data['message'] ?? 'Village created.')),
       );
 
-      Navigator.of(context).pop(); // Go back to hero screen
+      navigator.pop(); // Go back to hero screen
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
       setState(() => _isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +92,8 @@ class _FoundVillageScreenState extends State<FoundVillageScreen> {
               child: HeroMiniMapOverlay(
                 hero: widget.hero,
                 waypoints: [],
-                centerTileOffset: Offset(widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble()),
+                centerTileOffset: Offset(
+                    widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble()),
               ),
             ),
             const SizedBox(height: 16),

@@ -1,7 +1,7 @@
 enum ScreenSizeCategory {
-  small,   // mobile
-  medium,  // 3-column
-  large,   // 4-column
+  small, // mobile
+  medium, // 3-column
+  large, // 4-column
 }
 
 class LayoutHelper {

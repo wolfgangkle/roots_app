@@ -64,7 +64,7 @@ class _NamePickerScreenState extends State<NamePickerScreen> {
             const SizedBox(height: 12),
             const Text(
               'This name will represent your account and your main hero.\n'
-                  'It cannot be changed later. Choose wisely!',
+              'It cannot be changed later. Choose wisely!',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.redAccent,

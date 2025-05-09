@@ -71,11 +71,15 @@ class _CreateMainHeroScreenState extends State<CreateMainHeroScreen> {
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final controller = Provider.of<MainContentController>(context, listen: false);
+    final controller =
+        Provider.of<MainContentController>(context, listen: false);
 
     if (heroId != null) {
       try {
-        final doc = await FirebaseFirestore.instance.collection('heroes').doc(heroId).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('heroes')
+            .doc(heroId)
+            .get();
         final data = doc.data();
 
         if (data != null) {
@@ -119,32 +123,33 @@ class _CreateMainHeroScreenState extends State<CreateMainHeroScreen> {
         child: _villages.isEmpty
             ? const Center(child: Text('No villages found.'))
             : Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Select spawn village:',
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _selectedVillageId,
-              items: _villages.map<DropdownMenuItem<String>>((village) {
-                return DropdownMenuItem<String>(
-                  value: village['id'] as String,
-                  child: Text(
-                      '${village['name']} (${village['tileX']}, ${village['tileY']})'),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedVillageId = value),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('Create Main Hero'),
-              onPressed: _isCreatingHero ? null : _createHero,
-            ),
-          ],
-        ),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Select spawn village:',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _selectedVillageId,
+                    items: _villages.map<DropdownMenuItem<String>>((village) {
+                      return DropdownMenuItem<String>(
+                        value: village['id'] as String,
+                        child: Text(
+                            '${village['name']} (${village['tileX']}, ${village['tileY']})'),
+                      );
+                    }).toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedVillageId = value),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text('Create Main Hero'),
+                    onPressed: _isCreatingHero ? null : _createHero,
+                  ),
+                ],
+              ),
       ),
     );
   }

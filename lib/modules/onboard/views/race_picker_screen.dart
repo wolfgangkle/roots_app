@@ -40,7 +40,8 @@ class RacePickerScreen extends StatelessWidget {
               child: ListTile(
                 leading: const Icon(Icons.construction),
                 title: const Text('Dwarf'),
-                subtitle: const Text('Sturdy, industrious — excels in mining and defense'),
+                subtitle: const Text(
+                    'Sturdy, industrious — excels in mining and defense'),
                 onTap: () => onNext('Dwarf'),
               ),
             ),

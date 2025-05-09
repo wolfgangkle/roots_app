@@ -54,7 +54,8 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
     if (hp is int && hp == 0) {
       return TextSpan(
           text: "$targetName died",
-          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold));
+          style:
+              const TextStyle(color: Colors.red, fontWeight: FontWeight.bold));
     } else {
       return TextSpan(text: "$hp HP remaining");
     }
@@ -62,7 +63,8 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
 
   /// Builds the combat log UI given the combat data, an optional event description,
   /// and (optionally) a mapping of hero IDs to hero names.
-  Widget _buildCombatLogUIWithHeroMap(BuildContext context, Map<String, dynamic> combatData,
+  Widget _buildCombatLogUIWithHeroMap(
+      BuildContext context, Map<String, dynamic> combatData,
       {String? description, Map<String, String>? heroNameMap}) {
     final xp = combatData['xp'];
     final message = combatData['message'];
@@ -74,7 +76,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
     final state = combatData['state'];
 
     final combatDocRef =
-    FirebaseFirestore.instance.collection('combats').doc(widget.combatId);
+        FirebaseFirestore.instance.collection('combats').doc(widget.combatId);
     final combatLogRef = combatDocRef.collection('combatLog').orderBy('tick');
 
     return StreamBuilder<QuerySnapshot>(
@@ -107,23 +109,27 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
         // For PvP, expect a map field 'heroesHpAfter' in the latest tick.
         Map<String, dynamic>? latestHeroesHpMap;
         if (isPvP) {
-          latestHeroesHpMap = latestLog?['heroesHpAfter'] as Map<String, dynamic>?;
+          latestHeroesHpMap =
+              latestLog?['heroesHpAfter'] as Map<String, dynamic>?;
         }
         // For PvE, use 'heroHpAfter'.
         final latestHeroHp = latestLog?['heroHpAfter'] as int?;
-        final latestEnemiesHp = List<int>.from(latestLog?['enemiesHpAfter'] ?? []);
+        final latestEnemiesHp =
+            List<int>.from(latestLog?['enemiesHpAfter'] ?? []);
 
         // Determine whether to show enemy summary.
         // We want to show enemy summary in pure PvE fights and in hybrid PvE/PvP fights (i.e. if an event is present)
         // but hide it in pure PvP fights.
-        final bool showEnemySummary = (!isPvP) || (isPvP && combatData['eventId'] != null);
+        final bool showEnemySummary =
+            (!isPvP) || (isPvP && combatData['eventId'] != null);
 
         return Column(
           children: [
             if (description != null)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 color: Colors.black.withOpacity(0.03),
                 child: Text(
                   description,
@@ -142,13 +148,13 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                       Text(
                         "🕐 Combat started: ${_formatFullTimestamp(createdAt)}",
                         style:
-                        const TextStyle(fontSize: 13, color: Colors.grey),
+                            const TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                     if (endedAt != null)
                       Text(
                         "🏁 Combat ended: ${_formatFullTimestamp(endedAt)}",
                         style:
-                        const TextStyle(fontSize: 13, color: Colors.grey),
+                            const TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                   ],
                 ),
@@ -183,11 +189,15 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("📋 Combat Summary", style: Theme.of(context).textTheme.titleMedium),
+                      Text("📋 Combat Summary",
+                          style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 8),
-                      Text("🧙 Heroes:", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text("🧙 Heroes:",
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       // PvP summary: display each hero with remaining HP or "(killed)".
-                      if (isPvP && latestHeroesHpMap != null && heroNameMap != null)
+                      if (isPvP &&
+                          latestHeroesHpMap != null &&
+                          heroNameMap != null)
                         ...((combatData['heroIds'] as List).map((id) {
                           final hId = id.toString();
                           final name = heroNameMap[hId] ?? hId;
@@ -200,7 +210,9 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                                   TextSpan(text: "$name "),
                                   const TextSpan(
                                       text: "(killed)",
-                                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                      style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             );
@@ -209,24 +221,29 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                           }
                         }).toList())
                       else
-                      // PvE summary: single hero.
+                        // PvE summary: single hero.
                         (latestHeroHp is int && latestHeroHp == 0)
                             ? RichText(
-                          text: TextSpan(
-                            style: DefaultTextStyle.of(context).style,
-                            children: [
-                              TextSpan(text: "${heroName ?? 'Hero'} "),
-                              const TextSpan(
-                                  text: "(killed)",
-                                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        )
-                            : Text("${heroName ?? 'Hero'} (${latestHeroHp ?? '?'} HP remaining)"),
+                                text: TextSpan(
+                                  style: DefaultTextStyle.of(context).style,
+                                  children: [
+                                    TextSpan(text: "${heroName ?? 'Hero'} "),
+                                    const TextSpan(
+                                        text: "(killed)",
+                                        style: TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              )
+                            : Text(
+                                "${heroName ?? 'Hero'} (${latestHeroHp ?? '?'} HP remaining)"),
                       const SizedBox(height: 8),
                       // Show enemy summary only if this is a pure PvE fight or if it's a hybrid PvE/PvP (i.e. event exists).
                       if (showEnemySummary) ...[
-                        Text("👹 Enemies:", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text("👹 Enemies:",
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         if (latestEnemiesHp.isEmpty)
                           const Text("None remaining.")
                         else
@@ -240,7 +257,9 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                                     TextSpan(text: "$enemyName #$i "),
                                     const TextSpan(
                                         text: "(killed)",
-                                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                        style: TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                               );
@@ -262,57 +281,79 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                 itemBuilder: (context, index) {
                   final data = docs[index].data() as Map<String, dynamic>;
                   // Retrieve enemy attacks and timestamp.
-                  final enemyAttacks = List<Map<String, dynamic>>.from(data['enemyAttacks'] ?? []);
+                  final enemyAttacks = List<Map<String, dynamic>>.from(
+                      data['enemyAttacks'] ?? []);
                   final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
                   final timeString = timestamp != null
                       ? "${timestamp.hour.toString().padLeft(2, '0')}:"
-                      "${timestamp.minute.toString().padLeft(2, '0')}:"
-                      "${timestamp.second.toString().padLeft(2, '0')}"
+                          "${timestamp.minute.toString().padLeft(2, '0')}:"
+                          "${timestamp.second.toString().padLeft(2, '0')}"
                       : '';
                   // Build the hero attack widget.
                   Widget heroAttackWidget = const SizedBox.shrink();
                   // Case 1: PvP log with multiple hero attacks.
-                  if (data.containsKey('heroAttacks') && data['heroAttacks'] is List) {
+                  if (data.containsKey('heroAttacks') &&
+                      data['heroAttacks'] is List) {
                     final List heroAttacks = data['heroAttacks'] as List;
                     List<Widget> attackWidgets = [];
                     for (final attack in heroAttacks) {
                       if (attack is Map) {
-                        final rawAttackerId = attack['attackerId']?.toString() ?? '';
-                        final attackerName = (heroNameMap != null && heroNameMap.containsKey(rawAttackerId))
+                        final rawAttackerId =
+                            attack['attackerId']?.toString() ?? '';
+                        final attackerName = (heroNameMap != null &&
+                                heroNameMap.containsKey(rawAttackerId))
                             ? heroNameMap[rawAttackerId]!
                             : rawAttackerId;
-                        final targetType = attack['targetType']?.toString() ?? '';
+                        final targetType =
+                            attack['targetType']?.toString() ?? '';
                         final target = attack['target'];
                         final damage = attack['damage']?.toString() ?? '';
                         List<TextSpan> spans = [
                           const TextSpan(text: "🧙 "),
-                          TextSpan(text: attackerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(
+                              text: attackerName,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
                           const TextSpan(text: " hits "),
                         ];
                         if (targetType == 'enemy' && target is int) {
                           final enemyHp = (data['enemiesHpAfter'] is List &&
-                              (data['enemiesHpAfter'] as List).isNotEmpty &&
-                              target < (data['enemiesHpAfter'] as List).length)
+                                  (data['enemiesHpAfter'] as List).isNotEmpty &&
+                                  target <
+                                      (data['enemiesHpAfter'] as List).length)
                               ? (data['enemiesHpAfter'] as List)[target]
                               : '?';
-                          spans.add(TextSpan(text: "$enemyName #$target", style: const TextStyle(fontWeight: FontWeight.bold)));
+                          spans.add(TextSpan(
+                              text: "$enemyName #$target",
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold)));
                           spans.add(TextSpan(text: " for $damage damage --> "));
                           spans.add(_buildOutcomeSpan(enemyHp, enemyName));
                         } else if (targetType == 'hero' && target is String) {
-                          final targetName = (heroNameMap != null && heroNameMap.containsKey(target))
+                          final targetName = (heroNameMap != null &&
+                                  heroNameMap.containsKey(target))
                               ? heroNameMap[target]!
                               : target;
-                          final heroesHpAfter = data['heroesHpAfter'] is Map ? (data['heroesHpAfter'] as Map) : null;
-                          final targetHp = (heroesHpAfter != null && heroesHpAfter.containsKey(target))
+                          final heroesHpAfter = data['heroesHpAfter'] is Map
+                              ? (data['heroesHpAfter'] as Map)
+                              : null;
+                          final targetHp = (heroesHpAfter != null &&
+                                  heroesHpAfter.containsKey(target))
                               ? heroesHpAfter[target]
                               : '?';
-                          spans.add(TextSpan(text: targetName, style: const TextStyle(fontWeight: FontWeight.bold)));
+                          spans.add(TextSpan(
+                              text: targetName,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold)));
                           spans.add(TextSpan(text: " for $damage damage --> "));
                           spans.add(_buildOutcomeSpan(targetHp, targetName));
                         } else {
                           spans.add(TextSpan(text: "$target"));
                         }
-                        attackWidgets.add(RichText(text: TextSpan(children: spans, style: DefaultTextStyle.of(context).style)));
+                        attackWidgets.add(RichText(
+                            text: TextSpan(
+                                children: spans,
+                                style: DefaultTextStyle.of(context).style)));
                       }
                     }
                     heroAttackWidget = Column(
@@ -321,46 +362,72 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                     );
                   }
                   // Case 2: Fallback legacy PvE log processing.
-                  else if (data.containsKey('heroAttack') && data['heroAttack'] != null) {
+                  else if (data.containsKey('heroAttack') &&
+                      data['heroAttack'] != null) {
                     final dynamic heroAttackRaw = data['heroAttack'];
                     final targetEnemy = data['targetEnemyIndex'];
                     final pveHeroHpAfter = data['heroHpAfter'];
-                    List<TextSpan> spans = [ const TextSpan(text: "🧙 ") ];
+                    List<TextSpan> spans = [const TextSpan(text: "🧙 ")];
                     if (heroAttackRaw is Map) {
-                      final rawAttackerId = heroAttackRaw['attackerId']?.toString() ?? '';
-                      final attackerName = (heroNameMap != null && heroNameMap.containsKey(rawAttackerId))
+                      final rawAttackerId =
+                          heroAttackRaw['attackerId']?.toString() ?? '';
+                      final attackerName = (heroNameMap != null &&
+                              heroNameMap.containsKey(rawAttackerId))
                           ? heroNameMap[rawAttackerId]!
                           : rawAttackerId;
-                      spans.add(TextSpan(text: attackerName, style: const TextStyle(fontWeight: FontWeight.bold)));
+                      spans.add(TextSpan(
+                          text: attackerName,
+                          style: const TextStyle(fontWeight: FontWeight.bold)));
                       spans.add(const TextSpan(text: " hits "));
-                      final targetType = heroAttackRaw['targetType']?.toString() ?? '';
+                      final targetType =
+                          heroAttackRaw['targetType']?.toString() ?? '';
                       final target = heroAttackRaw['target'];
                       final damage = heroAttackRaw['damage']?.toString() ?? '';
                       if (targetType == 'enemy' && target is int) {
                         final enemyHp = (data['enemiesHpAfter'] is List &&
-                            (data['enemiesHpAfter'] as List).isNotEmpty &&
-                            target < (data['enemiesHpAfter'] as List).length)
+                                (data['enemiesHpAfter'] as List).isNotEmpty &&
+                                target <
+                                    (data['enemiesHpAfter'] as List).length)
                             ? (data['enemiesHpAfter'] as List)[target]
                             : '?';
-                        spans.add(TextSpan(text: "$enemyName #$target", style: const TextStyle(fontWeight: FontWeight.bold)));
+                        spans.add(TextSpan(
+                            text: "$enemyName #$target",
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)));
                         spans.add(TextSpan(text: " for $damage damage --> "));
                         spans.add(_buildOutcomeSpan(enemyHp, enemyName));
                       } else if (targetType == 'hero') {
-                        spans.add(TextSpan(text: "$target", style: const TextStyle(fontWeight: FontWeight.bold)));
+                        spans.add(TextSpan(
+                            text: "$target",
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)));
                         spans.add(TextSpan(text: " for $damage damage"));
                       }
-                      heroAttackWidget = RichText(text: TextSpan(children: spans, style: DefaultTextStyle.of(context).style));
-                    } else if (heroAttackRaw is int && heroAttackRaw > 0 && targetEnemy != null) {
-                      spans.add(TextSpan(text: heroName ?? 'Hero', style: const TextStyle(fontWeight: FontWeight.bold)));
+                      heroAttackWidget = RichText(
+                          text: TextSpan(
+                              children: spans,
+                              style: DefaultTextStyle.of(context).style));
+                    } else if (heroAttackRaw is int &&
+                        heroAttackRaw > 0 &&
+                        targetEnemy != null) {
+                      spans.add(TextSpan(
+                          text: heroName ?? 'Hero',
+                          style: const TextStyle(fontWeight: FontWeight.bold)));
                       spans.add(const TextSpan(text: " hits "));
-                      spans.add(TextSpan(text: "$enemyName #$targetEnemy", style: const TextStyle(fontWeight: FontWeight.bold)));
-                      spans.add(TextSpan(text: " for $heroAttackRaw damage --> "));
+                      spans.add(TextSpan(
+                          text: "$enemyName #$targetEnemy",
+                          style: const TextStyle(fontWeight: FontWeight.bold)));
+                      spans.add(
+                          TextSpan(text: " for $heroAttackRaw damage --> "));
                       final enemyHp = (data['enemiesHpAfter'] is List &&
-                          (data['enemiesHpAfter'] as List).isNotEmpty)
+                              (data['enemiesHpAfter'] as List).isNotEmpty)
                           ? (data['enemiesHpAfter'] as List)[targetEnemy]
                           : '?';
                       spans.add(_buildOutcomeSpan(enemyHp, enemyName));
-                      heroAttackWidget = RichText(text: TextSpan(children: spans, style: DefaultTextStyle.of(context).style));
+                      heroAttackWidget = RichText(
+                          text: TextSpan(
+                              children: spans,
+                              style: DefaultTextStyle.of(context).style));
                     }
                   }
                   // Build enemy attack widgets.
@@ -368,33 +435,47 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                   final heroHpAfterForEnemy = data['heroHpAfter'];
                   for (final attack in enemyAttacks) {
                     if (heroHpAfterForEnemy != null) {
-                      final rawTargetHeroId = attack['heroId']?.toString() ?? '';
-                      final targetHeroName = (heroNameMap != null && heroNameMap.containsKey(rawTargetHeroId))
+                      final rawTargetHeroId =
+                          attack['heroId']?.toString() ?? '';
+                      final targetHeroName = (heroNameMap != null &&
+                              heroNameMap.containsKey(rawTargetHeroId))
                           ? heroNameMap[rawTargetHeroId]!
-                          : rawTargetHeroId.isNotEmpty ? rawTargetHeroId : (heroName ?? 'Hero');
+                          : rawTargetHeroId.isNotEmpty
+                              ? rawTargetHeroId
+                              : (heroName ?? 'Hero');
                       enemyAttackWidgets.add(
                         RichText(
                           text: TextSpan(
                             style: DefaultTextStyle.of(context).style,
                             children: [
                               const TextSpan(text: "👹 "),
-                              TextSpan(text: "$enemyName #${attack['index']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                              TextSpan(
+                                  text: "$enemyName #${attack['index']}",
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
                               const TextSpan(text: " strikes "),
-                              TextSpan(text: targetHeroName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              TextSpan(text: " for ${attack['damage']} damage --> "),
-                              _buildOutcomeSpan(heroHpAfterForEnemy, targetHeroName),
+                              TextSpan(
+                                  text: targetHeroName,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                              TextSpan(
+                                  text: " for ${attack['damage']} damage --> "),
+                              _buildOutcomeSpan(
+                                  heroHpAfterForEnemy, targetHeroName),
                             ],
                           ),
                         ),
                       );
                     }
                   }
-                  final nothingHappened =
-                  ((data.containsKey('heroAttack') &&
-                      (data['heroAttack'] is int && data['heroAttack'] == 0)) ||
+                  final nothingHappened = ((data.containsKey('heroAttack') &&
+                          (data['heroAttack'] is int &&
+                              data['heroAttack'] == 0)) ||
                       (!data.containsKey('heroAttack') &&
-                          (!data.containsKey('heroAttacks') ||
-                              (data['heroAttacks'] is List && (data['heroAttacks'] as List).isEmpty))) &&
+                              (!data.containsKey('heroAttacks') ||
+                                  (data['heroAttacks'] is List &&
+                                      (data['heroAttacks'] as List)
+                                          .isEmpty))) &&
                           enemyAttackWidgets.isEmpty);
                   if (nothingHappened) {
                     return const SizedBox.shrink();
@@ -440,7 +521,9 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
 
   /// Wraps _buildCombatLogUIWithHeroMap:
   /// If more than one hero is in combat, fetch a mapping of hero IDs to hero names.
-  Widget _buildCombatLogUI(BuildContext context, Map<String, dynamic> combatData, {String? description}) {
+  Widget _buildCombatLogUI(
+      BuildContext context, Map<String, dynamic> combatData,
+      {String? description}) {
     final heroIds = combatData['heroIds'] is List
         ? (combatData['heroIds'] as List).map((e) => e.toString()).toList()
         : <String>[];
@@ -472,7 +555,7 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
   @override
   Widget build(BuildContext context) {
     final combatDocRef =
-    FirebaseFirestore.instance.collection('combats').doc(widget.combatId);
+        FirebaseFirestore.instance.collection('combats').doc(widget.combatId);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Combat Log'),
@@ -483,7 +566,8 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
           if (!combatSnapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          final combatData = combatSnapshot.data!.data() as Map<String, dynamic>?;
+          final combatData =
+              combatSnapshot.data!.data() as Map<String, dynamic>?;
           if (combatData == null) {
             return const Center(child: Text("Combat not found."));
           }
@@ -509,7 +593,8 @@ class _CombatLogScreenState extends State<CombatLogScreen> {
                   final eventData = eventDoc.data() as Map<String, dynamic>?;
                   description = eventData?['description'] as String?;
                 }
-                return _buildCombatLogUI(context, combatData, description: description);
+                return _buildCombatLogUI(context, combatData,
+                    description: description);
               },
             );
           }

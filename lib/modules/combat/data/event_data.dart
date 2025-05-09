@@ -32,7 +32,8 @@ final List<Map<String, dynamic>> encounterEvents = [
   {
     'id': 'crypt_awakening',
     'type': 'combat',
-    'description': 'Bones rattle and rise as ancient skeletons awaken to your presence.',
+    'description':
+        'Bones rattle and rise as ancient skeletons awaken to your presence.',
     'enemyTypes': ['skeleton'],
     'minLevel': 8,
     'maxLevel': 25,
@@ -47,7 +48,8 @@ final List<Map<String, dynamic>> encounterEvents = [
   {
     'id': 'forest_crossroads',
     'type': 'combat',
-    'description': 'The forest path splits — but both ends are guarded by danger. Bandits and goblins block your way!',
+    'description':
+        'The forest path splits — but both ends are guarded by danger. Bandits and goblins block your way!',
     'enemyTypes': ['bandit', 'goblin'],
     'minLevel': 10,
     'maxLevel': 30,
@@ -62,7 +64,8 @@ final List<Map<String, dynamic>> encounterEvents = [
   {
     'id': 'haunted_battlefield',
     'type': 'combat',
-    'description': 'As you step onto the cursed ground, goblins scavenge the ruins while skeletons rise to defend it.',
+    'description':
+        'As you step onto the cursed ground, goblins scavenge the ruins while skeletons rise to defend it.',
     'enemyTypes': ['goblin', 'skeleton'],
     'minLevel': 12,
     'maxLevel': 35,
@@ -80,7 +83,8 @@ final List<Map<String, dynamic>> encounterEvents = [
     'id': 'crystal_clear_stream',
     'type': 'peaceful',
     'title': 'Crystal Stream',
-    'description': 'You stumble upon a small, crystal-clear stream. The water sparkles unnaturally.',
+    'description':
+        'You stumble upon a small, crystal-clear stream. The water sparkles unnaturally.',
     'minCombatLevel': 1,
     'maxCombatLevel': 12,
     'rarity': 1,
@@ -95,7 +99,8 @@ final List<Map<String, dynamic>> encounterEvents = [
     'id': 'abandoned_cart',
     'type': 'peaceful',
     'title': 'Abandoned Cart',
-    'description': 'An abandoned merchant cart lies overturned. Something valuable might remain.',
+    'description':
+        'An abandoned merchant cart lies overturned. Something valuable might remain.',
     'minCombatLevel': 5,
     'maxCombatLevel': 20,
     'rarity': 2,
@@ -111,7 +116,8 @@ final List<Map<String, dynamic>> encounterEvents = [
     'id': 'ancient_oak',
     'type': 'peaceful',
     'title': 'Ancient Oak',
-    'description': 'A towering oak radiates a strange presence. As you approach, its bark shifts subtly.',
+    'description':
+        'A towering oak radiates a strange presence. As you approach, its bark shifts subtly.',
     'minCombatLevel': 8,
     'maxCombatLevel': 30,
     'rarity': 3,

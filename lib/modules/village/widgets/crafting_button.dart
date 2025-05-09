@@ -47,14 +47,11 @@ class _CraftButtonState extends State<CraftButton> {
           .call({'villageId': widget.villageId});
 
       // ✅ Step 2: Start crafting job
-      await FirebaseFunctions.instance
-          .httpsCallable('startCraftingJob')
-          .call({
+      await FirebaseFunctions.instance.httpsCallable('startCraftingJob').call({
         'villageId': widget.villageId,
         'itemId': widget.itemId,
         'quantity': widget.quantity,
       });
-
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -98,13 +95,13 @@ class _CraftButtonState extends State<CraftButton> {
       ),
       child: _isProcessing
           ? const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: Colors.white,
-        ),
-      )
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
           : Text(widget.label ?? 'Craft'),
     );
   }

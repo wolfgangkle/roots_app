@@ -44,12 +44,13 @@ class _ChatOverlayState extends State<ChatOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final heroName = Provider.of<UserProfileModel>(context, listen: false).heroName;
+    final heroName =
+        Provider.of<UserProfileModel>(context, listen: false).heroName;
 
     final chatContent = _isCollapsed
         ? FloatingActionButton(
       mini: true,
-      backgroundColor: Colors.black.withOpacity(0.85),
+      backgroundColor: Colors.black.withAlpha(217),
       onPressed: () {
         setState(() {
           _isCollapsed = false;
@@ -68,7 +69,7 @@ class _ChatOverlayState extends State<ChatOverlay> {
         width: _width,
         height: _height,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.85),
+          color: Colors.black.withAlpha(217),
           borderRadius: BorderRadius.circular(12),
         ),
         padding: const EdgeInsets.all(8),
@@ -78,10 +79,13 @@ class _ChatOverlayState extends State<ChatOverlay> {
             Row(
               children: [
                 const Text('💬 Global Chat',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold)),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.minimize, color: Colors.white, size: 16),
+                  icon: const Icon(Icons.minimize,
+                      color: Colors.white, size: 16),
                   onPressed: () {
                     setState(() {
                       _isCollapsed = true;
@@ -106,7 +110,8 @@ class _ChatOverlayState extends State<ChatOverlay> {
                     controller: _scrollController,
                     padding: EdgeInsets.zero,
                     reverse: true,
-                    children: _buildGroupedMessages(messages).reversed.toList(),
+                    children:
+                    _buildGroupedMessages(messages).reversed.toList(),
                   );
                 },
               ),
@@ -116,7 +121,8 @@ class _ChatOverlayState extends State<ChatOverlay> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 13),
                     decoration: const InputDecoration(
                       hintText: 'Type message...',
                       hintStyle: TextStyle(color: Colors.white54),

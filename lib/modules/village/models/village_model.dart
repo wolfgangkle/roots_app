@@ -46,7 +46,8 @@ class VillageModel {
     });
 
     final jobData = data['currentBuildJob'];
-    final BuildJobModel? job = jobData != null ? BuildJobModel.fromMap(jobData) : null;
+    final BuildJobModel? job =
+        jobData != null ? BuildJobModel.fromMap(jobData) : null;
 
     final craftingJob = data['currentCraftingJob'] as Map<String, dynamic>?;
 
@@ -81,8 +82,7 @@ class VillageModel {
         'gold': gold,
       },
       'buildings': buildings.map((key, value) => MapEntry(key, value.toMap())),
-      if (currentBuildJob != null)
-        'currentBuildJob': currentBuildJob!.toMap(),
+      if (currentBuildJob != null) 'currentBuildJob': currentBuildJob!.toMap(),
       if (currentCraftingJob != null)
         'currentCraftingJob': currentCraftingJob, // ✅
     };
@@ -177,7 +177,8 @@ class VillageModel {
     final targetLevel = currentLevel + 1;
 
     final def = buildingDefinitions[buildingType];
-    final estimatedDuration = def?.buildTimeFormula?.call(targetLevel) ?? const Duration(seconds: 10);
+    final estimatedDuration =
+        def?.buildTimeFormula?.call(targetLevel) ?? const Duration(seconds: 10);
     final durationSeconds = estimatedDuration.inSeconds;
 
     final simulatedJob = BuildJobModel(

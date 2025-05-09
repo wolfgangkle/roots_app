@@ -27,7 +27,8 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
   late Offset _cursorPos;
   bool _isSending = false;
 
-  Offset get heroStart => Offset(widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble());
+  Offset get heroStart =>
+      Offset(widget.hero.tileX.toDouble(), widget.hero.tileY.toDouble());
 
   @override
   void initState() {
@@ -58,8 +59,10 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
     });
   }
 
-  bool isHeroTile(int x, int y) => x == widget.hero.tileX && y == widget.hero.tileY;
-  bool isWaypoint(int x, int y) => _waypoints.any((wp) => wp['x'] == x && wp['y'] == y);
+  bool isHeroTile(int x, int y) =>
+      x == widget.hero.tileX && y == widget.hero.tileY;
+  bool isWaypoint(int x, int y) =>
+      _waypoints.any((wp) => wp['x'] == x && wp['y'] == y);
   bool isVillageTile(int x, int y) => _villageTileKeys.contains('${x}_$y');
 
   void _addWaypoint(int x, int y) {
@@ -82,7 +85,8 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
         if (_waypoints.isNotEmpty) {
           final last = _waypoints.last;
           _cursorPos = last.containsKey('x') && last.containsKey('y')
-              ? Offset((last['x'] as num).toDouble(), (last['y'] as num).toDouble())
+              ? Offset(
+                  (last['x'] as num).toDouble(), (last['y'] as num).toDouble())
               : heroStart;
         } else {
           _cursorPos = heroStart;
@@ -118,21 +122,27 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
         'arrivesAt': Timestamp.fromMillisecondsSinceEpoch(0),
       });
 
-      final callable = FirebaseFunctions.instance.httpsCallable('processHeroArrivalCallable');
+      final callable = FirebaseFunctions.instance
+          .httpsCallable('processHeroArrivalCallable');
       await callable.call({'heroId': widget.hero.id});
 
       final updatedDoc = await widget.hero.ref.get();
-      final updatedHero = HeroModel.fromFirestore(updatedDoc.id, updatedDoc.data()! as Map<String, dynamic>);
+      final updatedHero = HeroModel.fromFirestore(
+          updatedDoc.id, updatedDoc.data()! as Map<String, dynamic>);
 
       if (!mounted) return;
 
       if (isMobile(context)) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => HeroMovementScreen(hero: updatedHero)), // ✅ Stay here
+          MaterialPageRoute(
+              builder: (_) =>
+                  HeroMovementScreen(hero: updatedHero)), // ✅ Stay here
         );
       } else {
-        final controller = Provider.of<MainContentController>(context, listen: false);
-        controller.setCustomContent(HeroMovementScreen(hero: updatedHero)); // ✅ Stay here
+        final controller =
+            Provider.of<MainContentController>(context, listen: false);
+        controller.setCustomContent(
+            HeroMovementScreen(hero: updatedHero)); // ✅ Stay here
       }
     } catch (e) {
       print('🔥 Error calling processHeroArrival: $e');
@@ -144,9 +154,6 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
     }
   }
 
-
-
-
   void _confirmMovement() async {
     if (_waypoints.isEmpty || _isSending) return;
 
@@ -155,7 +162,8 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
     final first = _waypoints.first;
     if (!first.containsKey('x') || !first.containsKey('y')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🚫 First waypoint must be a tile coordinate.')),
+        const SnackBar(
+            content: Text('🚫 First waypoint must be a tile coordinate.')),
       );
       setState(() => _isSending = false);
       return;
@@ -188,10 +196,12 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
 
         if (isMobile(context)) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => HeroDetailsScreen(hero: updatedHero)),
+            MaterialPageRoute(
+                builder: (_) => HeroDetailsScreen(hero: updatedHero)),
           );
         } else {
-          final controller = Provider.of<MainContentController>(context, listen: false);
+          final controller =
+              Provider.of<MainContentController>(context, listen: false);
           controller.setCustomContent(HeroDetailsScreen(hero: updatedHero));
         }
       } else {
@@ -226,7 +236,8 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 32),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
+            constraints:
+                BoxConstraints(minHeight: MediaQuery.of(context).size.height),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -272,46 +283,51 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
                               final isCurrentHeroTile = isHero && isCenter;
                               final isVillageCenter = isVillage && isCenter;
 
-                              final showExit = isCurrentHeroTile && widget.hero.insideVillage;
-                              final showEnterImmediate = isCurrentHeroTile && !widget.hero.insideVillage && _waypoints.isEmpty;
-                              final queueEnter = isVillageCenter && !widget.hero.insideVillage;
-                              final showCenterEnterOption = isCenter && isVillage && !widget.hero.insideVillage;
-
-
-
+                              final showExit = isCurrentHeroTile &&
+                                  widget.hero.insideVillage;
+                              final showEnterImmediate = isCurrentHeroTile &&
+                                  !widget.hero.insideVillage &&
+                                  _waypoints.isEmpty;
+                              final queueEnter =
+                                  isVillageCenter && !widget.hero.insideVillage;
+                              final showCenterEnterOption = isCenter &&
+                                  isVillage &&
+                                  !widget.hero.insideVillage;
 
                               final label = showExit
                                   ? 'Exit Village'
                                   : showEnterImmediate
-                                  ? 'Enter Village'
-                                  : showCenterEnterOption
-                                  ? 'Enter Village'
-                                  : '';
+                                      ? 'Enter Village'
+                                      : showCenterEnterOption
+                                          ? 'Enter Village'
+                                          : '';
 
-
-
-
-                              final shouldFireImmediately = isHero && isCenter && label == 'Enter Village' && _waypoints.isEmpty;
-                              final shouldExitImmediately = isHero && isCenter && label == 'Exit Village' && _waypoints.isEmpty;
+                              final shouldFireImmediately = isHero &&
+                                  isCenter &&
+                                  label == 'Enter Village' &&
+                                  _waypoints.isEmpty;
+                              final shouldExitImmediately = isHero &&
+                                  isCenter &&
+                                  label == 'Exit Village' &&
+                                  _waypoints.isEmpty;
 
                               final action = showExit
                                   ? () => _triggerHeroArrival('exitVillage')
                                   : showEnterImmediate
-                                  ? () => _triggerHeroArrival('enterVillage')
-                                  : showCenterEnterOption
-                                  ? () => _addActionStep('enterVillage')
-                                  : () => _addWaypoint(x, y);
+                                      ? () =>
+                                          _triggerHeroArrival('enterVillage')
+                                      : showCenterEnterOption
+                                          ? () => _addActionStep('enterVillage')
+                                          : () => _addWaypoint(x, y);
 
-
-
-
-
-                              final isLockedWhileInsideVillage = widget.hero.insideVillage && !(isCenter && isHero);
-                              final clickable = !isLockedWhileInsideVillage && (
-                                  showExit || showEnterImmediate || showCenterEnterOption || (terrain?.walkable ?? false && !isHero)
-                              );
-
-
+                              final isLockedWhileInsideVillage =
+                                  widget.hero.insideVillage &&
+                                      !(isCenter && isHero);
+                              final clickable = !isLockedWhileInsideVillage &&
+                                  (showExit ||
+                                      showEnterImmediate ||
+                                      showCenterEnterOption ||
+                                      (terrain?.walkable ?? false && !isHero));
 
                               return GestureDetector(
                                 onTap: _isSending || !clickable ? null : action,
@@ -320,33 +336,39 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
                                   height: tileSize,
                                   margin: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: terrain?.color ?? Colors.grey.shade300,
+                                    color:
+                                        terrain?.color ?? Colors.grey.shade300,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: isCenter
                                           ? Colors.blueAccent
                                           : isLockedWhileInsideVillage
-                                          ? Colors.redAccent
-                                          : Colors.black26,
+                                              ? Colors.redAccent
+                                              : Colors.black26,
                                       width: isCenter ? 2 : 1,
                                     ),
                                   ),
                                   child: Stack(
                                     children: [
                                       if (terrain?.icon != null)
-                                        Center(child: Icon(terrain!.icon, size: 28, color: Colors.black87)),
+                                        Center(
+                                            child: Icon(terrain!.icon,
+                                                size: 28,
+                                                color: Colors.black87)),
 
                                       if (isVillage)
                                         const Positioned(
                                           top: 4,
                                           left: 4,
-                                          child: Text("🏰", style: TextStyle(fontSize: 16)),
+                                          child: Text("🏰",
+                                              style: TextStyle(fontSize: 16)),
                                         ),
 
                                       if (isHero)
                                         const Positioned(
                                           bottom: 4,
-                                          child: Text("🧙", style: TextStyle(fontSize: 20)),
+                                          child: Text("🧙",
+                                              style: TextStyle(fontSize: 20)),
                                         ),
 
                                       // 🔼 Coordinates at top
@@ -370,14 +392,16 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
                                         const Positioned(
                                           bottom: 4,
                                           right: 4,
-                                          child: Icon(Icons.circle, size: 8, color: Colors.orange),
+                                          child: Icon(Icons.circle,
+                                              size: 8, color: Colors.orange),
                                         ),
 
                                       // 🧭 Center action (e.g. Enter/Exit Village)
                                       if (label.isNotEmpty)
                                         Center(
                                           child: Padding(
-                                            padding: const EdgeInsets.only(top: 20),
+                                            padding:
+                                                const EdgeInsets.only(top: 20),
                                             child: Text(
                                               label,
                                               textAlign: TextAlign.center,
@@ -409,17 +433,25 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
                     runSpacing: 8,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: (_waypoints.isEmpty || _isSending) ? null : _confirmMovement,
+                        onPressed: (_waypoints.isEmpty || _isSending)
+                            ? null
+                            : _confirmMovement,
                         icon: const Icon(Icons.check),
-                        label: Text(widget.hero.state == 'moving' ? "Update Journey" : "Start Journey"),
+                        label: Text(widget.hero.state == 'moving'
+                            ? "Update Journey"
+                            : "Start Journey"),
                       ),
                       TextButton.icon(
-                        onPressed: _waypoints.isEmpty || _isSending ? null : _removeLastWaypoint,
+                        onPressed: _waypoints.isEmpty || _isSending
+                            ? null
+                            : _removeLastWaypoint,
                         icon: const Icon(Icons.undo),
                         label: const Text("Undo"),
                       ),
                       TextButton.icon(
-                        onPressed: _waypoints.isEmpty || _isSending ? null : _clearAllWaypoints,
+                        onPressed: _waypoints.isEmpty || _isSending
+                            ? null
+                            : _clearAllWaypoints,
                         icon: const Icon(Icons.clear_all),
                         label: const Text("Clear All"),
                       ),
@@ -438,7 +470,8 @@ class _HeroMovementScreenState extends State<HeroMovementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Waypoints:", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text("Waypoints:",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         ..._waypoints.map((wp) {
                           if (wp.containsKey('action')) {

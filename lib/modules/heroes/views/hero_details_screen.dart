@@ -19,7 +19,10 @@ class HeroDetailsScreen extends StatelessWidget {
     final isMobile = MediaQuery.of(context).size.width < 1024;
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('heroes').doc(heroId).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('heroes')
+          .doc(heroId)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || !snapshot.data!.exists) {
           return const Scaffold(
@@ -43,7 +46,8 @@ class HeroDetailsScreen extends StatelessWidget {
           );
         }
 
-        final groupRef = FirebaseFirestore.instance.collection('heroGroups').doc(groupId);
+        final groupRef =
+            FirebaseFirestore.instance.collection('heroGroups').doc(groupId);
 
         return StreamBuilder<DocumentSnapshot>(
           stream: groupRef.snapshots(),
@@ -54,7 +58,8 @@ class HeroDetailsScreen extends StatelessWidget {
               );
             }
 
-            final groupData = groupSnapshot.data!.data() as Map<String, dynamic>;
+            final groupData =
+                groupSnapshot.data!.data() as Map<String, dynamic>;
             final tileX = groupData['tileX'] ?? 0;
             final tileY = groupData['tileY'] ?? 0;
             final insideVillage = groupData['insideVillage'] ?? false;

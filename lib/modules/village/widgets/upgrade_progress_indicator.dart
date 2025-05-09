@@ -15,7 +15,8 @@ class UpgradeProgressIndicator extends StatefulWidget {
   });
 
   @override
-  State<UpgradeProgressIndicator> createState() => _UpgradeProgressIndicatorState();
+  State<UpgradeProgressIndicator> createState() =>
+      _UpgradeProgressIndicatorState();
 }
 
 class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
@@ -34,7 +35,8 @@ class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
         : rawDuration;
 
     _updateRemaining();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+    _timer =
+        Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
   }
 
   void _updateRemaining() {
@@ -68,7 +70,8 @@ class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
 
   double get progress {
     final elapsed = totalDuration - remaining;
-    return (elapsed.inMilliseconds / totalDuration.inMilliseconds).clamp(0.0, 1.0);
+    return (elapsed.inMilliseconds / totalDuration.inMilliseconds)
+        .clamp(0.0, 1.0);
   }
 
   String formatTime(Duration duration) {

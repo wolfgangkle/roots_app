@@ -32,12 +32,14 @@ class GuildDashboardView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("🏰 [$tag] $name", style: Theme.of(context).textTheme.headlineMedium),
+              Text("🏰 [$tag] $name",
+                  style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 12),
               Text(description, style: Theme.of(context).textTheme.bodyLarge),
               const SizedBox(height: 12),
               if (createdAt != null)
-                Text("Created on ${createdAt.toLocal().toString().split(' ')[0]}",
+                Text(
+                    "Created on ${createdAt.toLocal().toString().split(' ')[0]}",
                     style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 24),
               const Divider(),

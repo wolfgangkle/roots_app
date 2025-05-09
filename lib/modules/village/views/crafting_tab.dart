@@ -51,33 +51,34 @@ class _CraftingTabState extends State<CraftingTab> {
           (entry.value['type'] as String?)?.toLowerCase() == normalized;
     }).toList();
 
-    final allDisabled = isCraftingInProgress || widget.currentCraftingJob != null;
+    final allDisabled =
+        isCraftingInProgress || widget.currentCraftingJob != null;
 
     return filtered.isEmpty
         ? const Center(child: Text("🚫 No matching items."))
         : ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final itemId = filtered[index].key;
-        final item = filtered[index].value;
+            padding: const EdgeInsets.all(16),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              final itemId = filtered[index].key;
+              final item = filtered[index].value;
 
-        return CraftingCard(
-          itemId: itemId,
-          itemData: item,
-          villageId: widget.villageId,
-          isDisabled: allDisabled,
-          currentCraftingJob: widget.currentCraftingJob,
-          craftingButtonWidget: CraftButton(
-            itemId: itemId,
-            villageId: widget.villageId,
-            isDisabled: allDisabled,
-            label: allDisabled ? 'Crafting...' : 'Craft',
-            onCraftStart: _onCraftStart,
-          ),
-        );
-      },
-    );
+              return CraftingCard(
+                itemId: itemId,
+                itemData: item,
+                villageId: widget.villageId,
+                isDisabled: allDisabled,
+                currentCraftingJob: widget.currentCraftingJob,
+                craftingButtonWidget: CraftButton(
+                  itemId: itemId,
+                  villageId: widget.villageId,
+                  isDisabled: allDisabled,
+                  label: allDisabled ? 'Crafting...' : 'Craft',
+                  onCraftStart: _onCraftStart,
+                ),
+              );
+            },
+          );
   }
 
   String _normalizedType(String filter) {

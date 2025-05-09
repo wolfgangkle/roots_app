@@ -27,8 +27,10 @@ class _MapGridViewState extends State<MapGridView> {
         final dragDelta = details.localPosition - dragStart!;
         dragStart = details.localPosition;
 
-        final dx = (panOffset.dx - dragDelta.dx / tileSize).clamp(0, mapSize - visibleTiles);
-        final dy = (panOffset.dy - dragDelta.dy / tileSize).clamp(0, mapSize - visibleTiles);
+        final dx = (panOffset.dx - dragDelta.dx / tileSize)
+            .clamp(0, mapSize - visibleTiles);
+        final dy = (panOffset.dy - dragDelta.dy / tileSize)
+            .clamp(0, mapSize - visibleTiles);
 
         setState(() {
           panOffset = Offset(dx.toDouble(), dy.toDouble());
@@ -47,7 +49,9 @@ class _MapGridViewState extends State<MapGridView> {
                 children: List.generate(visibleTiles, (dx) {
                   final x = panOffset.dx.toInt() + dx;
                   if (x >= mapSize || y >= mapSize) {
-                    return SizedBox(width: tileSize.toDouble(), height: tileSize.toDouble());
+                    return SizedBox(
+                        width: tileSize.toDouble(),
+                        height: tileSize.toDouble());
                   }
                   final terrainId = tier1Map['${x}_$y'] ?? 'plains';
                   return SizedBox(

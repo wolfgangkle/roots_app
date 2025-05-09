@@ -11,7 +11,8 @@ class MainContentPanel extends StatelessWidget {
     final content = controller.currentContent;
 
     debugPrint('[MainContentPanel] build() called');
-    debugPrint('[MainContentPanel] currentContent is: ${content != null ? content.runtimeType : 'null'}');
+    debugPrint(
+        '[MainContentPanel] currentContent is: ${content != null ? content.runtimeType : 'null'}');
 
     return Container(
       color: Theme.of(context).colorScheme.surface,

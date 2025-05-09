@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 
 class VillageNameScreen extends StatefulWidget {
@@ -38,7 +36,7 @@ class _VillageNameScreenState extends State<VillageNameScreen> {
           children: [
             const Text(
               'Your village name can be anything you like.\n'
-                  'Other players can see it, but it doesn’t have to be unique.',
+              'Other players can see it, but it doesn’t have to be unique.',
               style: TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),

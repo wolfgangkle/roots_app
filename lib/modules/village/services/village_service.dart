@@ -94,7 +94,8 @@ class VillageService {
     required String villageId,
     required String buildingType,
   }) async {
-    final callable = FirebaseFunctions.instance.httpsCallable('startBuildingUpgrade');
+    final callable =
+        FirebaseFunctions.instance.httpsCallable('startBuildingUpgrade');
 
     await callable.call({
       'villageId': villageId,

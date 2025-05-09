@@ -15,7 +15,6 @@ final buildingDefinitions = <String, BuildingDefinition>{
     costMultiplierFormula: (level) => level,
     buildTimeFormula: getUpgradeDuration,
   ),
-
   'quarry': BuildingDefinition(
     type: 'quarry',
     displayName: 'Quarry',
@@ -33,7 +32,6 @@ final buildingDefinitions = <String, BuildingDefinition>{
     costMultiplierFormula: (level) => level,
     buildTimeFormula: getUpgradeDuration,
   ),
-
   'farm': BuildingDefinition(
     type: 'farm',
     displayName: 'Farm',
@@ -51,7 +49,6 @@ final buildingDefinitions = <String, BuildingDefinition>{
     costMultiplierFormula: (level) => level,
     buildTimeFormula: getUpgradeDuration,
   ),
-
   'mine': BuildingDefinition(
     type: 'mine',
     displayName: 'Iron Mine',
@@ -69,7 +66,6 @@ final buildingDefinitions = <String, BuildingDefinition>{
     costMultiplierFormula: (level) => level,
     buildTimeFormula: getUpgradeDuration,
   ),
-
   'wood_storage': BuildingDefinition(
     type: 'wood_storage',
     displayName: 'Wood Storage',

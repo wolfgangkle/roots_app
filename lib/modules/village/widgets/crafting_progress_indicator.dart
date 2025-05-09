@@ -15,7 +15,8 @@ class CraftingProgressIndicator extends StatefulWidget {
   });
 
   @override
-  State<CraftingProgressIndicator> createState() => _CraftingProgressIndicatorState();
+  State<CraftingProgressIndicator> createState() =>
+      _CraftingProgressIndicatorState();
 }
 
 class _CraftingProgressIndicatorState extends State<CraftingProgressIndicator> {
@@ -34,7 +35,8 @@ class _CraftingProgressIndicatorState extends State<CraftingProgressIndicator> {
         : rawDuration;
 
     _updateRemaining();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+    _timer =
+        Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
   }
 
   void _updateRemaining() {
@@ -69,7 +71,8 @@ class _CraftingProgressIndicatorState extends State<CraftingProgressIndicator> {
 
   double get progress {
     final elapsed = totalDuration - remaining;
-    return (elapsed.inMilliseconds / totalDuration.inMilliseconds).clamp(0.0, 1.0);
+    return (elapsed.inMilliseconds / totalDuration.inMilliseconds)
+        .clamp(0.0, 1.0);
   }
 
   String formatTime(Duration duration) {

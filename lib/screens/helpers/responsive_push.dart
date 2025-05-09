@@ -10,7 +10,8 @@ void pushResponsiveScreen(BuildContext context, Widget screen) {
       MaterialPageRoute(builder: (_) => screen),
     );
   } else {
-    final controller = Provider.of<MainContentController>(context, listen: false);
+    final controller =
+        Provider.of<MainContentController>(context, listen: false);
     controller.setCustomContent(screen);
   }
 }

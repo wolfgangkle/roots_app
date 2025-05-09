@@ -30,12 +30,11 @@ class HeroWeightBar extends StatelessWidget {
             percent < 0.5
                 ? Colors.green
                 : percent < 0.9
-                ? Colors.orange
-                : Colors.red,
+                    ? Colors.orange
+                    : Colors.red,
           ),
         ),
       ],
     );
   }
 }
-

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
-
 class UpgradeButton extends StatefulWidget {
   final String buildingType;
   final int currentLevel;
@@ -100,13 +99,13 @@ class _UpgradeButtonState extends State<UpgradeButton> {
       ),
       child: _isProcessing
           ? const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: Colors.white,
-        ),
-      )
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
           : Text(widget.label ?? 'Upgrade'),
     );
   }

@@ -29,13 +29,15 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabCount, vsync: this, initialIndex: 0);
+    _tabController =
+        TabController(length: _tabCount, vsync: this, initialIndex: 0);
     _pageController = PageController(initialPage: 0);
   }
 
   void _recreateControllers({int initialIndex = 0}) {
     _tabController.dispose();
-    _tabController = TabController(length: _tabCount, vsync: this, initialIndex: initialIndex);
+    _tabController = TabController(
+        length: _tabCount, vsync: this, initialIndex: initialIndex);
     _pageController.jumpToPage(initialIndex);
   }
 

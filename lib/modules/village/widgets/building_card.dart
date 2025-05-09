@@ -4,7 +4,6 @@ import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dar
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 
-
 class BuildingCard extends StatelessWidget {
   final String type;
   final int level;
@@ -53,8 +52,8 @@ class BuildingCard extends StatelessWidget {
           Text(
             '${definition.displayName} (Level $level)',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
 

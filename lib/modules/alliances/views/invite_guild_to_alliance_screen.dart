@@ -7,10 +7,12 @@ class InviteGuildToAllianceScreen extends StatefulWidget {
   const InviteGuildToAllianceScreen({super.key});
 
   @override
-  State<InviteGuildToAllianceScreen> createState() => _InviteGuildToAllianceScreenState();
+  State<InviteGuildToAllianceScreen> createState() =>
+      _InviteGuildToAllianceScreenState();
 }
 
-class _InviteGuildToAllianceScreenState extends State<InviteGuildToAllianceScreen> {
+class _InviteGuildToAllianceScreenState
+    extends State<InviteGuildToAllianceScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isLoading = false;
@@ -26,7 +28,7 @@ class _InviteGuildToAllianceScreenState extends State<InviteGuildToAllianceScree
     final query = await FirebaseFirestore.instance
         .collection('guilds')
         .where('name', isGreaterThanOrEqualTo: _searchQuery)
-        .where('name', isLessThanOrEqualTo: _searchQuery + '\uf8ff')
+        .where('name', isLessThanOrEqualTo: '$_searchQuery\uf8ff')
         .limit(20)
         .get();
 
@@ -43,7 +45,8 @@ class _InviteGuildToAllianceScreenState extends State<InviteGuildToAllianceScree
       final guildId = profileData?['guildId'];
 
       if (guildId != null) {
-        final guildDoc = await FirebaseFirestore.instance.doc('guilds/$guildId').get();
+        final guildDoc =
+            await FirebaseFirestore.instance.doc('guilds/$guildId').get();
         allianceId = guildDoc.data()?['allianceId'];
       }
     }
@@ -68,7 +71,7 @@ class _InviteGuildToAllianceScreenState extends State<InviteGuildToAllianceScree
         QueryDocumentSnapshot<Map<String, dynamic>>? leaderDoc;
         try {
           leaderDoc = membersQuery.docs.firstWhere(
-                (doc) => doc.data()['guildRole'] == 'leader',
+            (doc) => doc.data()['guildRole'] == 'leader',
           );
         } catch (_) {
           leaderDoc = null;
@@ -110,7 +113,8 @@ class _InviteGuildToAllianceScreenState extends State<InviteGuildToAllianceScree
     setState(() => _inviteInProgress = true);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('sendAllianceInvite');
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('sendAllianceInvite');
       await callable.call({'targetGuildId': guildId});
 
       if (mounted) {
@@ -174,19 +178,22 @@ class _InviteGuildToAllianceScreenState extends State<InviteGuildToAllianceScree
                     trailing: info['hasAlliance']
                         ? null
                         : info['hasPendingInvite']
-                        ? const Text('Pending', style: TextStyle(color: Colors.grey))
-                        : ElevatedButton(
-                      onPressed: _inviteInProgress
-                          ? null
-                          : () => _sendInvite(info['id'], info['name']),
-                      child: _inviteInProgress
-                          ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                          : const Text('Invite'),
-                    ),
+                            ? const Text('Pending',
+                                style: TextStyle(color: Colors.grey))
+                            : ElevatedButton(
+                                onPressed: _inviteInProgress
+                                    ? null
+                                    : () =>
+                                        _sendInvite(info['id'], info['name']),
+                                child: _inviteInProgress
+                                    ? const SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      )
+                                    : const Text('Invite'),
+                              ),
                   );
                 },
               ),

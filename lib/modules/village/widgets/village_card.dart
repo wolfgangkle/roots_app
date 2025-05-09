@@ -44,11 +44,14 @@ class _VillageCardState extends State<VillageCard> {
     final upgrade = widget.village.currentBuildJob;
     final crafting = widget.village.currentCraftingJob;
 
-    final prodWood = widget.village.buildings['woodcutter']?.productionPerHour ?? 0;
-    final prodStone = widget.village.buildings['quarry']?.productionPerHour ?? 0;
+    final prodWood =
+        widget.village.buildings['woodcutter']?.productionPerHour ?? 0;
+    final prodStone =
+        widget.village.buildings['quarry']?.productionPerHour ?? 0;
     final prodFood = widget.village.buildings['farm']?.productionPerHour ?? 0;
     final prodIron = widget.village.buildings['mine']?.productionPerHour ?? 0;
-    final prodGold = widget.village.buildings['goldmine']?.productionPerHour ?? 0;
+    final prodGold =
+        widget.village.buildings['goldmine']?.productionPerHour ?? 0;
 
     return Card(
       elevation: 2,
