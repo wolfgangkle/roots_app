@@ -163,15 +163,15 @@ class NavigationListContent extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
           title: Text('Logout', style: Theme.of(context).textTheme.bodyLarge),
-          onTap: () {
-            Future.microtask(() async {
+            onTap: () async {
+              final navigator = Navigator.of(context); // Store before async gap
               await FirebaseAuth.instance.signOut();
-              Navigator.of(context).pushAndRemoveUntil(
+
+              navigator.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
                     (route) => false,
               );
-            });
-          },
+            }
         ),
       ],
     );
