@@ -180,10 +180,6 @@ class VillageModel {
     final currentLevel = buildings[buildingType]?.level ?? 0;
     final targetLevel = currentLevel + 1;
 
-    final def = buildingDefinitions.firstWhere(
-          (b) => b['type'] == buildingType,
-      orElse: () => {},
-    );
 
     final seconds = 30 * targetLevel; // fallback formula for now
     final estimatedDuration = Duration(seconds: seconds);
