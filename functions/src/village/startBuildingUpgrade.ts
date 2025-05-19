@@ -44,8 +44,15 @@ export async function startBuildingUpgradeLogic(request: CallableRequest<any>) {
     cost[key] = Math.round(baseCost[key] * targetLevel * costFactor);
   }
 
-  const baseTimeSec = 30; // ⏳ fallback for now
-  const durationSeconds = baseTimeSec * targetLevel;
+  const baseTimeSec = def.baseBuildTimeSeconds ?? 30;
+  const buildTimeScaling = def.buildTimeScaling ?? {};
+  const factor = buildTimeScaling.factor ?? 1;
+  const linear = buildTimeScaling.linear ?? 0;
+
+  const durationSeconds = Math.round(
+    baseTimeSec * Math.pow(targetLevel, factor) + targetLevel * linear
+  );
+
 
   // ✅ Check resource availability
   for (const key in cost) {

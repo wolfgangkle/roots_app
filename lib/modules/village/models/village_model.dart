@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/village/models/building_model.dart';
 import 'package:roots_app/modules/village/models/build_job_model.dart';
@@ -143,14 +144,15 @@ class VillageModel {
   bool isBuildingUnlocked(String buildingType) {
     final def = buildingDefinitions.firstWhere(
           (b) => b['type'] == buildingType,
-      orElse: () => {},
+      orElse: () => <String, Object>{},
     );
+
 
     final unlock = def['unlockRequirement'] as Map<String, dynamic>?;
     if (unlock == null) return true;
 
-    final dependency = unlock['dependsOn'];
-    final requiredLevel = unlock['requiredLevel'];
+    final dependency = unlock['dependsOn'] as String;
+    final requiredLevel = unlock['requiredLevel'] as int;
     final dependencyLevel = buildings[dependency]?.level ?? 0;
 
     return dependencyLevel >= requiredLevel;
@@ -158,7 +160,7 @@ class VillageModel {
 
   List<String> getUnlockedBuildings() {
     return buildingDefinitions
-        .where((b) => isBuildingUnlocked(b['type']))
+        .where((b) => isBuildingUnlocked(b['type'] as String))
         .map((b) => b['type'] as String)
         .toList();
   }
@@ -180,16 +182,27 @@ class VillageModel {
     final currentLevel = buildings[buildingType]?.level ?? 0;
     final targetLevel = currentLevel + 1;
 
+    final def = buildingDefinitions.firstWhere(
+          (b) => b['type'] == buildingType,
+      orElse: () => <String, Object>{},
+    );
 
-    final seconds = 30 * targetLevel; // fallback formula for now
+
+    final base = def['baseBuildTimeSeconds'] as int? ?? 30;
+    final buildTimeScaling =
+        def['buildTimeScaling'] as Map<String, dynamic>? ?? {};
+    final factor = buildTimeScaling['factor'] ?? 1.0;
+    final linear = buildTimeScaling['linear'] ?? 0;
+
+    final seconds =
+    (base * pow(targetLevel, factor) + (targetLevel * linear)).round();
     final estimatedDuration = Duration(seconds: seconds);
-    final durationSeconds = estimatedDuration.inSeconds;
 
     final simulatedJob = BuildJobModel(
       buildingType: buildingType,
       targetLevel: targetLevel,
       startedAt: DateTime.now(),
-      durationSeconds: durationSeconds,
+      durationSeconds: estimatedDuration.inSeconds,
     );
 
     buildings[buildingType] =

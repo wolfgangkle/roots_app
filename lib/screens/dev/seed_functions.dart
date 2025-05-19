@@ -139,7 +139,10 @@ Future<void> seedBuildingDefinitions(BuildContext context) async {
   final ref = FirebaseFirestore.instance.collection('buildingDefinitions');
 
   for (final building in buildingDefinitions) {
-    final docRef = ref.doc(building['type']);
+    final buildingType = building['type'] as String?;
+    if (buildingType == null) continue;
+
+    final docRef = ref.doc(buildingType);
     batch.set(docRef, {
       ...building,
       'source': 'manual',
@@ -152,6 +155,7 @@ Future<void> seedBuildingDefinitions(BuildContext context) async {
     const SnackBar(content: Text("🏗️ Seeded building definitions to Firestore!")),
   );
 }
+
 
 Future<void> cleanMapTiles(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
@@ -22,17 +23,31 @@ class BuildingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final baseProduction = (definition['baseProductionPerHour'] ?? 0) as int;
+    final displayNameMap = definition['displayName'] as Map<String, dynamic>? ?? {};
+    final name = displayNameMap['default'] ?? 'Unknown';
+
     final baseCost = Map<String, int>.from(definition['baseCost'] ?? {});
-    final costFactor = (definition['costMultiplier']?['factor'] ?? 1) as num;
+    final costMultiplier = definition['costMultiplier'] as Map<String, dynamic>? ?? {};
+    final costFactor = costMultiplier['factor'] ?? 1.0;
+    final costLinear = costMultiplier['linear'] ?? 0;
 
     final currentProduction = baseProduction * level;
     final nextLevel = level + 1;
     final nextProduction = baseProduction * nextLevel;
 
-    final nextCost = baseCost.map((k, v) =>
-        MapEntry(k, (v * nextLevel * costFactor).round()));
+    final nextCost = baseCost.map((k, v) {
+      final scaled = (v * pow(nextLevel, costFactor) + (nextLevel * costLinear)).round();
+      return MapEntry(k, scaled);
+    });
 
-    final nextDuration = Duration(seconds: 30 * nextLevel); // Simple placeholder
+    final buildTimeScaling = definition['buildTimeScaling'] as Map<String, dynamic>? ?? {};
+    final baseBuildTime = definition['baseBuildTimeSeconds'] as int? ?? 30;
+    final timeFactor = buildTimeScaling['factor'] ?? 1.0;
+    final timeLinear = buildTimeScaling['linear'] ?? 0;
+
+    final seconds = (baseBuildTime * pow(nextLevel, timeFactor) + (nextLevel * timeLinear)).round();
+    final nextDuration = Duration(seconds: seconds);
+
     final isUpgradingThis = village.currentBuildJob?.buildingType == type &&
         village.currentBuildJob?.isComplete == false;
 
@@ -54,16 +69,14 @@ class BuildingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🏗️ Name + Level
           Text(
-            '${definition['displayName']} (Level $level)',
+            '$name (Level $level)',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
 
-          // 📦 Current production
           if (baseProduction > 0)
             Text('📦 Produces: $currentProduction per hour'),
 
@@ -103,7 +116,6 @@ class BuildingCard extends StatelessWidget {
     );
   }
 
-  /// 🔧 Builds a RichText with cost values in red if not affordable.
   Widget _buildCostRichText(Map<String, int> cost) {
     final simulated = village.simulatedResources;
 
@@ -123,7 +135,7 @@ class BuildingCard extends StatelessWidget {
       spans.add(const TextSpan(text: ', '));
     });
 
-    if (spans.isNotEmpty) spans.removeLast(); // remove trailing comma
+    if (spans.isNotEmpty) spans.removeLast();
 
     return RichText(
       text: TextSpan(style: const TextStyle(fontSize: 14), children: spans),

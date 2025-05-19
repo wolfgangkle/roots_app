@@ -1,104 +1,72 @@
-final buildingDefinitions = <Map<String, dynamic>>[
+final buildingDefinitions = [
   {
-    "type": "woodcutter",
-    "displayName": "Woodcutter",
-    "description": "Produces wood over time.",
-    "maxLevel": 10,
-    "baseProductionPerHour": 100,
+    "type": "hut",
+    "displayName": {
+      "default": "Hut",
+    },
+    "description": {
+      "default": "A small hut to house your villagers.",
+    },
     "baseCost": {
-      "wood": 50,
-      "stone": 20,
-    },
-    "unlockRequirement": null,
-    "costMultiplier": {
-      "formula": "linear",
-      "base": 1,
-      "factor": 1,
-    },
-    "buildTimeFormula": "default",
-  },
-  {
-    "type": "quarry",
-    "displayName": "Quarry",
-    "description": "Produces stone over time.",
-    "maxLevel": 10,
-    "baseProductionPerHour": 80,
-    "baseCost": {
-      "wood": 60,
-      "stone": 30,
-    },
-    "unlockRequirement": {
-      "dependsOn": "woodcutter",
-      "requiredLevel": 1,
+      "wood": 10,
+      "stone": 3,
+      "iron": 0,
+      "gold": 0,
     },
     "costMultiplier": {
-      "formula": "linear",
-      "base": 1,
-      "factor": 1,
+      "factor": 1.2,
+      "linear": 0,
     },
-    "buildTimeFormula": "default",
+    "baseBuildTimeSeconds": 300,
+    "buildTimeScaling": {
+      "factor": 1.1,
+      "linear": 10,
+    },
+    "provides": {
+      "workers": 6,
+    },
+    "raceNames": {
+      "human": "Hut",
+      "dwarf": "Shelter",
+      "elf": "Leaf Shelter",
+      "orc": "Mud Hut",
+    },
   },
   {
-    "type": "farm",
-    "displayName": "Farm",
-    "description": "Produces food over time.",
-    "maxLevel": 10,
-    "baseProductionPerHour": 120,
-    "baseCost": {
-      "wood": 40,
-      "stone": 40,
+    "type": "house",
+    "displayName": {
+      "default": "House",
     },
-    "unlockRequirement": {
-      "dependsOn": "woodcutter",
-      "requiredLevel": 2,
+    "description": {
+      "default": "A larger house to accommodate more villagers.",
     },
-    "costMultiplier": {
-      "formula": "linear",
-      "base": 1,
-      "factor": 1,
-    },
-    "buildTimeFormula": "default",
-  },
-  {
-    "type": "mine",
-    "displayName": "Iron Mine",
-    "description": "Produces iron over time.",
-    "maxLevel": 10,
-    "baseProductionPerHour": 60,
     "baseCost": {
       "wood": 80,
       "stone": 60,
-    },
-    "unlockRequirement": {
-      "dependsOn": "quarry",
-      "requiredLevel": 2,
+      "iron": 10,
+      "gold": 0,
     },
     "costMultiplier": {
-      "formula": "linear",
-      "base": 1,
-      "factor": 1,
+      "factor": 1.3,
+      "linear": 5,
     },
-    "buildTimeFormula": "default",
-  },
-  {
-    "type": "wood_storage",
-    "displayName": "Wood Storage",
-    "description": "Increases your maximum wood capacity.",
-    "maxLevel": 5,
-    "baseProductionPerHour": 0,
-    "baseCost": {
-      "wood": 150,
-      "stone": 100,
+    "baseBuildTimeSeconds": 900,
+    "buildTimeScaling": {
+      "factor": 1.15,
+      "linear": 20,
+    },
+    "provides": {
+      "workers": 21,
     },
     "unlockRequirement": {
-      "dependsOn": "woodcutter",
-      "requiredLevel": 3,
+      "dependsOn": "hut",
+      "requiredLevel": 12,
     },
-    "costMultiplier": {
-      "formula": "linear",
-      "base": 1,
-      "factor": 2, // Doubles each level (vs. 1x in producers)
+    "raceNames": {
+      "human": "House",
+      "dwarf": "Stonehouse",
+      "elf": "Treehouse",
+      "orc": "War Hut",
     },
-    "buildTimeFormula": "default",
   },
 ];
