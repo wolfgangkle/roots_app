@@ -124,6 +124,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: const Text("✨ Seed Spells"),
                 onPressed: () => seedSpells(context),
               ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.apartment),
+                label: const Text("🏗️ Seed Buildings"),
+                onPressed: () => seedBuildingDefinitions(context),
+              ),
+
 
               const SizedBox(height: 24),
               Wrap(

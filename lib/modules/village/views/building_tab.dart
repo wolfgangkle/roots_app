@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
-import 'package:roots_app/modules/village/data/building_definitions.dart';
+import 'package:roots_app/modules/village/data/building_definitions.dart'; // uses List<Map<String, dynamic>>
 import 'package:roots_app/modules/village/widgets/building_card.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_button.dart';
@@ -46,31 +46,36 @@ class BuildingTabState extends State<BuildingTab> {
     final currentUpgrade = widget.village.currentBuildJob;
     final resources = widget.village.simulatedResources;
 
-    final filtered = widget.selectedFilter == 'All'
-        ? allUnlocked
-        : allUnlocked.where((type) {
-      final def = buildingDefinitions[type];
-      if (def == null) return false;
-      if (widget.selectedFilter == 'Production' &&
-          def.baseProductionPerHour > 0) {
-        return true;
-      } else if (widget.selectedFilter == 'Storage' &&
-          def.displayName.contains('Storage')) {
-        return true;
+    final filteredDefinitions = buildingDefinitions.where((def) {
+      final type = def['type'];
+      if (!allUnlocked.contains(type)) return false;
+
+      if (widget.selectedFilter == 'All') return true;
+
+      final baseProduction = def['baseProductionPerHour'] ?? 0;
+      final displayName = def['displayName']?.toString().toLowerCase() ?? '';
+
+      if (widget.selectedFilter == 'Production') {
+        return baseProduction > 0;
+      } else if (widget.selectedFilter == 'Storage') {
+        return displayName.contains('storage');
       }
+
       return false;
     }).toList();
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: filtered.length,
+      itemCount: filteredDefinitions.length,
       itemBuilder: (context, index) {
-        final type = filtered[index];
-        final def = buildingDefinitions[type]!;
+        final def = filteredDefinitions[index];
+        final type = def['type'];
         final level = widget.village.buildings[type]?.level ?? 0;
         final nextLevel = level + 1;
 
-        final cost = def.getCostForLevel(nextLevel);
+        final baseCost = Map<String, int>.from(def['baseCost'] ?? {});
+        final costMultiplier = def['costMultiplier']?['factor'] ?? 1;
+        final cost = baseCost.map((k, v) => MapEntry(k, (v * nextLevel * costMultiplier).round()));
 
         final hasResources = (resources['wood'] ?? 0) >= (cost['wood'] ?? 0) &&
             (resources['stone'] ?? 0) >= (cost['stone'] ?? 0) &&
@@ -93,17 +98,11 @@ class BuildingTabState extends State<BuildingTab> {
             villageId: widget.village.id,
             isGloballyDisabled: _globalUpgradeActive,
             onGlobalUpgradeStart: () {
-              setState(() {
-                _globalUpgradeActive = true;
-              });
+              setState(() => _globalUpgradeActive = true);
             },
             onUpgradeComplete: () {
-              setState(() {
-                _globalUpgradeActive = false;
-              });
+              setState(() => _globalUpgradeActive = false);
             },
-
-            /// 💥 Optimistic update: instantly simulate building progress
             onOptimisticUpgrade: () {
               widget.village.simulateUpgrade(type);
               setState(() {});

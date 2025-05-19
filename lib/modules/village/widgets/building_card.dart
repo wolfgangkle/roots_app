@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:roots_app/modules/village/models/building_definition.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
@@ -7,7 +6,7 @@ import 'package:roots_app/modules/village/extensions/village_model_extension.dar
 class BuildingCard extends StatelessWidget {
   final String type;
   final int level;
-  final BuildingDefinition definition;
+  final Map<String, dynamic> definition;
   final Widget? upgradeButtonWidget;
   final VillageModel village;
 
@@ -22,11 +21,18 @@ class BuildingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentProduction = definition.baseProductionPerHour * level;
+    final baseProduction = (definition['baseProductionPerHour'] ?? 0) as int;
+    final baseCost = Map<String, int>.from(definition['baseCost'] ?? {});
+    final costFactor = (definition['costMultiplier']?['factor'] ?? 1) as num;
+
+    final currentProduction = baseProduction * level;
     final nextLevel = level + 1;
-    final nextProduction = definition.baseProductionPerHour * nextLevel;
-    final nextCost = definition.getCostForLevel(nextLevel);
-    final nextDuration = definition.getBuildTime(nextLevel);
+    final nextProduction = baseProduction * nextLevel;
+
+    final nextCost = baseCost.map((k, v) =>
+        MapEntry(k, (v * nextLevel * costFactor).round()));
+
+    final nextDuration = Duration(seconds: 30 * nextLevel); // Simple placeholder
     final isUpgradingThis = village.currentBuildJob?.buildingType == type &&
         village.currentBuildJob?.isComplete == false;
 
@@ -50,24 +56,23 @@ class BuildingCard extends StatelessWidget {
         children: [
           // 🏗️ Name + Level
           Text(
-            '${definition.displayName} (Level $level)',
+            '${definition['displayName']} (Level $level)',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
 
           // 📦 Current production
-          if (definition.baseProductionPerHour > 0)
+          if (baseProduction > 0)
             Text('📦 Produces: $currentProduction per hour'),
 
-          // ➡️ Next level info
           const Divider(height: 20),
           Text('➡️ Next Level ($nextLevel):'),
-          if (definition.baseProductionPerHour > 0)
+
+          if (baseProduction > 0)
             Text('📦 Produces: $nextProduction per hour'),
 
-          // 💸 Cost with red text for insufficient resources
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -115,12 +120,10 @@ class BuildingCard extends StatelessWidget {
         ),
       ));
 
-      spans.add(const TextSpan(text: ', ')); // comma separator
+      spans.add(const TextSpan(text: ', '));
     });
 
-    if (spans.isNotEmpty) {
-      spans.removeLast(); // remove trailing comma
-    }
+    if (spans.isNotEmpty) spans.removeLast(); // remove trailing comma
 
     return RichText(
       text: TextSpan(style: const TextStyle(fontSize: 14), children: spans),

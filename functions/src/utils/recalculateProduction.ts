@@ -1,27 +1,48 @@
-// functions/src/utils/recalculateProduction.ts
+import * as admin from 'firebase-admin';
 
-/**
- * 🧱 Defines the expected structure for each building entry.
- */
+const db = admin.firestore();
+
 type BuildingMap = Record<string, { level: number }>;
+type ResourceType = 'wood' | 'stone' | 'food' | 'iron' | 'gold';
+type ProductionMap = Record<ResourceType, number>;
 
-/**
- * 🎯 Result format: production values per resource
- */
-type ProductionMap = Record<'wood' | 'stone' | 'food' | 'iron' | 'gold', number>;
-
-/**
- * 🧮 Calculates production per hour based on building levels.
- * Should be run after any building upgrade.
- */
-export function recalculateProduction(buildings: BuildingMap): ProductionMap {
-  const getLevel = (type: string) => buildings[type]?.level ?? 0;
-
-  return {
-    wood: getLevel('woodcutter') * 100,
-    stone: getLevel('quarry') * 80,
-    food: getLevel('farm') * 120,
-    iron: getLevel('mine') * 60,
-    gold: getLevel('goldmine') * 40,
+export async function recalculateProduction(buildings: BuildingMap): Promise<ProductionMap> {
+  const result: ProductionMap = {
+    wood: 0,
+    stone: 0,
+    food: 0,
+    iron: 0,
+    gold: 0,
   };
+
+  const buildingTypes = Object.keys(buildings);
+  const snapshots = await Promise.all(
+    buildingTypes.map(type => db.doc(`buildingDefinitions/${type}`).get())
+  );
+
+  for (const snap of snapshots) {
+    if (!snap.exists) continue;
+
+    const def = snap.data()!;
+    const type = def.type;
+    const base = def.baseProductionPerHour ?? 0;
+    const level = buildings[type]?.level ?? 0;
+
+    const resource = (def.produces ?? inferProducedResource(type)) as ResourceType | null;
+
+    if (resource && Object.prototype.hasOwnProperty.call(result, resource)) {
+      result[resource] += base * level;
+    }
+  }
+
+  return result;
+}
+
+function inferProducedResource(type: string): ResourceType | null {
+  if (type.includes('wood')) return 'wood';
+  if (type.includes('stone') || type.includes('quarry')) return 'stone';
+  if (type.includes('farm') || type.includes('food')) return 'food';
+  if (type.includes('mine') || type.includes('iron')) return 'iron';
+  if (type.includes('gold')) return 'gold';
+  return null;
 }

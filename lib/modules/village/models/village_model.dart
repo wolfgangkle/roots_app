@@ -18,7 +18,7 @@ class VillageModel {
   final DateTime lastUpdated;
   final Map<String, BuildingModel> buildings;
   BuildJobModel? currentBuildJob;
-  final Map<String, dynamic>? currentCraftingJob; // ✅ NEW
+  final Map<String, dynamic>? currentCraftingJob;
 
   VillageModel({
     required this.id,
@@ -33,7 +33,7 @@ class VillageModel {
     required this.lastUpdated,
     required this.buildings,
     this.currentBuildJob,
-    this.currentCraftingJob, // ✅ NEW
+    this.currentCraftingJob,
   });
 
   factory VillageModel.fromMap(String id, Map<String, dynamic> data) {
@@ -47,7 +47,7 @@ class VillageModel {
 
     final jobData = data['currentBuildJob'];
     final BuildJobModel? job =
-        jobData != null ? BuildJobModel.fromMap(jobData) : null;
+    jobData != null ? BuildJobModel.fromMap(jobData) : null;
 
     final craftingJob = data['currentCraftingJob'] as Map<String, dynamic>?;
 
@@ -64,7 +64,7 @@ class VillageModel {
       lastUpdated: (data['lastUpdated'] as Timestamp).toDate(),
       buildings: buildings,
       currentBuildJob: job,
-      currentCraftingJob: craftingJob, // ✅ NEW
+      currentCraftingJob: craftingJob,
     );
   }
 
@@ -83,8 +83,7 @@ class VillageModel {
       },
       'buildings': buildings.map((key, value) => MapEntry(key, value.toMap())),
       if (currentBuildJob != null) 'currentBuildJob': currentBuildJob!.toMap(),
-      if (currentCraftingJob != null)
-        'currentCraftingJob': currentCraftingJob, // ✅
+      if (currentCraftingJob != null) 'currentCraftingJob': currentCraftingJob,
     };
   }
 
@@ -122,7 +121,7 @@ class VillageModel {
     DateTime? lastUpdated,
     Map<String, BuildingModel>? buildings,
     BuildJobModel? currentBuildJob,
-    Map<String, dynamic>? currentCraftingJob, // ✅ NEW
+    Map<String, dynamic>? currentCraftingJob,
   }) {
     return VillageModel(
       id: id,
@@ -142,20 +141,25 @@ class VillageModel {
   }
 
   bool isBuildingUnlocked(String buildingType) {
-    final definition = buildingDefinitions[buildingType];
-    if (definition == null) return false;
+    final def = buildingDefinitions.firstWhere(
+          (b) => b['type'] == buildingType,
+      orElse: () => {},
+    );
 
-    final unlock = definition.unlockRequirement;
+    final unlock = def['unlockRequirement'] as Map<String, dynamic>?;
     if (unlock == null) return true;
 
-    final dependencyLevel = buildings[unlock.dependsOn]?.level ?? 0;
-    return dependencyLevel >= unlock.requiredLevel;
+    final dependency = unlock['dependsOn'];
+    final requiredLevel = unlock['requiredLevel'];
+    final dependencyLevel = buildings[dependency]?.level ?? 0;
+
+    return dependencyLevel >= requiredLevel;
   }
 
   List<String> getUnlockedBuildings() {
-    return buildingDefinitions.entries
-        .where((entry) => isBuildingUnlocked(entry.key))
-        .map((entry) => entry.key)
+    return buildingDefinitions
+        .where((b) => isBuildingUnlocked(b['type']))
+        .map((b) => b['type'] as String)
         .toList();
   }
 
@@ -176,9 +180,13 @@ class VillageModel {
     final currentLevel = buildings[buildingType]?.level ?? 0;
     final targetLevel = currentLevel + 1;
 
-    final def = buildingDefinitions[buildingType];
-    final estimatedDuration =
-        def?.buildTimeFormula?.call(targetLevel) ?? const Duration(seconds: 10);
+    final def = buildingDefinitions.firstWhere(
+          (b) => b['type'] == buildingType,
+      orElse: () => {},
+    );
+
+    final seconds = 30 * targetLevel; // fallback formula for now
+    final estimatedDuration = Duration(seconds: seconds);
     final durationSeconds = estimatedDuration.inSeconds;
 
     final simulatedJob = BuildJobModel(

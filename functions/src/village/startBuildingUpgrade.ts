@@ -1,14 +1,9 @@
 import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { getUpgradeCost, getUpgradeDuration } from '../utils/buildingFormulas.js';
-import { scheduleUpgradeTask } from '../utils/scheduleUpgradeTask.js'; // 🔁 NEW import
+import { scheduleUpgradeTask } from '../utils/scheduleUpgradeTask.js';
 
 const db = admin.firestore();
 
-/**
- * 🧠 Pure logic for starting a building upgrade.
- * Used directly from index.ts or wrapped as a Firebase function.
- */
 export async function startBuildingUpgradeLogic(request: CallableRequest<any>) {
   const { villageId, buildingType } = request.data;
   const userId = request.auth?.uid;
@@ -18,13 +13,21 @@ export async function startBuildingUpgradeLogic(request: CallableRequest<any>) {
     throw new HttpsError('invalid-argument', 'villageId and buildingType are required.');
 
   const villageRef = db.collection('users').doc(userId).collection('villages').doc(villageId);
-  const doc = await villageRef.get();
-  if (!doc.exists) throw new HttpsError('not-found', 'Village not found.');
+  const buildingDefRef = db.collection('buildingDefinitions').doc(buildingType);
 
-  const dataObj = doc.data()!;
-  const buildings: Record<string, { level: number }> = dataObj.buildings || {};
-  const resources: Record<string, number> = dataObj.resources || {};
-  const buildJob = dataObj.currentBuildJob;
+  const [villageSnap, defSnap] = await Promise.all([
+    villageRef.get(),
+    buildingDefRef.get(),
+  ]);
+
+  if (!villageSnap.exists) throw new HttpsError('not-found', 'Village not found.');
+  if (!defSnap.exists) throw new HttpsError('not-found', 'Building definition not found.');
+
+  const villageData = villageSnap.data()!;
+  const def = defSnap.data()!;
+  const buildings: Record<string, { level: number }> = villageData.buildings || {};
+  const resources: Record<string, number> = villageData.resources || {};
+  const buildJob = villageData.currentBuildJob;
 
   if (buildJob) {
     throw new HttpsError('failed-precondition', 'Another building is already upgrading.');
@@ -33,41 +36,46 @@ export async function startBuildingUpgradeLogic(request: CallableRequest<any>) {
   const currentLevel = buildings[buildingType]?.level || 0;
   const targetLevel = currentLevel + 1;
 
-  const cost = getUpgradeCost(buildingType, targetLevel);
-  const duration = getUpgradeDuration(buildingType, targetLevel);
-  const durationSeconds = Math.floor(duration / 1000);
-  const now = new Date();
+  const baseCost = def.baseCost || {};
+  const costFactor = def.costMultiplier?.factor ?? 1;
 
-  // ✅ Check if enough resources
+  const cost: Record<string, number> = {};
+  for (const key in baseCost) {
+    cost[key] = Math.round(baseCost[key] * targetLevel * costFactor);
+  }
+
+  const baseTimeSec = 30; // ⏳ fallback for now
+  const durationSeconds = baseTimeSec * targetLevel;
+
+  // ✅ Check resource availability
   for (const key in cost) {
     if ((resources[key] || 0) < cost[key]) {
       throw new HttpsError('failed-precondition', `Not enough ${key}`);
     }
   }
 
-  // 💸 Deduct cost
+  // 💸 Deduct resources
   const newResources: Record<string, number> = { ...resources };
   for (const key in cost) {
-    newResources[key] = (resources[key] || 0) - cost[key];
+    newResources[key] -= cost[key];
   }
 
+  const now = new Date();
   const buildJobData = {
     buildingType,
     targetLevel,
     startedAt: admin.firestore.Timestamp.fromDate(now),
-    durationSeconds: durationSeconds,
+    durationSeconds,
   };
 
-  // 🔄 Update village with new job and resources
   await villageRef.update({
     resources: newResources,
     currentBuildJob: buildJobData,
     lastUpgradeCheck: admin.firestore.Timestamp.fromDate(now),
   });
 
-  console.log(`🚧 Started upgrade for ${buildingType} → L${targetLevel} (duration ${durationSeconds}s)`);
+  console.log(`🚧 Upgrade started: ${buildingType} → L${targetLevel} (${durationSeconds}s)`);
 
-  // ⏰ Schedule backend upgrade
   await scheduleUpgradeTask({
     villageId,
     userId,
@@ -83,7 +91,4 @@ export async function startBuildingUpgradeLogic(request: CallableRequest<any>) {
   };
 }
 
-/**
- * 🛠️ Firebase-wrapped function export
- */
 export const startBuildingUpgrade = onCall(startBuildingUpgradeLogic);

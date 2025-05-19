@@ -7,6 +7,7 @@ import 'package:roots_app/modules/village/data/items.dart';
 import 'package:roots_app/modules/combat/data/enemy_data.dart';
 import 'package:roots_app/modules/combat/data/event_data.dart';
 import 'package:roots_app/modules/spells/data/spell_data.dart';
+import 'package:roots_app/modules/village/data/building_definitions.dart';
 
 Future<void> triggerPeacefulAIEvent(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
@@ -128,6 +129,27 @@ Future<void> seedEncounterEvents(BuildContext context) async {
   await batch.commit();
   messenger.showSnackBar(
     const SnackBar(content: Text("🧪 Seeded encounterEvents to Firestore!")),
+  );
+}
+
+Future<void> seedBuildingDefinitions(BuildContext context) async {
+  final messenger = ScaffoldMessenger.of(context);
+
+  final batch = FirebaseFirestore.instance.batch();
+  final ref = FirebaseFirestore.instance.collection('buildingDefinitions');
+
+  for (final building in buildingDefinitions) {
+    final docRef = ref.doc(building['type']);
+    batch.set(docRef, {
+      ...building,
+      'source': 'manual',
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  await batch.commit();
+  messenger.showSnackBar(
+    const SnackBar(content: Text("🏗️ Seeded building definitions to Firestore!")),
   );
 }
 

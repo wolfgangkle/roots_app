@@ -57,7 +57,8 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
   const targetLevel = buildJob.targetLevel;
 
   const newBuildings = { ...buildings, [type]: { level: targetLevel } };
-  const newProduction = recalculateProduction(newBuildings);
+  const newProduction = await recalculateProduction(newBuildings);
+
 
   await villageRef.update({
     buildings: newBuildings,
