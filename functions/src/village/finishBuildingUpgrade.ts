@@ -2,6 +2,7 @@
 import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { recalculateProduction } from '../utils/recalculateProduction.js';
+import { applyBuildingEffects } from '../helpers/applyBuildingEffects.js';
 
 const db = admin.firestore();
 
@@ -59,7 +60,14 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
   const newBuildings = { ...buildings, [type]: { level: targetLevel } };
   const newProduction = await recalculateProduction(newBuildings);
 
+  // 🧩 Apply additional building-specific effects
+  await applyBuildingEffects({
+    villageRef,
+    buildingType: type,
+    newLevel: targetLevel,
+  });
 
+  // 🏗️ Final update
   await villageRef.update({
     buildings: newBuildings,
     productionPerHour: newProduction,
