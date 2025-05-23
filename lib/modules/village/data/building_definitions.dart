@@ -38,6 +38,7 @@ final buildingDefinitions = [
     },
     "provides": {
       "combatStats": {
+        "spy": 3,
         "hp": 5,
         "attack": 15,
         "defense": 5,
@@ -71,6 +72,9 @@ final buildingDefinitions = [
       "dependsOn": "lookout_post",
       "requiredLevel": 1,
     },
+    "provides": {
+      "camouflage": 3
+    }
     "points": 5,
     "raceNames": {
       "human": "Camouflage Wall",
@@ -138,7 +142,7 @@ final buildingDefinitions = [
     "costMultiplier": {"factor": 1.2, "linear": 3},
     "baseBuildTimeSeconds": 400,
     "buildTimeScaling": {"factor": 1.1, "linear": 20},
-    "provides": {"protectedFromRaid": {"stone": 300}},
+    "provides": {"maxSecuredResources": {"stone": 300}},
     "unlockRequirement": {
       "dependsOn": "stone_storage",
       "requiredLevel": 4,
@@ -374,7 +378,7 @@ final buildingDefinitions = [
     "baseBuildTimeSeconds": 400,
     "buildTimeScaling": {"factor": 1.1, "linear": 20},
     "provides": {
-      "protectedFromRaid": {"wood": 300}
+      "maxSecuredResources": {"wood": 300}
     },
     "unlockRequirement": {
       "dependsOn": "wood_storage",
@@ -784,7 +788,7 @@ final buildingDefinitions = [
     "baseBuildTimeSeconds": 400,
     "buildTimeScaling": {"factor": 1.1, "linear": 20},
     "provides": {
-      "protectedFromRaid": {"iron": 200}
+      "maxSecuredResources": {"iron": 200}
     },
     "unlockRequirement": {
       "dependsOn": "iron_storage",
@@ -1175,7 +1179,7 @@ final buildingDefinitions = [
       "requiredLevel": 6
     },
     "provides": {
-      "protectedFromRaid": {"food": 400}
+      "maxSecuredResources": {"food": 400}
     },
     "points": 5,
     "raceNames": {

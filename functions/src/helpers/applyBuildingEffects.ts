@@ -51,6 +51,26 @@ export async function applyBuildingEffects({
   updates['freeWorkers'] = freeWorkers;
   console.log(`👷 Workers → total: ${totalWorkers}, assigned: ${assignedWorkers}, free: ${freeWorkers}`);
 
+  // 👁️ SPY: Recalculate total spy points from all buildings
+  let totalSpy = 0;
+  for (const [type, def] of buildingDefinitions.entries()) {
+    const level = buildings[type]?.level || 0;
+    const spyPoints = def.provides?.spy || 0;
+    totalSpy += spyPoints * level;
+  }
+  updates['spy'] = totalSpy;
+  console.log(`👁️ Spy stat → ${totalSpy}`);
+
+  // 🌿 CAMOUFLAGE: Recalculate total camouflage value from all buildings
+  let totalCamouflage = 0;
+  for (const [type, def] of buildingDefinitions.entries()) {
+    const level = buildings[type]?.level || 0;
+    const camouflageValue = def.provides?.camouflage || 0;
+    totalCamouflage += camouflageValue * level;
+  }
+  updates['camouflage'] = totalCamouflage;
+  console.log(`🌿 Camouflage stat → ${totalCamouflage}`);
+
   // 📦 STORAGE: Dynamically apply all storageCapacity.* values (e.g. wood, food, stone, iron)
   const providesStorage = updatedBuildingDef.provides?.storageCapacity;
   if (providesStorage) {
@@ -61,7 +81,31 @@ export async function applyBuildingEffects({
     }
   }
 
-  // 🧩 FUTURE: Add more dynamic effects here (bunkers, crafting unlocks, spell access, research...)
+  // 🛡️ BUNKERS: Dynamically apply all securedResources.* from provides.maxSecuredResources
+  const providesSecured = updatedBuildingDef.provides?.maxSecuredResources;
+  if (providesSecured) {
+    for (const [resourceType, baseValue] of Object.entries(providesSecured)) {
+      const total = (baseValue as number) * newLevel;
+      updates[`securedResources.${resourceType}`] = total;
+      console.log(`🛡️ Secured → ${resourceType}: ${total}`);
+    }
+  }
+
+  // 🏹 DEFENSE STRUCTURE: If this building provides combatStats, write them under defenseStructures.{buildingType}
+  const combatStats = updatedBuildingDef.provides?.combatStats;
+  if (combatStats) {
+    const scaledStats: Record<string, number> = {};
+    for (const [stat, value] of Object.entries(combatStats)) {
+      scaledStats[stat] = (value as number) * newLevel;
+    }
+
+    updates[`defenseStructures.${buildingType}`] = {
+      level: newLevel,
+      combatStats: scaledStats,
+    };
+
+    console.log(`🏹 Defense → ${buildingType}:`, scaledStats);
+  }
 
   if (Object.keys(updates).length > 0) {
     await villageRef.update(updates);
