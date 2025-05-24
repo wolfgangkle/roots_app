@@ -2,11 +2,14 @@ import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
 
-type BuildingMap = Record<string, { level: number }>;
+type BuildingMap = Record<string, { level: number; assignedWorkers?: number }>;
 type ResourceType = 'wood' | 'stone' | 'food' | 'iron' | 'gold';
 type ProductionMap = Record<ResourceType, number>;
 
-export async function recalculateProduction(buildings: BuildingMap): Promise<ProductionMap> {
+export function recalculateProduction(
+  buildings: BuildingMap,
+  maxProductionPerHour: Record<ResourceType, number>
+): ProductionMap {
   const result: ProductionMap = {
     wood: 0,
     stone: 0,
@@ -15,34 +18,23 @@ export async function recalculateProduction(buildings: BuildingMap): Promise<Pro
     gold: 0,
   };
 
-  const buildingTypes = Object.keys(buildings);
-  const snapshots = await Promise.all(
-    buildingTypes.map(type => db.doc(`buildingDefinitions/${type}`).get())
-  );
+  const buildingToResource: Record<string, ResourceType> = {
+    woodcutter: 'wood',
+    quarry: 'stone',
+    farm: 'food',
+    mine: 'iron',
+  };
 
-  for (const snap of snapshots) {
-    if (!snap.exists) continue;
+  for (const [buildingType, config] of Object.entries(buildings)) {
+    const resource = buildingToResource[buildingType];
+    if (!resource) continue;
 
-    const def = snap.data()!;
-    const type = def.type;
-    const base = def.baseProductionPerHour ?? 0;
-    const level = buildings[type]?.level ?? 0;
+    const assigned = config.assignedWorkers ?? 0;
+    const max = maxProductionPerHour[resource] ?? 0;
 
-    const resource = (def.produces ?? inferProducedResource(type)) as ResourceType | null;
-
-    if (resource && Object.prototype.hasOwnProperty.call(result, resource)) {
-      result[resource] += base * level;
-    }
+    result[resource] = Math.floor(max * Math.min(assigned / 5, 1));
   }
 
   return result;
 }
 
-function inferProducedResource(type: string): ResourceType | null {
-  if (type.includes('wood')) return 'wood';
-  if (type.includes('stone') || type.includes('quarry')) return 'stone';
-  if (type.includes('farm') || type.includes('food')) return 'food';
-  if (type.includes('mine') || type.includes('iron')) return 'iron';
-  if (type.includes('gold')) return 'gold';
-  return null;
-}

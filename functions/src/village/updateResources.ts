@@ -1,12 +1,9 @@
-// functions/src/village/updateResources.ts
 import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { recalculateProduction } from '../utils/recalculateProduction.js';
 
 const db = admin.firestore();
 
-/**
- * 🧠 Core logic for updating village resources based on elapsed time
- */
 export async function updateVillageResourcesLogic(request: CallableRequest<any>) {
   const { villageId } = request.data;
   const userId = request.auth?.uid;
@@ -33,20 +30,18 @@ export async function updateVillageResourcesLogic(request: CallableRequest<any>)
     return { message: 'Not enough time elapsed.' };
   }
 
-  const production: Record<string, number> = dataObj.productionPerHour || {};
+  const buildings = dataObj.buildings || {};
+  const maxProduction = dataObj.maxProductionPerHour || {};
   const resources: Record<string, number> = dataObj.resources || {};
 
-  if (Object.keys(production).length === 0) {
-    console.warn(`⚠️ No production defined for ${villageId}`);
-    return { message: 'No production data available.' };
-  }
+  const currentProduction = recalculateProduction(buildings, maxProduction);
 
   const gain = {
-    wood: Math.floor((production.wood || 0) * (elapsedMinutes / 60)),
-    stone: Math.floor((production.stone || 0) * (elapsedMinutes / 60)),
-    food: Math.floor((production.food || 0) * (elapsedMinutes / 60)),
-    iron: Math.floor((production.iron || 0) * (elapsedMinutes / 60)),
-    gold: Math.floor((production.gold || 0) * (elapsedMinutes / 60)),
+    wood: Math.floor((currentProduction.wood || 0) * (elapsedMinutes / 60)),
+    stone: Math.floor((currentProduction.stone || 0) * (elapsedMinutes / 60)),
+    food: Math.floor((currentProduction.food || 0) * (elapsedMinutes / 60)),
+    iron: Math.floor((currentProduction.iron || 0) * (elapsedMinutes / 60)),
+    gold: Math.floor((currentProduction.gold || 0) * (elapsedMinutes / 60)),
   };
 
   const updatedResources = {
@@ -61,17 +56,16 @@ export async function updateVillageResourcesLogic(request: CallableRequest<any>)
 
   await villageRef.update({
     resources: updatedResources,
+    currentProductionPerHour: currentProduction, // ✅ saved now
     lastUpdated: admin.firestore.Timestamp.fromDate(now),
   });
 
   return {
     updated: true,
     newResources: updatedResources,
+    currentProductionPerHour: currentProduction,
     elapsedMinutes: elapsedMinutes.toFixed(2),
   };
 }
 
-/**
- * 📦 Firebase callable function export
- */
 export const updateVillageResources = onCall(updateVillageResourcesLogic);
