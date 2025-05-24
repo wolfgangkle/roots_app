@@ -120,16 +120,14 @@ export async function createVillageLogic(request: any) {
         iron: 0,
         gold: 0,
       },
-      productionPerHour: {
-        wood: 50,
-        stone: 40,
-        food: 0,
-        iron: 0,
-        gold: 0,
-      },
+      buildings: {},
+      freeWorkers: 0,
+      maxProductionPerHour: {},
+      currentProductionPerHour: {},
       lastUpdated: now,
       createdAt: now,
     });
+
 
     // 📌 2. Mark tile
     tx.update(mapTileRef, {

@@ -94,7 +94,7 @@ final buildingDefinitions = [
     "costMultiplier": {"factor": 1.2, "linear": 2},
     "baseBuildTimeSeconds": 300,
     "buildTimeScaling": {"factor": 1.1, "linear": 15},
-    "provides": {"productionPerHour": {"stone": 80}},
+    "provides": {"maxProductionPerHour": {"stone": 80}},
     "unlockRequirement": {
       "dependsOn": "hut",
       "requiredLevel": 3,
@@ -172,8 +172,7 @@ final buildingDefinitions = [
     },
     "provides": {
       "combatStats": {
-        "hp": 5,
-        "defense": 21
+        "wallHp": 5
       }
     },
     "points": 8,
@@ -261,22 +260,21 @@ final buildingDefinitions = [
 
   {
     "type": "storage_room",
-    "displayName": {"default": "Storage Room"},
+    "displayName": { "default": "Storage Room" },
     "description": {
       "default": "A cluttered backroom for keeping miscellaneous items safe — from old tools to rare potions. Protects valuable non-gear from raids."
     },
-    "baseCost": {"wood": 80, "stone": 60, "iron": 20, "gold": 5},
-    "costMultiplier": {"factor": 1.2, "linear": 4},
+    "baseCost": { "wood": 80, "stone": 60, "iron": 20, "gold": 5 },
+    "costMultiplier": { "factor": 1.2, "linear": 4 },
     "baseBuildTimeSeconds": 800,
-    "buildTimeScaling": {"factor": 1.1, "linear": 25},
+    "buildTimeScaling": { "factor": 1.1, "linear": 25 },
     "unlockRequirement": {
       "dependsOn": "house",
       "requiredLevel": 4
     },
     "provides": {
-      "itemStorageSlots": 10,
-      "protectedFromRaid": {
-        "miscItems": 5 // custom backend interpretation
+      "maxSecuredResources": {
+        "miscItems": 5
       }
     },
     "points": 5,
@@ -284,9 +282,9 @@ final buildingDefinitions = [
       "human": "Storage Room",
       "dwarf": "Dusty Crate Hall",
       "elf": "Leaf Locker",
-      "orc": "Junk Pit",
-    },
-  },
+      "orc": "Junk Pit"
+    }
+  }
 
 
   {
@@ -331,7 +329,7 @@ final buildingDefinitions = [
     "baseBuildTimeSeconds": 300,
     "buildTimeScaling": {"factor": 1.1, "linear": 15},
     "provides": {
-      "productionPerHour": {"wood": 100}
+      "maxProductionPerHour": {"wood": 100}
     },
     "points": 5,
     "raceNames": {
@@ -738,7 +736,7 @@ final buildingDefinitions = [
     "baseBuildTimeSeconds": 300,
     "buildTimeScaling": {"factor": 1.1, "linear": 15},
     "provides": {
-      "productionPerHour": {"iron": 60}
+      "maxProductionPerHour": {"iron": 60}
     },
     "points": 5,
     "raceNames": {
@@ -1077,7 +1075,7 @@ final buildingDefinitions = [
       "requiredLevel": 8
     },
     "provides": {
-      "productionPerHour": {"herbs": 8}
+      "maxProductionPerHour": {"herbs": 8}
     },
     "points": 7,
     "raceNames": {
@@ -1101,7 +1099,7 @@ final buildingDefinitions = [
     "baseBuildTimeSeconds": 300,
     "buildTimeScaling": {"factor": 1.1, "linear": 15},
     "provides": {
-      "productionPerHour": {"food": 120}
+      "maxProductionPerHour": {"food": 120}
     },
     "points": 5,
     "raceNames": {
@@ -1205,7 +1203,7 @@ final buildingDefinitions = [
       "requiredLevel": 7
     },
     "provides": {
-      "productionPerHour": {"food": 150}
+      "maxProductionPerHour": {"food": 150}
     },
     "points": 6,
     "raceNames": {
@@ -1231,7 +1229,7 @@ final buildingDefinitions = [
       "requiredLevel": 30
     },
     "provides": {
-      "productionPerHour": {"food": 250}
+      "MaxProductionPerHour": {"food": 250}
     },
     "points": 10,
     "raceNames": {

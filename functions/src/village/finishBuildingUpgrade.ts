@@ -1,15 +1,9 @@
-// functions/src/village/finishBuildingUpgrade.ts
 import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { recalculateProduction } from '../utils/recalculateProduction.js';
 import { applyBuildingEffects } from '../helpers/applyBuildingEffects.js';
 
 const db = admin.firestore();
 
-/**
- * 🧠 Pure logic for finishing a building upgrade.
- * Rate-limited by lastUpgradeCheck timestamp.
- */
 export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) {
   const { villageId } = request.data;
   const userId = request.auth?.uid;
@@ -58,10 +52,10 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
   const targetLevel = buildJob.targetLevel;
 
   const newBuildings = { ...buildings, [type]: { level: targetLevel } };
-  const newProduction = await recalculateProduction(newBuildings);
 
   // 🧩 Apply additional building-specific effects
   await applyBuildingEffects({
+    userId,
     villageRef,
     buildingType: type,
     newLevel: targetLevel,
@@ -70,11 +64,12 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
   // 🏗️ Final update
   await villageRef.update({
     buildings: newBuildings,
-    productionPerHour: newProduction,
     currentBuildJob: admin.firestore.FieldValue.delete(),
     lastUpgradeCheck: admin.firestore.Timestamp.fromDate(now),
     lastUpgradeMethod: request.auth?.uid ? 'onCall' : 'scheduled',
   });
+
+
 
   console.log(`✅ Finished upgrade for ${villageId}: ${type} → Level ${targetLevel}`);
 
@@ -82,11 +77,7 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
     finished: true,
     newLevel: targetLevel,
     buildingType: type,
-    productionPerHour: newProduction,
   };
 }
 
-/**
- * 🏗️ Firebase-wrapped callable function export
- */
 export const finishBuildingUpgrade = onCall(finishBuildingUpgradeLogic);

@@ -80,16 +80,12 @@ export async function finalizeOnboardingLogic(request: any) {
           iron: 250,
           gold: 0,
         },
-        productionPerHour: {
-          wood: 50,
-          stone: 40,
-          food: 0,
-          iron: 0,
-          gold: 0,
-        },
+        buildings: {},
+        freeWorkers: 0,
         lastUpdated: now,
         createdAt: now,
       };
+
 
       transaction.set(newVillageRef, villageData);
       transaction.update(db.collection('mapTiles').doc(`${tile.x}_${tile.y}`), {
