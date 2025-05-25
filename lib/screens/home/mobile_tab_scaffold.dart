@@ -105,7 +105,7 @@ class _MobileTabScaffoldState extends State<MobileTabScaffold>
             onVillageTap: (village) {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => VillageCenterScreen(village: village),
+                  builder: (_) => VillageCenterScreen(villageId: village.id),
                 ),
               );
             },

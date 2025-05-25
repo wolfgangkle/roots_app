@@ -1154,25 +1154,46 @@ final buildingDefinitions = [
 
   {
     "type": "farm",
-    "displayName": {"default": "Farm"},
+    "displayName": {
+      "default": "Farm"
+    },
     "description": {
       "default": "The farm is the heart of your food supply. Farmers cultivate grain, grind flour, and bake bread to feed the growing population."
     },
-    "baseCost": {"wood": 30, "stone": 25, "iron": 0, "gold": 0},
-    "costMultiplier": {"factor": 1.2, "linear": 2},
+    "baseCost": {
+      "wood": 30,
+      "stone": 25,
+      "iron": 0,
+      "gold": 0
+    },
+    "costMultiplier": {
+      "factor": 1.2,
+      "linear": 2
+    },
     "baseBuildTimeSeconds": 300,
-    "buildTimeScaling": {"factor": 1.1, "linear": 15},
+    "buildTimeScaling": {
+      "factor": 1.1,
+      "linear": 15
+    },
+    "workerPerLevel": 2,
     "provides": {
-      "maxProductionPerHour": {"food": 120}
+      "workers": 1,
+      "maxProductionPerHour": {
+        "food": 120
+      },
+      "maxSecuredResources": {
+        "food": 10
+      }
     },
     "points": 5,
     "raceNames": {
       "human": "Farm",
       "dwarf": "Alefield",
       "elf": "Sun Garden",
-      "orc": "Meat Patch",
+      "orc": "Meat Patch"
     },
   },
+
 
   {
     "type": "healers_hut",
@@ -1254,67 +1275,96 @@ final buildingDefinitions = [
 
   {
     "type": "wheat_fields",
-    "displayName": {"default": "Wheat Fields"},
+    "displayName": {
+      "default": "Wheat Fields"
+    },
     "description": {
       "default": "A dedicated agricultural area producing a steady supply of grain for your people."
     },
-    "baseCost": {"wood": 100, "stone": 80, "iron": 0, "gold": 0},
-    "costMultiplier": {"factor": 1.25, "linear": 5},
+    "baseCost": {
+      "wood": 100,
+      "stone": 80,
+      "iron": 0,
+      "gold": 0
+    },
+    "costMultiplier": {
+      "factor": 1.25,
+      "linear": 5
+    },
     "baseBuildTimeSeconds": 900,
-    "buildTimeScaling": {"factor": 1.1, "linear": 30},
+    "buildTimeScaling": {
+      "factor": 1.1,
+      "linear": 30
+    },
     "unlockRequirement": {
       "dependsOn": "farm",
       "requiredLevel": 7
     },
+    "workerPerLevel": 2,
     "provides": {
-      "maxProductionPerHour": {"food": 150}
+      "workers": 1,
+      "maxProductionPerHour": {
+        "food": 150
+      },
+      "maxSecuredResources": {
+        "food": 10
+      }
     },
     "points": 6,
     "raceNames": {
       "human": "Wheat Fields",
       "dwarf": "Barley Patch",
       "elf": "Sun Meadow",
-      "orc": "Grain Swamp",
+      "orc": "Grain Swamp"
     },
   },
 
+
   {
     "type": "wheat_fields_large",
-    "displayName": {"default": "Large Wheat Fields"},
+    "displayName": {
+      "default": "Large Wheat Fields"
+    },
     "description": {
       "default": "An expanded agricultural complex for mass food production. Powers your armies and growing populations."
     },
-    "baseCost": {"wood": 150, "stone": 120, "iron": 10, "gold": 0},
-    "costMultiplier": {"factor": 1.25, "linear": 7},
+    "baseCost": {
+      "wood": 150,
+      "stone": 120,
+      "iron": 10,
+      "gold": 0
+    },
+    "costMultiplier": {
+      "factor": 1.25,
+      "linear": 7
+    },
     "baseBuildTimeSeconds": 1200,
-    "buildTimeScaling": {"factor": 1.2, "linear": 35},
+    "buildTimeScaling": {
+      "factor": 1.2,
+      "linear": 35
+    },
     "unlockRequirement": {
       "dependsOn": "wheat_fields",
       "requiredLevel": 30
     },
+    "workerPerLevel": 2,
     "provides": {
-      "MaxProductionPerHour": {"food": 250}
+      "workers": 1,
+      "maxProductionPerHour": {
+        "food": 250
+      },
+      "maxSecuredResources": {
+        "food": 10
+      }
     },
     "points": 10,
     "raceNames": {
       "human": "Large Wheat Fields",
       "dwarf": "Grand Brew Patch",
       "elf": "Solar Grove",
-      "orc": "Hogback Plains",
-    },
-  },
-
-
-
-
-
-
-
-
-
-
-
-
+      "orc": "Hogback Plains"
+    }
+  }
 
 
 ];

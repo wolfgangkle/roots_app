@@ -79,9 +79,11 @@ class BuildingTabState extends State<BuildingTab> {
         final costLinear = costMultiplierMap['linear'] ?? 0;
 
         final cost = baseCost.map((k, v) {
-          final scaled = (v * pow(nextLevel, costFactor) + (nextLevel * costLinear)).round();
+          final linearPart = (k == 'gold') ? 0 : nextLevel * costLinear;
+          final scaled = (v * pow(nextLevel, costFactor) + linearPart).round();
           return MapEntry(k, scaled);
         });
+
 
         final hasResources = (resources['wood'] ?? 0) >= (cost['wood'] ?? 0) &&
             (resources['stone'] ?? 0) >= (cost['stone'] ?? 0) &&

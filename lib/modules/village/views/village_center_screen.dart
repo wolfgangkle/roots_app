@@ -11,9 +11,9 @@ import 'package:roots_app/modules/village/views/trading_tab.dart';
 enum VillageTab { buildings, items, storage, workers, trading }
 
 class VillageCenterScreen extends StatefulWidget {
-  final VillageModel village;
+  final String villageId;
 
-  const VillageCenterScreen({super.key, required this.village});
+  const VillageCenterScreen({super.key, required this.villageId});
 
   @override
   State<VillageCenterScreen> createState() => _VillageCenterScreenState();
@@ -25,33 +25,47 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.village.name),
-      ),
-      body: Column(
-        children: [
-          // Top tabs
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildTabButton(VillageTab.buildings, 'Buildings'),
-                _buildTabButton(VillageTab.items, 'Items'),
-                _buildTabButton(VillageTab.storage, 'Storage'),
-                _buildTabButton(VillageTab.workers, 'Workers'),
-                _buildTabButton(VillageTab.trading, 'Trading'),
-              ],
-            ),
-          ),
-          const Divider(),
+    return StreamBuilder<VillageModel>(
+      stream: villageService.watchVillage(widget.villageId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-          // Active tab content
-          Expanded(
-            child: _buildTabContent(),
+        final village = snapshot.data!;
+        final _ = village.simulatedResources;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(village.name),
           ),
-        ],
-      ),
+          body: Column(
+            children: [
+              // Top tabs
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildTabButton(VillageTab.buildings, 'Buildings'),
+                    _buildTabButton(VillageTab.items, 'Items'),
+                    _buildTabButton(VillageTab.storage, 'Storage'),
+                    _buildTabButton(VillageTab.workers, 'Workers'),
+                    _buildTabButton(VillageTab.trading, 'Trading'),
+                  ],
+                ),
+              ),
+              const Divider(),
+
+              // Active tab content
+              Expanded(
+                child: _buildTabContent(village),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -73,62 +87,45 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
     );
   }
 
-  Widget _buildTabContent() {
+  Widget _buildTabContent(VillageModel village) {
     switch (currentTab) {
       case VillageTab.buildings:
-        return StreamBuilder<VillageModel>(
-          stream: villageService.getVillageStream(widget.village.id),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (!snapshot.hasData) {
-              return const Center(child: Text('Village not found'));
-            }
-
-            final updatedVillage = snapshot.data!;
-            final _ = updatedVillage.simulatedResources;
-
-            return Column(
-              children: [
-                if (updatedVillage.currentBuildJob != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.bolt),
-                      label: const Text('🔥 Finish Building Now'),
-                      onPressed: () async {
-                        try {
-                          await FirebaseFunctions.instance
-                              .httpsCallable('devFinishNow')
-                              .call({'villageId': updatedVillage.id});
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Upgrade finished!')),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e')),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                Expanded(
-                  child: BuildingScreen(village: updatedVillage),
+        return Column(
+          children: [
+            if (village.currentBuildJob != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.bolt),
+                  label: const Text('🔥 Finish Building Now'),
+                  onPressed: () async {
+                    try {
+                      await FirebaseFunctions.instance
+                          .httpsCallable('devFinishNow')
+                          .call({'villageId': village.id});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Upgrade finished!')),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  },
                 ),
-              ],
-            );
-          },
+              ),
+            Expanded(child: BuildingScreen(village: village)),
+          ],
         );
 
       case VillageTab.items:
-        return VillageItemsTab(villageId: widget.village.id);
+        return VillageItemsTab(villageId: village.id);
 
       case VillageTab.storage:
         return const Center(child: Text('📦 Storage view coming soon!'));
 
       case VillageTab.workers:
-        return WorkersTab(village: widget.village);
+        return WorkersTab(villageId: village.id);
 
       case VillageTab.trading:
         return const TradingTab();

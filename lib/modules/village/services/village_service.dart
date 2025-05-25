@@ -95,7 +95,7 @@ class VillageService {
     required String buildingType,
   }) async {
     final callable =
-        FirebaseFunctions.instance.httpsCallable('startBuildingUpgrade');
+    FirebaseFunctions.instance.httpsCallable('startBuildingUpgrade');
 
     await callable.call({
       'villageId': villageId,
@@ -123,5 +123,10 @@ class VillageService {
     }
 
     return VillageModel.fromMap(doc.id, doc.data()!);
+  }
+
+  /// 👀 Shorthand for live stream, used in components like WorkersTab
+  Stream<VillageModel> watchVillage(String villageId) {
+    return getVillageStream(villageId);
   }
 }

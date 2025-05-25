@@ -72,7 +72,9 @@ export async function assignWorkerToBuilding(request: CallableRequest<any>) {
       buildings,
       freeWorkers,
       currentProductionPerHour: currentProduction,
+      lastUpdated: admin.firestore.Timestamp.now(), // ✅ Added
     });
+
 
     console.log(`✨ Auto-filled all buildings in ${villageId}. Workers left: ${freeWorkers}`);
 
@@ -155,7 +157,9 @@ export async function assignWorkerToBuilding(request: CallableRequest<any>) {
     buildings,
     freeWorkers: updatedFreeWorkers,
     currentProductionPerHour: currentProduction,
+    lastUpdated: admin.firestore.Timestamp.now(), // ✅ Added
   });
+
 
   console.log(`👷 Assigned ${targetAssigned} to ${buildingType} in ${villageId} (Δ ${change})`);
 

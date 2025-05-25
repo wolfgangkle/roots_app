@@ -23,6 +23,8 @@ class VillageModel {
   final Map<String, int> storageCapacity;
   final Map<String, int> securedResources;
 
+  final Map<String, num> currentProductionPerHour;
+
   BuildJobModel? currentBuildJob;
   final Map<String, dynamic>? currentCraftingJob;
 
@@ -41,6 +43,7 @@ class VillageModel {
     required this.buildings,
     required this.storageCapacity,
     required this.securedResources,
+    required this.currentProductionPerHour,
     this.currentBuildJob,
     this.currentCraftingJob,
   });
@@ -61,6 +64,7 @@ class VillageModel {
     final craftingJob = data['currentCraftingJob'] as Map<String, dynamic>?;
     final storageCap = Map<String, int>.from(data['storageCapacity'] ?? {});
     final securedRes = Map<String, int>.from(data['securedResources'] ?? {});
+    final productionPerHour = Map<String, num>.from(data['currentProductionPerHour'] ?? {});
 
     return VillageModel(
       id: id,
@@ -79,6 +83,7 @@ class VillageModel {
       securedResources: securedRes,
       currentBuildJob: job,
       currentCraftingJob: craftingJob,
+      currentProductionPerHour: productionPerHour,
     );
   }
 
@@ -99,12 +104,13 @@ class VillageModel {
       'storageCapacity': storageCapacity,
       'securedResources': securedResources,
       'freeWorkers': freeWorkers,
+      'currentProductionPerHour': currentProductionPerHour,
       if (currentBuildJob != null) 'currentBuildJob': currentBuildJob!.toMap(),
       if (currentCraftingJob != null) 'currentCraftingJob': currentCraftingJob,
     };
   }
 
-  Map<String, int> getSimulatedResources(Map<String, int> productionPerHour) {
+  Map<String, int> getSimulatedResources(Map<String, num> productionPerHour) {
     final now = DateTime.now();
     final elapsedMinutes = now.difference(lastUpdated).inMinutes;
 
@@ -121,11 +127,11 @@ class VillageModel {
     final elapsedHours = elapsedMinutes / 60.0;
 
     return {
-      'wood': wood + (productionPerHour['wood'] ?? 0) * elapsedHours ~/ 1,
-      'stone': stone + (productionPerHour['stone'] ?? 0) * elapsedHours ~/ 1,
-      'food': food + (productionPerHour['food'] ?? 0) * elapsedHours ~/ 1,
-      'iron': iron + (productionPerHour['iron'] ?? 0) * elapsedHours ~/ 1,
-      'gold': gold + (productionPerHour['gold'] ?? 0) * elapsedHours ~/ 1,
+      'wood': wood + (productionPerHour['wood'] ?? 0 * elapsedHours).floor(),
+      'stone': stone + (productionPerHour['stone'] ?? 0 * elapsedHours).floor(),
+      'food': food + (productionPerHour['food'] ?? 0 * elapsedHours).floor(),
+      'iron': iron + (productionPerHour['iron'] ?? 0 * elapsedHours).floor(),
+      'gold': gold + (productionPerHour['gold'] ?? 0 * elapsedHours).floor(),
     };
   }
 
@@ -140,6 +146,7 @@ class VillageModel {
     Map<String, BuildingModel>? buildings,
     Map<String, int>? storageCapacity,
     Map<String, int>? securedResources,
+    Map<String, num>? currentProductionPerHour,
     BuildJobModel? currentBuildJob,
     Map<String, dynamic>? currentCraftingJob,
   }) {
@@ -158,6 +165,7 @@ class VillageModel {
       buildings: buildings ?? this.buildings,
       storageCapacity: storageCapacity ?? this.storageCapacity,
       securedResources: securedResources ?? this.securedResources,
+      currentProductionPerHour: currentProductionPerHour ?? this.currentProductionPerHour,
       currentBuildJob: currentBuildJob ?? this.currentBuildJob,
       currentCraftingJob: currentCraftingJob ?? this.currentCraftingJob,
     );

@@ -1,5 +1,4 @@
 import 'package:roots_app/modules/village/models/village_model.dart';
-import 'package:roots_app/modules/village/extensions/building_model_extension.dart';
 
 extension VillageModelExtension on VillageModel {
   Map<String, int> get simulatedResources {
@@ -16,13 +15,8 @@ extension VillageModelExtension on VillageModel {
       };
     }
 
-    final productionPerHour = {
-      'wood': buildings['woodcutter']?.productionPerHour ?? 0,
-      'stone': buildings['quarry']?.productionPerHour ?? 0,
-      'food': buildings['farm']?.productionPerHour ?? 0,
-      'iron': buildings['mine']?.productionPerHour ?? 0,
-      'gold': buildings['goldmine']?.productionPerHour ?? 0,
-    };
+    // ✅ Use backend-trusted production values from Firestore
+    final productionPerHour = currentProductionPerHour;
 
     final elapsedHours = elapsedMinutes / 60.0;
 

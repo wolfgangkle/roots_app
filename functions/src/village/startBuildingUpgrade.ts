@@ -38,21 +38,23 @@ export async function startBuildingUpgradeLogic(request: CallableRequest<any>) {
 
   const baseCost = def.baseCost || {};
   const costFactor = def.costMultiplier?.factor ?? 1;
+  const costLinear = def.costMultiplier?.linear ?? 0;
 
   const cost: Record<string, number> = {};
   for (const key in baseCost) {
-    cost[key] = Math.round(baseCost[key] * targetLevel * costFactor);
+    const base = baseCost[key];
+    const linearPart = key === 'gold' ? 0 : targetLevel * costLinear;
+    cost[key] = Math.round(base * Math.pow(targetLevel, costFactor) + linearPart);
   }
 
   const baseTimeSec = def.baseBuildTimeSeconds ?? 30;
   const buildTimeScaling = def.buildTimeScaling ?? {};
-  const factor = buildTimeScaling.factor ?? 1;
-  const linear = buildTimeScaling.linear ?? 0;
+  const timeFactor = buildTimeScaling.factor ?? 1;
+  const timeLinear = buildTimeScaling.linear ?? 0;
 
   const durationSeconds = Math.round(
-    baseTimeSec * Math.pow(targetLevel, factor) + targetLevel * linear
+    baseTimeSec * Math.pow(targetLevel, timeFactor) + targetLevel * timeLinear
   );
-
 
   // ✅ Check resource availability
   for (const key in cost) {

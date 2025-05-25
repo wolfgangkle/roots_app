@@ -18,7 +18,7 @@ class MainContentController extends ChangeNotifier {
   void showVillageCenter(VillageModel village) {
     debugPrint(
         '[MainContentController] showVillageCenter() called for ${village.name}');
-    _currentContent = VillageCenterScreen(village: village);
+    _currentContent = VillageCenterScreen(villageId: village.id); // ✅ updated here
     _currentType = MainContentType.village;
     notifyListeners();
   }

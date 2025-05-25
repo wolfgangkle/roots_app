@@ -36,9 +36,12 @@ class BuildingCard extends StatelessWidget {
     final nextProduction = baseProduction * nextLevel;
 
     final nextCost = baseCost.map((k, v) {
-      final scaled = (v * pow(nextLevel, costFactor) + (nextLevel * costLinear)).round();
+      final base = v ?? 0;
+      final linearPart = k == 'gold' ? 0 : nextLevel * costLinear;
+      final scaled = (base * pow(nextLevel, costFactor) + linearPart).round();
       return MapEntry(k, scaled);
     });
+
 
     final buildTimeScaling = definition['buildTimeScaling'] as Map<String, dynamic>? ?? {};
     final baseBuildTime = definition['baseBuildTimeSeconds'] as int? ?? 30;

@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
+import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
 import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.dart';
-import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
-import 'package:roots_app/modules/village/extensions/building_model_extension.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class VillageCard extends StatefulWidget {
   final VillageModel village;
@@ -18,7 +17,7 @@ class VillageCard extends StatefulWidget {
   });
 
   @override
-  VillageCardState createState() => VillageCardState();
+  State<VillageCard> createState() => VillageCardState();
 }
 
 class VillageCardState extends State<VillageCard> {
@@ -28,7 +27,7 @@ class VillageCardState extends State<VillageCard> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() {});
+      if (mounted) setState(() {});
     });
   }
 
@@ -41,15 +40,9 @@ class VillageCardState extends State<VillageCard> {
   @override
   Widget build(BuildContext context) {
     final res = widget.village.simulatedResources;
+    final prod = widget.village.currentProductionPerHour;
     final upgrade = widget.village.currentBuildJob;
     final crafting = widget.village.currentCraftingJob;
-
-    final prodWood = widget.village.buildings['woodcutter']?.productionPerHour ?? 0;
-    final prodStone = widget.village.buildings['quarry']?.productionPerHour ?? 0;
-    final prodFood = widget.village.buildings['farm']?.productionPerHour ?? 0;
-    final prodIron = widget.village.buildings['mine']?.productionPerHour ?? 0;
-    final prodGold = widget.village.buildings['goldmine']?.productionPerHour ?? 0;
-
     final capacity = widget.village.storageCapacity;
     final secured = widget.village.securedResources;
 
@@ -90,18 +83,14 @@ class VillageCardState extends State<VillageCard> {
                 },
                 defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                 children: [
-                  _buildRow("🌲", "Wood", res["wood"], prodWood, capacity["wood"], secured["wood"],
-                      widget.village.buildings['woodcutter']?.assignedWorkers),
-                  _buildRow("🪨", "Stone", res["stone"], prodStone, capacity["stone"], secured["stone"],
-                      widget.village.buildings['quarry']?.assignedWorkers),
-                  _buildRow("⛓️", "Iron", res["iron"], prodIron, capacity["iron"], secured["iron"],
-                      widget.village.buildings['mine']?.assignedWorkers),
-                  _buildRow("🍞", "Food", res["food"], prodFood, capacity["food"], secured["food"],
-                      widget.village.buildings['farm']?.assignedWorkers),
-                  _buildRow("🪙", "Gold", res["gold"], prodGold, capacity["gold"], secured["gold"],
-                      widget.village.buildings['goldmine']?.assignedWorkers),
+                  _buildRow("🌲", "Wood", (res["wood"] ?? 0).toInt(), (prod["wood"] ?? 0).toInt(), (capacity["wood"] ?? 0).toInt(), (secured["wood"] ?? 0).toInt(), widget.village.buildings['woodcutter']?.assignedWorkers ?? 0),
+                  _buildRow("🪨", "Stone", (res["stone"] ?? 0).toInt(), (prod["stone"] ?? 0).toInt(), (capacity["stone"] ?? 0).toInt(), (secured["stone"] ?? 0).toInt(), widget.village.buildings['quarry']?.assignedWorkers ?? 0),
+                  _buildRow("⛓️", "Iron", (res["iron"] ?? 0).toInt(), (prod["iron"] ?? 0).toInt(), (capacity["iron"] ?? 0).toInt(), (secured["iron"] ?? 0).toInt(), widget.village.buildings['mine']?.assignedWorkers ?? 0),
+                  _buildRow("🍞", "Food", (res["food"] ?? 0).toInt(), (prod["food"] ?? 0).toInt(), (capacity["food"] ?? 0).toInt(), (secured["food"] ?? 0).toInt(), widget.village.buildings['farm']?.assignedWorkers ?? 0),
+                  _buildRow("🪙", "Gold", (res["gold"] ?? 0).toInt(), (prod["gold"] ?? 0).toInt(), (capacity["gold"] ?? 0).toInt(), (secured["gold"] ?? 0).toInt(), widget.village.buildings['goldmine']?.assignedWorkers ?? 0),
                 ],
               ),
+
               const SizedBox(height: 8),
 
               // ⏳ Upgrade progress
@@ -150,20 +139,20 @@ class VillageCardState extends State<VillageCard> {
   TableRow _buildRow(
       String emoji,
       String label,
-      int? value,
+      int value,
       int production,
-      int? cap,
-      int? bunker,
-      int? workers,
+      int capacity,
+      int secured,
+      int workers,
       ) {
-    final prodText = '(${production} /h${workers != null ? ' • ${workers}w' : ''})';
-    final capText = cap != null ? ' / $cap' : '';
+    final prodText = '($production /h${workers > 0 ? ' • ${workers}w' : ''})';
+    final capText = capacity > 0 ? ' / $capacity' : '';
     return TableRow(
       children: [
         Text(emoji),
         Text(label),
-        Text('${value ?? 0} $prodText$capText'),
-        Text('[${bunker ?? 0}]', textAlign: TextAlign.right),
+        Text('$value $prodText$capText'),
+        Text('[$secured]', textAlign: TextAlign.right),
       ],
     );
   }
