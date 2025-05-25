@@ -1,7 +1,3 @@
-import * as admin from 'firebase-admin';
-
-const db = admin.firestore();
-
 type BuildingMap = Record<string, { level: number; assignedWorkers?: number }>;
 type ResourceType = 'wood' | 'stone' | 'food' | 'iron' | 'gold';
 type ProductionMap = Record<ResourceType, number>;
@@ -30,11 +26,14 @@ export function recalculateProduction(
     if (!resource) continue;
 
     const assigned = config.assignedWorkers ?? 0;
+    const level = config.level ?? 0;
     const max = maxProductionPerHour[resource] ?? 0;
 
-    result[resource] = Math.floor(max * Math.min(assigned / 5, 1));
+    const maxWorkers = level * 2;
+    const ratio = maxWorkers > 0 ? assigned / maxWorkers : 0;
+
+    result[resource] = Math.floor(max * Math.min(Math.max(ratio, 0), 1));
   }
 
   return result;
 }
-

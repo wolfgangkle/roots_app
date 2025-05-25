@@ -44,6 +44,21 @@ export async function updateVillageResourcesLogic(request: CallableRequest<any>)
     gold: Math.floor((currentProduction.gold || 0) * (elapsedMinutes / 60)),
   };
 
+  // ⛔ Cap production if storage is full
+  const capacity = dataObj.storageCapacity || {};
+  const gainMap = gain as Record<string, number>;
+
+  for (const res of Object.keys(gainMap)) {
+    const cap = capacity[res] ?? Infinity;
+    const current = resources[res] ?? 0;
+
+    if (current >= cap) {
+      gainMap[res] = 0;
+    } else if (current + gainMap[res] > cap) {
+      gainMap[res] = cap - current;
+    }
+  }
+
   const updatedResources = {
     wood: (resources.wood || 0) + gain.wood,
     stone: (resources.stone || 0) + gain.stone,
@@ -56,7 +71,7 @@ export async function updateVillageResourcesLogic(request: CallableRequest<any>)
 
   await villageRef.update({
     resources: updatedResources,
-    currentProductionPerHour: currentProduction, // ✅ saved now
+    currentProductionPerHour: currentProduction,
     lastUpdated: admin.firestore.Timestamp.fromDate(now),
   });
 

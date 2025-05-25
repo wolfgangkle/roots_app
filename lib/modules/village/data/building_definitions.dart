@@ -86,27 +86,49 @@ final buildingDefinitions = [
 
   {
     "type": "quarry",
-    "displayName": {"default": "Quarry"},
+    "displayName": {
+      "default": "Quarry"
+    },
     "description": {
       "default": "Sturdy workers extract stone from the quarry to support your construction efforts. Stone is essential for fortifications and workshops alike."
     },
-    "baseCost": {"wood": 7, "stone": 0, "iron": 20, "gold": 0},
-    "costMultiplier": {"factor": 1.2, "linear": 2},
+    "baseCost": {
+      "wood": 7,
+      "stone": 0,
+      "iron": 20,
+      "gold": 0
+    },
+    "costMultiplier": {
+      "factor": 1.2,
+      "linear": 2
+    },
     "baseBuildTimeSeconds": 300,
-    "buildTimeScaling": {"factor": 1.1, "linear": 15},
-    "provides": {"maxProductionPerHour": {"stone": 80}},
+    "buildTimeScaling": {
+      "factor": 1.1,
+      "linear": 15
+    },
+    "workerPerLevel": 2,
+    "provides": {
+      "workers": 1,
+      "maxProductionPerHour": {
+        "stone": 80
+      },
+      "maxSecuredResources": {
+        "stone": 10
+      }
+    },
     "unlockRequirement": {
       "dependsOn": "hut",
-      "requiredLevel": 3,
+      "requiredLevel": 3
     },
     "points": 6,
     "raceNames": {
       "human": "Quarry",
       "dwarf": "Stone Pit",
       "elf": "Rock Grove",
-      "orc": "Cracker Hole",
-    },
-  },
+      "orc": "Cracker Hole"
+    }
+  }
 
   {
     "type": "stone_storage",
@@ -320,25 +342,46 @@ final buildingDefinitions = [
 
   {
     "type": "woodcutter",
-    "displayName": {"default": "Woodcutter"},
+    "displayName": {
+      "default": "Woodcutter"
+    },
     "description": {
       "default": "Foresters manage the forest near the village, balancing conservation with the need for timber. Their wood is vital for constructing buildings and forging weapons."
     },
-    "baseCost": {"wood": 20, "stone": 10, "iron": 5, "gold": 0},
-    "costMultiplier": {"factor": 1.2, "linear": 2},
+    "baseCost": {
+      "wood": 20,
+      "stone": 10,
+      "iron": 5,
+      "gold": 0
+    },
+    "costMultiplier": {
+      "factor": 1.2,
+      "linear": 2
+    },
     "baseBuildTimeSeconds": 300,
-    "buildTimeScaling": {"factor": 1.1, "linear": 15},
+    "buildTimeScaling": {
+      "factor": 1.1,
+      "linear": 15
+    },
+    "workerPerLevel": 2,
     "provides": {
-      "maxProductionPerHour": {"wood": 100}
+      "workers": 1,
+      "maxProductionPerHour": {
+        "wood": 100
+      },
+      "maxSecuredResources": {
+        "wood": 10
+      }
     },
     "points": 5,
     "raceNames": {
       "human": "Woodcutter",
       "dwarf": "Lumberjack",
       "elf": "Tree Tender",
-      "orc": "Log Butcher",
-    },
-  },
+      "orc": "Log Butcher"
+    }
+  }
+
 
 
   {
@@ -727,25 +770,46 @@ final buildingDefinitions = [
 
   {
     "type": "iron_mine",
-    "displayName": {"default": "Iron Mine"},
+    "displayName": {
+      "default": "Iron Mine"
+    },
     "description": {
       "default": "Miners delve deep underground to extract iron ore. The metal is used to forge tools, weapons, and armor for your warriors."
     },
-    "baseCost": {"wood": 30, "stone": 5, "iron": 0, "gold": 0},
-    "costMultiplier": {"factor": 1.2, "linear": 2},
+    "baseCost": {
+      "wood": 30,
+      "stone": 5,
+      "iron": 0,
+      "gold": 0
+    },
+    "costMultiplier": {
+      "factor": 1.2,
+      "linear": 2
+    },
     "baseBuildTimeSeconds": 300,
-    "buildTimeScaling": {"factor": 1.1, "linear": 15},
+    "buildTimeScaling": {
+      "factor": 1.1,
+      "linear": 15
+    },
+    "workerPerLevel": 2,
     "provides": {
-      "maxProductionPerHour": {"iron": 60}
+      "workers": 1,
+      "maxProductionPerHour": {
+        "iron": 60
+      },
+      "maxSecuredResources": {
+        "iron": 10
+      }
     },
     "points": 5,
     "raceNames": {
       "human": "Iron Mine",
       "dwarf": "Iron Tunnel",
       "elf": "Deep Crystal",
-      "orc": "Ore Hole",
-    },
-  },
+      "orc": "Ore Hole"
+    }
+  }
+
 
 
   {

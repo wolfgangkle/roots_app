@@ -29,6 +29,13 @@ export const startBuildingUpgrade = onCall(async (request) => {
   return startBuildingUpgradeLogic(request);
 });
 
+export const assignWorkerToBuilding = onCall(async (request) => {
+  const { assignWorkerToBuilding: logic } = await import('./village/assignWorkerToBuilding.js');
+  return logic(request);
+});
+
+
+
 // === Onboarding ===
 export const finalizeOnboarding = onCall(async (request) => {
   const { finalizeOnboardingLogic } = await import('./onboarding/finalizeOnboarding.js');
