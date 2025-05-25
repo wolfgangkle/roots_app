@@ -74,7 +74,7 @@ final buildingDefinitions = [
     },
     "provides": {
       "camouflage": 3
-    }
+    },
     "points": 5,
     "raceNames": {
       "human": "Camouflage Wall",
@@ -128,7 +128,7 @@ final buildingDefinitions = [
       "elf": "Rock Grove",
       "orc": "Cracker Hole"
     }
-  }
+  },
 
   {
     "type": "stone_storage",
@@ -306,7 +306,7 @@ final buildingDefinitions = [
       "elf": "Leaf Locker",
       "orc": "Junk Pit"
     }
-  }
+  },
 
 
   {
@@ -380,7 +380,7 @@ final buildingDefinitions = [
       "elf": "Tree Tender",
       "orc": "Log Butcher"
     }
-  }
+  },
 
 
 
@@ -808,7 +808,7 @@ final buildingDefinitions = [
       "elf": "Deep Crystal",
       "orc": "Ore Hole"
     }
-  }
+  },
 
 
 

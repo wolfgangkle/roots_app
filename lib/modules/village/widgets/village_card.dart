@@ -44,14 +44,14 @@ class VillageCardState extends State<VillageCard> {
     final upgrade = widget.village.currentBuildJob;
     final crafting = widget.village.currentCraftingJob;
 
-    final prodWood =
-        widget.village.buildings['woodcutter']?.productionPerHour ?? 0;
-    final prodStone =
-        widget.village.buildings['quarry']?.productionPerHour ?? 0;
+    final prodWood = widget.village.buildings['woodcutter']?.productionPerHour ?? 0;
+    final prodStone = widget.village.buildings['quarry']?.productionPerHour ?? 0;
     final prodFood = widget.village.buildings['farm']?.productionPerHour ?? 0;
     final prodIron = widget.village.buildings['mine']?.productionPerHour ?? 0;
-    final prodGold =
-        widget.village.buildings['goldmine']?.productionPerHour ?? 0;
+    final prodGold = widget.village.buildings['goldmine']?.productionPerHour ?? 0;
+
+    final capacity = widget.village.storageCapacity;
+    final secured = widget.village.securedResources;
 
     return Card(
       elevation: 2,
@@ -80,15 +80,21 @@ class VillageCardState extends State<VillageCard> {
               ),
               const SizedBox(height: 8),
 
-              // 📦 Resources with production
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // 📊 Resource Table
+              Table(
+                columnWidths: const {
+                  0: FixedColumnWidth(28),
+                  1: FlexColumnWidth(),
+                  2: FixedColumnWidth(140),
+                  3: FixedColumnWidth(40),
+                },
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                 children: [
-                  Text('⛓️ Iron: ${res['iron']} (+$prodIron/h)'),
-                  Text('🌲 Wood: ${res['wood']} (+$prodWood/h)'),
-                  Text('🪨 Stone: ${res['stone']} (+$prodStone/h)'),
-                  Text('🍞 Food: ${res['food']} (+$prodFood/h)'),
-                  Text('💰 Gold: ${res['gold']} (+$prodGold/h)'),
+                  _buildRow("🌲", "Wood", res["wood"], prodWood, capacity["wood"], secured["wood"]),
+                  _buildRow("🪨", "Stone", res["stone"], prodStone, capacity["stone"], secured["stone"]),
+                  _buildRow("⛓️", "Iron", res["iron"], prodIron, capacity["iron"], secured["iron"]),
+                  _buildRow("🍞", "Food", res["food"], prodFood, capacity["food"], secured["food"]),
+                  _buildRow("🪙", "Gold", res["gold"], prodGold, capacity["gold"], secured["gold"]),
                 ],
               ),
               const SizedBox(height: 8),
@@ -133,6 +139,24 @@ class VillageCardState extends State<VillageCard> {
           ),
         ),
       ),
+    );
+  }
+
+  TableRow _buildRow(
+      String emoji,
+      String label,
+      int? value,
+      int production,
+      int? cap,
+      int? bunker,
+      ) {
+    return TableRow(
+      children: [
+        Text(emoji),
+        Text(label),
+        Text('${value ?? 0} (+$production/h) ${cap != null ? '/ $cap' : ''}'),
+        Text('[${bunker ?? 0}]', textAlign: TextAlign.right),
+      ],
     );
   }
 }
