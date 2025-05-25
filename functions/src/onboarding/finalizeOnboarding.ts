@@ -80,12 +80,18 @@ export async function finalizeOnboardingLogic(request: any) {
           iron: 250,
           gold: 0,
         },
+        storageCapacity: {
+          wood: 5000,
+          stone: 5000,
+          iron: 5000,
+          food: 1000,
+          gold: Infinity,
+        },
         buildings: {},
         freeWorkers: 0,
         lastUpdated: now,
         createdAt: now,
       };
-
 
       transaction.set(newVillageRef, villageData);
       transaction.update(db.collection('mapTiles').doc(`${tile.x}_${tile.y}`), {
@@ -107,12 +113,11 @@ export async function finalizeOnboardingLogic(request: any) {
         maxCompanions: 8,
       };
 
-      // 🧠 Level-based slot formula
       function calculateMaxSlots(level: number): number {
         return Math.min(2 + Math.floor((level - 1) / 2), slotLimits.maxSlots);
       }
 
-      const mageLevel = 1; // Starting mage level
+      const mageLevel = 1;
       const currentMaxSlots = calculateMaxSlots(mageLevel);
 
       const profileData = {
@@ -126,7 +131,7 @@ export async function finalizeOnboardingLogic(request: any) {
           villages: 1,
           companions: 0,
         },
-        currentMaxSlots, // ✅ Store it!
+        currentMaxSlots,
       };
 
       transaction.set(profileRef, profileData);

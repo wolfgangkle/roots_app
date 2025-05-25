@@ -18,8 +18,11 @@ export function recalculateProduction(
     woodcutter: 'wood',
     quarry: 'stone',
     farm: 'food',
-    mine: 'iron',
+    wheat_fields: 'food',
+    wheat_fields_large: 'food',
+    iron_mine: 'iron', // ✅ Corrected name here
   };
+
 
   for (const [buildingType, config] of Object.entries(buildings)) {
     const resource = buildingToResource[buildingType];

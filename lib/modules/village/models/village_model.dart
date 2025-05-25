@@ -16,8 +16,13 @@ class VillageModel {
   final int iron;
   final int gold;
 
+  final int freeWorkers;
   final DateTime lastUpdated;
+
   final Map<String, BuildingModel> buildings;
+  final Map<String, int> storageCapacity;
+  final Map<String, int> securedResources;
+
   BuildJobModel? currentBuildJob;
   final Map<String, dynamic>? currentCraftingJob;
 
@@ -31,8 +36,11 @@ class VillageModel {
     required this.food,
     required this.iron,
     required this.gold,
+    required this.freeWorkers,
     required this.lastUpdated,
     required this.buildings,
+    required this.storageCapacity,
+    required this.securedResources,
     this.currentBuildJob,
     this.currentCraftingJob,
   });
@@ -51,6 +59,8 @@ class VillageModel {
     jobData != null ? BuildJobModel.fromMap(jobData) : null;
 
     final craftingJob = data['currentCraftingJob'] as Map<String, dynamic>?;
+    final storageCap = Map<String, int>.from(data['storageCapacity'] ?? {});
+    final securedRes = Map<String, int>.from(data['securedResources'] ?? {});
 
     return VillageModel(
       id: id,
@@ -62,8 +72,11 @@ class VillageModel {
       food: (resources['food'] ?? 0) as int,
       iron: (resources['iron'] ?? 0) as int,
       gold: (resources['gold'] ?? 0) as int,
+      freeWorkers: data['freeWorkers'] ?? 0,
       lastUpdated: (data['lastUpdated'] as Timestamp).toDate(),
       buildings: buildings,
+      storageCapacity: storageCap,
+      securedResources: securedRes,
       currentBuildJob: job,
       currentCraftingJob: craftingJob,
     );
@@ -83,6 +96,9 @@ class VillageModel {
         'gold': gold,
       },
       'buildings': buildings.map((key, value) => MapEntry(key, value.toMap())),
+      'storageCapacity': storageCapacity,
+      'securedResources': securedResources,
+      'freeWorkers': freeWorkers,
       if (currentBuildJob != null) 'currentBuildJob': currentBuildJob!.toMap(),
       if (currentCraftingJob != null) 'currentCraftingJob': currentCraftingJob,
     };
@@ -119,8 +135,11 @@ class VillageModel {
     int? food,
     int? iron,
     int? gold,
+    int? freeWorkers,
     DateTime? lastUpdated,
     Map<String, BuildingModel>? buildings,
+    Map<String, int>? storageCapacity,
+    Map<String, int>? securedResources,
     BuildJobModel? currentBuildJob,
     Map<String, dynamic>? currentCraftingJob,
   }) {
@@ -134,8 +153,11 @@ class VillageModel {
       food: food ?? this.food,
       iron: iron ?? this.iron,
       gold: gold ?? this.gold,
+      freeWorkers: freeWorkers ?? this.freeWorkers,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       buildings: buildings ?? this.buildings,
+      storageCapacity: storageCapacity ?? this.storageCapacity,
+      securedResources: securedResources ?? this.securedResources,
       currentBuildJob: currentBuildJob ?? this.currentBuildJob,
       currentCraftingJob: currentCraftingJob ?? this.currentCraftingJob,
     );
@@ -146,7 +168,6 @@ class VillageModel {
           (b) => b['type'] == buildingType,
       orElse: () => <String, Object>{},
     );
-
 
     final unlock = def['unlockRequirement'] as Map<String, dynamic>?;
     if (unlock == null) return true;
@@ -186,7 +207,6 @@ class VillageModel {
           (b) => b['type'] == buildingType,
       orElse: () => <String, Object>{},
     );
-
 
     final base = def['baseBuildTimeSeconds'] as int? ?? 30;
     final buildTimeScaling =

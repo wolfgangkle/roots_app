@@ -54,7 +54,6 @@ export async function createVillageLogic(request: any) {
     throw new HttpsError('already-exists', 'This tile already has a village.');
   }
 
-  // 🔍 Load user profile
   const profileRef = db.doc(`users/${uid}/profile/main`);
   const profileSnap = await profileRef.get();
   const profile = profileSnap.data();
@@ -67,10 +66,8 @@ export async function createVillageLogic(request: any) {
   const usedCompanions = profile.currentSlotUsage.companions ?? 0;
   const maxVillages = profile.slotLimits.maxVillages ?? 8;
   const maxSlots = profile.slotLimits.maxSlots ?? 8;
-
   const totalUsedSlots = usedVillages + usedCompanions;
 
-  // 🔍 Load mage level
   const mageSnap = await db.collection('heroes')
     .where('ownerId', '==', uid)
     .where('type', '==', 'mage')
@@ -83,7 +80,6 @@ export async function createVillageLogic(request: any) {
 
   const mageLevel = mageSnap.docs[0].data().level ?? 1;
 
-  // 🧠 Calculate current allowed slots based on mage level
   const currentMaxSlots = Math.min(
     2 + Math.floor((mageLevel - 1) / 2),
     maxSlots
@@ -98,7 +94,6 @@ export async function createVillageLogic(request: any) {
     const hasFreeSlot = totalUsedSlots < currentMaxSlots;
     const underVillageCap = usedVillages < maxVillages;
 
-    // ❌ Reject if over both limits and not a sacrificable companion
     if (!hasFreeSlot && (!isCompanion || !underVillageCap)) {
       throw new HttpsError(
         'failed-precondition',
@@ -106,7 +101,6 @@ export async function createVillageLogic(request: any) {
       );
     }
 
-    // 🏡 1. Create the village
     tx.set(newVillageRef, {
       name: villageName.trim(),
       tileX,
@@ -120,6 +114,13 @@ export async function createVillageLogic(request: any) {
         iron: 0,
         gold: 0,
       },
+      storageCapacity: {
+        wood: 5000,
+        stone: 5000,
+        iron: 5000,
+        food: 1000,
+        gold: Infinity,
+      },
       buildings: {},
       freeWorkers: 0,
       maxProductionPerHour: {},
@@ -128,13 +129,10 @@ export async function createVillageLogic(request: any) {
       createdAt: now,
     });
 
-
-    // 📌 2. Mark tile
     tx.update(mapTileRef, {
       villageId: newVillageRef.id,
     });
 
-    // 🔄 3. Update profile
     const profileUpdate: FirebaseFirestore.UpdateData<admin.firestore.DocumentData> = {
       'currentSlotUsage.villages': admin.firestore.FieldValue.increment(1),
       currentMaxSlots,
@@ -146,8 +144,6 @@ export async function createVillageLogic(request: any) {
 
     tx.update(profileRef, profileUpdate);
 
-
-    // ☠️ 4. Delete companion if sacrificed
     if (!hasFreeSlot && isCompanion) {
       tx.delete(heroRef);
       console.log(`☠️ Companion ${heroId} sacrificed to found a village.`);

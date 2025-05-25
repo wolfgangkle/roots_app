@@ -4,6 +4,16 @@ import { recalculateProduction } from '../utils/recalculateProduction.js';
 
 const db = admin.firestore();
 
+// ✅ Only these buildings are allowed to have workers
+const workerBuildings = new Set([
+  'woodcutter',
+  'quarry',
+  'farm',
+  'wheat_fields',
+  'wheat_fields_large',
+  'iron_mine',
+]);
+
 export async function assignWorkerToBuilding(request: CallableRequest<any>) {
   const { villageId, buildingType, assignedWorkers, mode } = request.data;
   const userId = request.auth?.uid;
@@ -30,7 +40,7 @@ export async function assignWorkerToBuilding(request: CallableRequest<any>) {
 
     for (const [type, config] of Object.entries(buildings)) {
       const level = (config as any).level ?? 0;
-      if (level === 0) continue;
+      if (level === 0 || !workerBuildings.has(type)) continue;
 
       const def = defs.get(type);
       if (!def) continue;
@@ -77,6 +87,10 @@ export async function assignWorkerToBuilding(request: CallableRequest<any>) {
   // === SINGLE BUILDING MODE ===
   if (!buildingType) {
     throw new HttpsError('invalid-argument', 'Missing buildingType for non-fill_all mode.');
+  }
+
+  if (!workerBuildings.has(buildingType)) {
+    throw new HttpsError('failed-precondition', `${buildingType} cannot have workers assigned.`);
   }
 
   const buildingDefRef = db.collection('buildingDefinitions').doc(buildingType);

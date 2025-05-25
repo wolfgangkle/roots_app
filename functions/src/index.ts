@@ -34,6 +34,11 @@ export const assignWorkerToBuilding = onCall(async (request) => {
   return logic(request);
 });
 
+export const devFinishNow = onCall(async (request) => {
+  const { devFinishNowLogic } = await import('./village/devFinishNow.js');
+  return devFinishNowLogic(request);
+});
+
 
 
 // === Onboarding ===

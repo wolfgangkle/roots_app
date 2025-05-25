@@ -90,11 +90,16 @@ class VillageCardState extends State<VillageCard> {
                 },
                 defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                 children: [
-                  _buildRow("🌲", "Wood", res["wood"], prodWood, capacity["wood"], secured["wood"]),
-                  _buildRow("🪨", "Stone", res["stone"], prodStone, capacity["stone"], secured["stone"]),
-                  _buildRow("⛓️", "Iron", res["iron"], prodIron, capacity["iron"], secured["iron"]),
-                  _buildRow("🍞", "Food", res["food"], prodFood, capacity["food"], secured["food"]),
-                  _buildRow("🪙", "Gold", res["gold"], prodGold, capacity["gold"], secured["gold"]),
+                  _buildRow("🌲", "Wood", res["wood"], prodWood, capacity["wood"], secured["wood"],
+                      widget.village.buildings['woodcutter']?.assignedWorkers),
+                  _buildRow("🪨", "Stone", res["stone"], prodStone, capacity["stone"], secured["stone"],
+                      widget.village.buildings['quarry']?.assignedWorkers),
+                  _buildRow("⛓️", "Iron", res["iron"], prodIron, capacity["iron"], secured["iron"],
+                      widget.village.buildings['mine']?.assignedWorkers),
+                  _buildRow("🍞", "Food", res["food"], prodFood, capacity["food"], secured["food"],
+                      widget.village.buildings['farm']?.assignedWorkers),
+                  _buildRow("🪙", "Gold", res["gold"], prodGold, capacity["gold"], secured["gold"],
+                      widget.village.buildings['goldmine']?.assignedWorkers),
                 ],
               ),
               const SizedBox(height: 8),
@@ -149,12 +154,15 @@ class VillageCardState extends State<VillageCard> {
       int production,
       int? cap,
       int? bunker,
+      int? workers,
       ) {
+    final prodText = '(${production} /h${workers != null ? ' • ${workers}w' : ''})';
+    final capText = cap != null ? ' / $cap' : '';
     return TableRow(
       children: [
         Text(emoji),
         Text(label),
-        Text('${value ?? 0} (+$production/h) ${cap != null ? '/ $cap' : ''}'),
+        Text('${value ?? 0} $prodText$capText'),
         Text('[${bunker ?? 0}]', textAlign: TextAlign.right),
       ],
     );

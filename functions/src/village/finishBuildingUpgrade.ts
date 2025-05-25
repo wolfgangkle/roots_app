@@ -5,7 +5,7 @@ import { applyBuildingEffects } from '../helpers/applyBuildingEffects.js';
 const db = admin.firestore();
 
 export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) {
-  const { villageId } = request.data;
+  const { villageId, forceFinish } = request.data;
   const userId = request.auth?.uid;
 
   if (!userId) throw new HttpsError('unauthenticated', 'User must be logged in.');
@@ -23,9 +23,8 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
     : new Date(0);
   const now = new Date();
 
-  // ⏱️ Throttle repeated finish attempts
   const secondsSinceLastCheck = (now.getTime() - lastCheck.getTime()) / 1000;
-  if (secondsSinceLastCheck < 10) {
+  if (!forceFinish && secondsSinceLastCheck < 10) {
     console.log(`⏱️ Throttled: ${villageId} checked ${secondsSinceLastCheck.toFixed(2)}s ago`);
     return { throttled: true, secondsSinceLastCheck };
   }
@@ -44,16 +43,20 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
   const duration = buildJob.durationSeconds || 0;
   const finishTime = new Date(startedAt.getTime() + duration * 1000);
 
-  if (now < finishTime) {
+  if (!forceFinish && now < finishTime) {
     return { message: 'Upgrade is not complete yet.' };
   }
 
   const type = buildJob.buildingType;
   const targetLevel = buildJob.targetLevel;
-
   const newBuildings = { ...buildings, [type]: { level: targetLevel } };
 
-  // 🧩 Apply additional building-specific effects
+  // 🏗️ Update buildings first to ensure correct state for effect logic
+  await villageRef.update({
+    buildings: newBuildings,
+  });
+
+  // 🧩 Apply additional building-specific effects AFTER updating the level
   await applyBuildingEffects({
     userId,
     villageRef,
@@ -61,15 +64,26 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
     newLevel: targetLevel,
   });
 
-  // 🏗️ Final update
+  // 🗑️ Try to delete the scheduled task (if it exists)
+  const taskName = dataObj.currentBuildTaskName;
+  if (taskName) {
+    try {
+      const { getCloudTasksClient } = await import('../utils/cloudTasksClient.js');
+      const client = await getCloudTasksClient();
+      await client.deleteTask({ name: taskName });
+      console.log(`🗑️ Deleted Cloud Task: ${taskName}`);
+    } catch (err: any) {
+      console.warn(`⚠️ Could not delete task ${taskName}:`, err.message);
+    }
+  }
+
+  // 🧹 Clean up build job & metadata
   await villageRef.update({
-    buildings: newBuildings,
     currentBuildJob: admin.firestore.FieldValue.delete(),
     lastUpgradeCheck: admin.firestore.Timestamp.fromDate(now),
     lastUpgradeMethod: request.auth?.uid ? 'onCall' : 'scheduled',
+    currentBuildTaskName: admin.firestore.FieldValue.delete(),
   });
-
-
 
   console.log(`✅ Finished upgrade for ${villageId}: ${type} → Level ${targetLevel}`);
 
