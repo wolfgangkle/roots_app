@@ -15,17 +15,40 @@ extension VillageModelExtension on VillageModel {
       };
     }
 
-    // ✅ Use backend-trusted production values from Firestore
+    final elapsedHours = elapsedMinutes / 60.0;
     final productionPerHour = currentProductionPerHour;
 
-    final elapsedHours = elapsedMinutes / 60.0;
+    Map<String, int> result = {};
 
-    return {
-      'wood': wood + (productionPerHour['wood']! * elapsedHours).floor(),
-      'stone': stone + (productionPerHour['stone']! * elapsedHours).floor(),
-      'food': food + (productionPerHour['food']! * elapsedHours).floor(),
-      'iron': iron + (productionPerHour['iron']! * elapsedHours).floor(),
-      'gold': gold + (productionPerHour['gold']! * elapsedHours).floor(),
-    };
+    for (final res in ['wood', 'stone', 'food', 'iron', 'gold']) {
+      final base = getResource(res);
+      final prod = productionPerHour[res] ?? 0;
+      final gain = (prod * elapsedHours).floor();
+      final capacity = storageCapacity[res] ?? double.infinity;
+
+      int capped = base + gain;
+      if (capped > capacity) capped = capacity.toInt();
+
+      result[res] = capped;
+    }
+
+    return result;
+  }
+
+  int getResource(String key) {
+    switch (key) {
+      case 'wood':
+        return wood;
+      case 'stone':
+        return stone;
+      case 'food':
+        return food;
+      case 'iron':
+        return iron;
+      case 'gold':
+        return gold;
+      default:
+        return 0;
+    }
   }
 }

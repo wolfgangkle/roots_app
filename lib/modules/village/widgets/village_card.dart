@@ -37,6 +37,13 @@ class VillageCardState extends State<VillageCard> {
     super.dispose();
   }
 
+  int safeToInt(num? value) {
+    if (value == null || value.isNaN || value == double.infinity || value == double.negativeInfinity) {
+      return 0;
+    }
+    return value.toInt();
+  }
+
   @override
   Widget build(BuildContext context) {
     final res = widget.village.simulatedResources;
@@ -83,11 +90,11 @@ class VillageCardState extends State<VillageCard> {
                 },
                 defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                 children: [
-                  _buildRow("🌲", "Wood", (res["wood"] ?? 0).toInt(), (prod["wood"] ?? 0).toInt(), (capacity["wood"] ?? 0).toInt(), (secured["wood"] ?? 0).toInt(), widget.village.buildings['woodcutter']?.assignedWorkers ?? 0),
-                  _buildRow("🪨", "Stone", (res["stone"] ?? 0).toInt(), (prod["stone"] ?? 0).toInt(), (capacity["stone"] ?? 0).toInt(), (secured["stone"] ?? 0).toInt(), widget.village.buildings['quarry']?.assignedWorkers ?? 0),
-                  _buildRow("⛓️", "Iron", (res["iron"] ?? 0).toInt(), (prod["iron"] ?? 0).toInt(), (capacity["iron"] ?? 0).toInt(), (secured["iron"] ?? 0).toInt(), widget.village.buildings['mine']?.assignedWorkers ?? 0),
-                  _buildRow("🍞", "Food", (res["food"] ?? 0).toInt(), (prod["food"] ?? 0).toInt(), (capacity["food"] ?? 0).toInt(), (secured["food"] ?? 0).toInt(), widget.village.buildings['farm']?.assignedWorkers ?? 0),
-                  _buildRow("🪙", "Gold", (res["gold"] ?? 0).toInt(), (prod["gold"] ?? 0).toInt(), (capacity["gold"] ?? 0).toInt(), (secured["gold"] ?? 0).toInt(), widget.village.buildings['goldmine']?.assignedWorkers ?? 0),
+                  _buildRow("🌲", "Wood", safeToInt(res["wood"]), safeToInt(prod["wood"]), safeToInt(capacity["wood"]), safeToInt(secured["wood"]), widget.village.buildings['woodcutter']?.assignedWorkers ?? 0),
+                  _buildRow("🪨", "Stone", safeToInt(res["stone"]), safeToInt(prod["stone"]), safeToInt(capacity["stone"]), safeToInt(secured["stone"]), widget.village.buildings['quarry']?.assignedWorkers ?? 0),
+                  _buildRow("⛓️", "Iron", safeToInt(res["iron"]), safeToInt(prod["iron"]), safeToInt(capacity["iron"]), safeToInt(secured["iron"]), widget.village.buildings['mine']?.assignedWorkers ?? 0),
+                  _buildRow("🍞", "Food", safeToInt(res["food"]), safeToInt(prod["food"]), safeToInt(capacity["food"]), safeToInt(secured["food"]), widget.village.buildings['farm']?.assignedWorkers ?? 0),
+                  _buildRow("🪙", "Gold", safeToInt(res["gold"]), safeToInt(prod["gold"]), safeToInt(capacity["gold"]), safeToInt(secured["gold"]), widget.village.buildings['goldmine']?.assignedWorkers ?? 0),
                 ],
               ),
 
