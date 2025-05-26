@@ -36,7 +36,6 @@ export async function executeTrade(request: any) {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
 
-    // Reset tradingToday if outdated
     const tradingToday = village.tradingToday ?? {};
     const tradedResources = (tradingToday.date === todayStr ? tradingToday.tradedResources : 0) ?? 0;
     const tradedGold = (tradingToday.date === todayStr ? tradingToday.tradedGold : 0) ?? 0;
@@ -44,7 +43,6 @@ export async function executeTrade(request: any) {
     const maxResource = village.maxDailyResourceTradeAmount ?? 0;
     const maxGold = village.maxDailyGoldTradeAmount ?? 0;
 
-    // Load exchange rates
     const configRef = db.doc('config/tradingRates');
     const configSnap = await tx.get(configRef);
     if (!configSnap.exists) throw new HttpsError('not-found', 'Trading rates config not found.');
@@ -58,7 +56,7 @@ export async function executeTrade(request: any) {
       throw new HttpsError('failed-precondition', `Invalid rate for ${resourceType}.`);
     }
 
-    let newResources = { ...resources };
+    const newResources = { ...resources };
     let newTradedResources = tradedResources;
     let newTradedGold = tradedGold;
 
@@ -84,15 +82,26 @@ export async function executeTrade(request: any) {
         throw new HttpsError('resource-exhausted', `Gold trade limit exceeded (${tradedGold + amount} > ${maxGold}).`);
       }
 
-      newResources['gold'] -= amount;
+      const storageCapacity = village.storageCapacity ?? {};
+      const current = resources[resourceType] ?? 0;
+      const capacity = storageCapacity[resourceType] ?? 0;
       const resourceGained = Math.floor(amount * rate);
-      newResources[resourceType] = (newResources[resourceType] ?? 0) + resourceGained;
+      const projected = current + resourceGained;
+
+      if (projected > capacity) {
+        throw new HttpsError(
+          'failed-precondition',
+          `Not enough storage for ${resourceType}. Would exceed limit: ${projected} > ${capacity}`
+        );
+      }
+
+      newResources['gold'] -= amount;
+      newResources[resourceType] = projected;
       newTradedGold += amount;
 
       console.log(`🔁 Traded ${amount} gold → ${resourceGained} ${resourceType}`);
     }
 
-    // Save updates
     tx.update(villageRef, {
       resources: newResources,
       tradingToday: {
