@@ -22,31 +22,29 @@ class BuildingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseProduction = (definition['baseProductionPerHour'] ?? 0) as int;
+    final baseProduction = definition['baseProductionPerHour'] as int? ?? 0;
     final displayNameMap = definition['displayName'] as Map<String, dynamic>? ?? {};
     final name = displayNameMap['default'] ?? 'Unknown';
 
     final baseCost = Map<String, int>.from(definition['baseCost'] ?? {});
     final costMultiplier = definition['costMultiplier'] as Map<String, dynamic>? ?? {};
-    final costFactor = costMultiplier['factor'] ?? 1.0;
-    final costLinear = costMultiplier['linear'] ?? 0;
+    final costFactor = (costMultiplier['factor'] as num?) ?? 1.0;
+    final costLinear = (costMultiplier['linear'] as num?) ?? 0;
 
     final currentProduction = baseProduction * level;
     final nextLevel = level + 1;
     final nextProduction = baseProduction * nextLevel;
 
     final nextCost = baseCost.map((k, v) {
-      final base = v ?? 0;
       final linearPart = k == 'gold' ? 0 : nextLevel * costLinear;
-      final scaled = (base * pow(nextLevel, costFactor) + linearPart).round();
+      final scaled = (v * pow(nextLevel, costFactor) + linearPart).round();
       return MapEntry(k, scaled);
     });
 
-
     final buildTimeScaling = definition['buildTimeScaling'] as Map<String, dynamic>? ?? {};
     final baseBuildTime = definition['baseBuildTimeSeconds'] as int? ?? 30;
-    final timeFactor = buildTimeScaling['factor'] ?? 1.0;
-    final timeLinear = buildTimeScaling['linear'] ?? 0;
+    final timeFactor = (buildTimeScaling['factor'] as num?) ?? 1.0;
+    final timeLinear = (buildTimeScaling['linear'] as num?) ?? 0;
 
     final seconds = (baseBuildTime * pow(nextLevel, timeFactor) + (nextLevel * timeLinear)).round();
     final nextDuration = Duration(seconds: seconds);
@@ -134,7 +132,6 @@ class BuildingCard extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ));
-
       spans.add(const TextSpan(text: ', '));
     });
 
