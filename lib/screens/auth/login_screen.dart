@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
 import 'register_screen.dart';
@@ -26,8 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty || password.length < 6) {
       setState(() {
-        errorMessage =
-        'Please enter a valid email and password (min. 6 characters).';
+        errorMessage = 'Please enter a valid email and password (min. 6 characters).';
       });
       return;
     }
@@ -72,73 +70,75 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(title: const Text('Login')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            if (_devModeEnabled) ...[
-              // 🌿 AI + Seeding Buttons (only in dev mode)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.auto_awesome),
-                      label: const Text("🌿 AI Peaceful"),
-                      onPressed: () => triggerPeacefulAIEvent(context),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.auto_awesome_motion),
-                      label: const Text("⚔️ AI Combat"),
-                      onPressed: () => triggerCombatAIEvent(context),
-                    ),
-                  ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              if (_devModeEnabled) ...[
+                // 🌿 AI + Seeding Buttons (only in dev mode)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.auto_awesome),
+                        label: const Text("🌿 AI Peaceful"),
+                        onPressed: () => triggerPeacefulAIEvent(context),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.auto_awesome_motion),
+                        label: const Text("⚔️ AI Combat"),
+                        onPressed: () => triggerCombatAIEvent(context),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.cleaning_services),
-                label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
-                onPressed: () => cleanMapTiles(context),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.bolt),
-                label: const Text("⚒️ Seed Crafting Items"),
-                onPressed: () => seedCraftingItems(context),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.shield),
-                label: const Text("💀 Seed Enemies"),
-                onPressed: () => seedEnemies(context),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.local_fire_department),
-                label: const Text("🧪 Seed Encounter Events"),
-                onPressed: () => seedEncounterEvents(context),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.auto_fix_high),
-                label: const Text("✨ Seed Spells"),
-                onPressed: () => seedSpells(context),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.apartment),
-                label: const Text("🏗️ Seed Buildings"),
-                onPressed: () => seedBuildingDefinitions(context),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.currency_exchange),
-                label: const Text("💱 Seed Trading Rates"),
-                onPressed: () => seedTradingRates(context),
-              ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.cleaning_services),
+                  label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
+                  onPressed: () => cleanMapTiles(context),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.bolt),
+                  label: const Text("⚒️ Seed Crafting Items"),
+                  onPressed: () => seedCraftingItems(context),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.shield),
+                  label: const Text("💀 Seed Enemies"),
+                  onPressed: () => seedEnemies(context),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.local_fire_department),
+                  label: const Text("🧪 Seed Encounter Events"),
+                  onPressed: () => seedEncounterEvents(context),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.auto_fix_high),
+                  label: const Text("✨ Seed Spells"),
+                  onPressed: () => seedSpells(context),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.apartment),
+                  label: const Text("🏗️ Seed Buildings"),
+                  onPressed: () => seedBuildingDefinitions(context),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.currency_exchange),
+                  label: const Text("💱 Seed Trading Rates"),
+                  onPressed: () => seedTradingRates(context),
+                ),
+                const SizedBox(height: 32),
+              ],
 
-
-              const SizedBox(height: 24),
+              /// ✅ Always-visible dev login buttons
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -150,56 +150,56 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
               const Divider(height: 32),
-            ],
 
-            // Login Fields
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _submit,
-              child: const Text('Login'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                );
-              },
-              child: const Text("Don't have an account? Register here"),
-            ),
-            const SizedBox(height: 10),
-            if (errorMessage.isNotEmpty)
-              Text(errorMessage, style: const TextStyle(color: Colors.red)),
-
-            // 🛠️ Dev Mode Entry
-            const SizedBox(height: 30),
-            const Divider(),
-            TextField(
-              controller: _devPasswordController,
-              decoration: const InputDecoration(
-                labelText: 'Dev Mode Password',
-                suffixIcon: Icon(Icons.lock),
+              // Login Fields
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
               ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.vpn_key),
-              label: const Text("Enter Dev Mode"),
-              onPressed: _tryEnableDevMode,
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: _passwordController,
+                decoration: const InputDecoration(labelText: 'Password'),
+                obscureText: true,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _submit,
+                child: const Text('Login'),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                  );
+                },
+                child: const Text("Don't have an account? Register here"),
+              ),
+              const SizedBox(height: 10),
+              if (errorMessage.isNotEmpty)
+                Text(errorMessage, style: const TextStyle(color: Colors.red)),
+
+              // 🛠️ Dev Mode Entry
+              const SizedBox(height: 30),
+              const Divider(),
+              TextField(
+                controller: _devPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Dev Mode Password',
+                  suffixIcon: Icon(Icons.lock),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.vpn_key),
+                label: const Text("Enter Dev Mode"),
+                onPressed: _tryEnableDevMode,
+              ),
+            ],
+          ),
         ),
       ),
     );

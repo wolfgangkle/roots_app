@@ -80,56 +80,53 @@ class HeroModel {
   });
 
   factory HeroModel.fromFirestore(String id, Map<String, dynamic> data) {
+    Map<String, int> parseIntMap(Map? raw) {
+      return {
+        for (var entry in (raw ?? {}).entries)
+          entry.key.toString(): (entry.value as num).toInt()
+      };
+    }
+
+    int parseInt(dynamic value, [int fallback = 0]) {
+      return (value is num) ? value.toInt() : fallback;
+    }
+
     return HeroModel(
       id: id,
       ownerId: data['ownerId'],
       heroName: data['heroName'] ?? 'Unnamed',
       race: data['race'] ?? 'Unknown',
       type: data['type'] ?? 'mage',
-      level: data['level'] ?? 1,
-      experience: data['experience'] ?? 0,
-      hp: data['hp'] ?? 100,
-      hpMax: data['hpMax'] ?? 100,
-      mana: data['mana'] ?? 50,
-      manaMax: data['manaMax'] ?? 50,
-      magicResistance: data['magicResistance'] ?? 0,
-      stats: Map<String, int>.from(data['stats'] ??
-          {
-            'strength': 10,
-            'dexterity': 10,
-            'intelligence': 10,
-            'constitution': 10,
-          }),
-      tileX: data['tileX'] ?? 0,
-      tileY: data['tileY'] ?? 0,
+      level: parseInt(data['level'], 1),
+      experience: parseInt(data['experience']),
+      hp: parseInt(data['hp'], 100),
+      hpMax: parseInt(data['hpMax'], 100),
+      mana: parseInt(data['mana'], 50),
+      manaMax: parseInt(data['manaMax'], 50),
+      magicResistance: parseInt(data['magicResistance']),
+      stats: parseIntMap(data['stats']),
+      tileX: parseInt(data['tileX']),
+      tileY: parseInt(data['tileY']),
       tileKey: data['tileKey'] ?? '${data['tileX']}_${data['tileY']}',
-      carriedResources: Map<String, int>.from(data['carriedResources'] ??
-          {
-            'wood': 0,
-            'stone': 0,
-            'iron': 0,
-            'food': 0,
-            'gold': 0,
-          }),
+      carriedResources: parseIntMap(data['carriedResources']),
       state: data['state'] ?? 'idle',
-      hpRegen: data['hpRegen'] ?? 300,
-      manaRegen: data['manaRegen'] ?? 60,
-      foodDuration: data['foodDuration'] ?? 3600,
-      movementSpeed: data['movementSpeed'] ?? 1000, // default fallback
-      maxWaypoints: data['maxWaypoints'] ?? 5, // default fallback
-      combat: Map<String, dynamic>.from(data['combat'] ??
-          {
-            'attackMin': 1,
-            'attackMax': 2,
-            'defense': 0,
-            'regenPerTick': 0,
-            'attackSpeedMs': 1000,
-          }),
+      hpRegen: parseInt(data['hpRegen'], 300),
+      manaRegen: parseInt(data['manaRegen'], 60),
+      foodDuration: parseInt(data['foodDuration'], 3600),
+      movementSpeed: parseInt(data['movementSpeed'], 1000),
+      maxWaypoints: parseInt(data['maxWaypoints'], 5),
+      combat: Map<String, dynamic>.from(data['combat'] ?? {
+        'attackMin': 1,
+        'attackMax': 2,
+        'defense': 0,
+        'regenPerTick': 0,
+        'attackSpeedMs': 1000,
+      }),
       groupId: data['groupId'],
       groupLeaderId: data['groupLeaderId'],
       guildId: data['guildId'],
-      carryCapacity: data['carryCapacity'] ?? 0,
-      currentWeight: data['currentWeight'] ?? 0,
+      carryCapacity: parseInt(data['carryCapacity']),
+      currentWeight: parseInt(data['currentWeight']),
       arrivesAt: data['arrivesAt']?.toDate(),
       insideVillage: data['insideVillage'] ?? false,
       destinationX: data['destinationX'],
@@ -139,7 +136,7 @@ class HeroModel {
           .toList(),
       ref: FirebaseFirestore.instance.collection('heroes').doc(id),
       createdAt: data['createdAt'],
-      combatLevel: data['combatLevel'] ?? 0,
+      combatLevel: parseInt(data['combatLevel']),
     );
   }
 }

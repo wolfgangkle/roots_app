@@ -8,7 +8,7 @@ import {
 export async function transferHeroResources(request: any) {
   const db = admin.firestore();
   const userId = request.auth?.uid;
-  if (!userId) throw new HttpsError('unauthenticated', 'User must be logged in.');
+  if (!userId) throw new HttpsError('unauthenticated', 'You must be logged in.');
 
   const { heroId, tileKey, action, resourceChanges } = request.data;
 
@@ -92,6 +92,26 @@ export async function transferHeroResources(request: any) {
         console.log(`🌾 Refreshed village ${tile.villageId} before resource transfer.`, stored);
       }
 
+      // ✅ Enforce storage capacity before accepting drop
+      const capacity = village.storageCapacity ?? {};
+      for (const res of allowedResources) {
+        const change = resourceChanges[res];
+        if (typeof change !== 'number' || change <= 0) continue;
+
+        const storedAmount = stored[res] ?? 0;
+        const maxCap = capacity[res] ?? Infinity;
+
+        if (action === 'drop') {
+          const totalAfterDrop = storedAmount + change;
+          if (totalAfterDrop > maxCap) {
+            throw new HttpsError(
+              'failed-precondition',
+              `Cannot store ${change} ${res}. Storage full (${storedAmount} / ${maxCap}).`
+            );
+          }
+        }
+      }
+
       sourceRef = villageRef;
       sourceRes = { ...stored };
     } else {
@@ -131,7 +151,10 @@ export async function transferHeroResources(request: any) {
     const newSpeed = calculateAdjustedMovementSpeed(baseSpeed, currentWeight, carryCapacity);
 
     if (currentWeight > carryCapacity) {
-      throw new HttpsError('failed-precondition', `Transfer would exceed carry capacity (${currentWeight.toFixed(2)} > ${carryCapacity}).`);
+      throw new HttpsError(
+        'failed-precondition',
+        `Transfer would exceed carry capacity (${currentWeight.toFixed(2)} > ${carryCapacity}).`
+      );
     }
 
     tx.update(heroRef, {
@@ -141,7 +164,8 @@ export async function transferHeroResources(request: any) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    tx.set(sourceRef,
+    tx.set(
+      sourceRef,
       insideVillage
         ? { resources: sourceRes }
         : {
@@ -157,7 +181,6 @@ export async function transferHeroResources(request: any) {
     console.log(`💰 Hero ${heroId} ${action}ped resources:`, resourceChanges, `→ ${insideVillage ? 'village' : 'tile'} storage`);
   });
 
-  // ✅ Recalculate group movementSpeed after the transaction
   if (groupId) {
     try {
       const { updateGroupMovementSpeed } = await import('../helpers/updateGroupMovementSpeed.js');

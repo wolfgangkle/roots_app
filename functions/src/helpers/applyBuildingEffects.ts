@@ -77,11 +77,14 @@ export async function applyBuildingEffects({
   const providesStorage = updatedBuildingDef.provides?.storageCapacity;
   if (providesStorage) {
     for (const [resourceType, baseValue] of Object.entries(providesStorage)) {
-      const total = (baseValue as number) * newLevel;
+      const previous = villageData.storageCapacity?.[resourceType] ?? 0;
+      const addition = (baseValue as number) * newLevel;
+      const total = previous + addition;
       updates[`storageCapacity.${resourceType}`] = total;
-      console.log(`📦 Storage → ${resourceType}: ${total}`);
+      console.log(`📦 Storage → ${resourceType}: ${previous} + ${addition} = ${total}`);
     }
   }
+
 
   // 🛡️ BUNKERS
   const providesSecured = updatedBuildingDef.provides?.maxSecuredResources;
