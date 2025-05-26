@@ -7,8 +7,9 @@ import 'package:roots_app/modules/village/extensions/village_model_extension.dar
 import 'package:roots_app/modules/village/views/village_items_tab.dart';
 import 'package:roots_app/modules/village/views/workers_tab.dart';
 import 'package:roots_app/modules/village/views/trading_tab.dart';
+import 'package:roots_app/modules/village/views/techtree_tab.dart'; // new import
 
-enum VillageTab { buildings, items, storage, workers, trading }
+enum VillageTab { buildings, items, storage, workers, trading, techtree } // updated
 
 class VillageCenterScreen extends StatefulWidget {
   final String villageId;
@@ -53,6 +54,7 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
                     _buildTabButton(VillageTab.storage, 'Storage'),
                     _buildTabButton(VillageTab.workers, 'Workers'),
                     _buildTabButton(VillageTab.trading, 'Trading'),
+                    _buildTabButton(VillageTab.techtree, 'Techtree'), // new button
                   ],
                 ),
               ),
@@ -128,7 +130,16 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
         return WorkersTab(villageId: village.id);
 
       case VillageTab.trading:
-        return const TradingTab();
+        return TradingTab(
+          villageId: village.id,
+          maxResourceTrade: village.maxDailyResourceTradeAmount ?? 0,
+          maxGoldTrade: village.maxDailyGoldTradeAmount ?? 0,
+          tradedResourceToday: village.tradingToday?['tradedResources'] ?? 0,
+          tradedGoldToday: village.tradingToday?['tradedGold'] ?? 0,
+        );
+
+      case VillageTab.techtree:
+        return const TechtreeTab(); // new tab content
     }
   }
 }

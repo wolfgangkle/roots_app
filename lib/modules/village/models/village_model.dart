@@ -25,6 +25,10 @@ class VillageModel {
 
   final Map<String, num> currentProductionPerHour;
 
+  final int maxDailyResourceTradeAmount;
+  final int maxDailyGoldTradeAmount;
+  final Map<String, int> tradingToday;
+
   BuildJobModel? currentBuildJob;
   final Map<String, dynamic>? currentCraftingJob;
 
@@ -44,6 +48,9 @@ class VillageModel {
     required this.storageCapacity,
     required this.securedResources,
     required this.currentProductionPerHour,
+    required this.maxDailyResourceTradeAmount,
+    required this.maxDailyGoldTradeAmount,
+    required this.tradingToday,
     this.currentBuildJob,
     this.currentCraftingJob,
   });
@@ -64,7 +71,14 @@ class VillageModel {
     final craftingJob = data['currentCraftingJob'] as Map<String, dynamic>?;
     final storageCap = Map<String, int>.from(data['storageCapacity'] ?? {});
     final securedRes = Map<String, int>.from(data['securedResources'] ?? {});
-    final productionPerHour = Map<String, num>.from(data['currentProductionPerHour'] ?? {});
+    final productionPerHour =
+    Map<String, num>.from(data['currentProductionPerHour'] ?? {});
+
+    final tradingTodayRaw = data['tradingToday'] as Map<String, dynamic>? ?? {};
+    final tradingToday = {
+      'tradedResources': tradingTodayRaw['tradedResources'] ?? 0,
+      'tradedGold': tradingTodayRaw['tradedGold'] ?? 0,
+    };
 
     return VillageModel(
       id: id,
@@ -81,9 +95,12 @@ class VillageModel {
       buildings: buildings,
       storageCapacity: storageCap,
       securedResources: securedRes,
+      currentProductionPerHour: productionPerHour,
+      maxDailyResourceTradeAmount: data['maxDailyResourceTradeAmount'] ?? 0,
+      maxDailyGoldTradeAmount: data['maxDailyGoldTradeAmount'] ?? 0,
+      tradingToday: Map<String, int>.from(tradingToday),
       currentBuildJob: job,
       currentCraftingJob: craftingJob,
-      currentProductionPerHour: productionPerHour,
     );
   }
 
@@ -105,6 +122,9 @@ class VillageModel {
       'securedResources': securedResources,
       'freeWorkers': freeWorkers,
       'currentProductionPerHour': currentProductionPerHour,
+      'maxDailyResourceTradeAmount': maxDailyResourceTradeAmount,
+      'maxDailyGoldTradeAmount': maxDailyGoldTradeAmount,
+      'tradingToday': tradingToday,
       if (currentBuildJob != null) 'currentBuildJob': currentBuildJob!.toMap(),
       if (currentCraftingJob != null) 'currentCraftingJob': currentCraftingJob,
     };
@@ -149,6 +169,9 @@ class VillageModel {
     Map<String, num>? currentProductionPerHour,
     BuildJobModel? currentBuildJob,
     Map<String, dynamic>? currentCraftingJob,
+    int? maxDailyResourceTradeAmount,
+    int? maxDailyGoldTradeAmount,
+    Map<String, int>? tradingToday,
   }) {
     return VillageModel(
       id: id,
@@ -168,6 +191,9 @@ class VillageModel {
       currentProductionPerHour: currentProductionPerHour ?? this.currentProductionPerHour,
       currentBuildJob: currentBuildJob ?? this.currentBuildJob,
       currentCraftingJob: currentCraftingJob ?? this.currentCraftingJob,
+      maxDailyResourceTradeAmount: maxDailyResourceTradeAmount ?? this.maxDailyResourceTradeAmount,
+      maxDailyGoldTradeAmount: maxDailyGoldTradeAmount ?? this.maxDailyGoldTradeAmount,
+      tradingToday: tradingToday ?? this.tradingToday,
     );
   }
 

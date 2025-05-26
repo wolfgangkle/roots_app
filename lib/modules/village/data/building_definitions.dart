@@ -232,30 +232,44 @@ final buildingDefinitions = [
 
   {
     "type": "trade_cart",
-    "displayName": {"default": "Trade Cart"},
-    "description": {
-      "default":
-      "A sturdy cart to carry goods between villages. Each level increases your daily trade capacity with other villages."
+    "displayName": {
+      "default": "Trade Cart"
     },
-    "baseCost": {"wood": 80, "stone": 50, "iron": 20, "gold": 0},
-    "costMultiplier": {"factor": 1.2, "linear": 6},
+    "description": {
+      "default": "A sturdy cart to carry goods between villages. Each level increases your daily trade capacity for both gold and resources."
+    },
+    "baseCost": {
+      "wood": 80,
+      "stone": 50,
+      "iron": 20,
+      "gold": 0
+    },
+    "costMultiplier": {
+      "factor": 1.2,
+      "linear": 6
+    },
     "baseBuildTimeSeconds": 700,
-    "buildTimeScaling": {"factor": 1.1, "linear": 25},
+    "buildTimeScaling": {
+      "factor": 1.1,
+      "linear": 25
+    },
     "provides": {
-      "maxDailyTradeAmount": 5000
+      "maxDailyResourceTradeAmount": 5000,
+      "maxDailyGoldTradeAmount": 5
     },
     "unlockRequirement": {
       "dependsOn": "hut",
-      "requiredLevel": 5,
+      "requiredLevel": 5
     },
     "points": 6,
     "raceNames": {
       "human": "Trade Cart",
       "dwarf": "Ore Wagon",
       "elf": "Glade Runner",
-      "orc": "Loot Cart",
+      "orc": "Loot Cart"
     },
   },
+
 
 
   {

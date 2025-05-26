@@ -130,6 +130,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: const Text("🏗️ Seed Buildings"),
                 onPressed: () => seedBuildingDefinitions(context),
               ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.currency_exchange),
+                label: const Text("💱 Seed Trading Rates"),
+                onPressed: () => seedTradingRates(context),
+              ),
 
 
               const SizedBox(height: 24),

@@ -39,6 +39,11 @@ export const devFinishNow = onCall(async (request) => {
   return devFinishNowLogic(request);
 });
 
+export const executeTrade = onCall(async (request) => {
+  const { executeTrade } = await import('./village/executeTrade.js');
+  return executeTrade(request);
+});
+
 
 
 // === Onboarding ===

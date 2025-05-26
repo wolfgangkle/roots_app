@@ -130,12 +130,20 @@ export async function applyBuildingEffects({
   console.log(`🧱 Wall HP stat → ${totalWallHp}`);
 
   // 🚚 TRADE
-  const tradeAmount = updatedBuildingDef.provides?.maxDailyTradeAmount;
-  if (typeof tradeAmount === 'number') {
-    const total = tradeAmount * newLevel;
-    updates['maxDailyTradeAmount'] = total;
-    console.log(`🚚 Max Daily Trade Amount → ${total}`);
+  const tradeRes = updatedBuildingDef.provides?.maxDailyResourceTradeAmount;
+  if (typeof tradeRes === 'number') {
+    const total = tradeRes * newLevel;
+    updates['maxDailyResourceTradeAmount'] = total;
+    console.log(`🚚 Max Daily Resource Trade Amount → ${total}`);
   }
+
+  const tradeGold = updatedBuildingDef.provides?.maxDailyGoldTradeAmount;
+  if (typeof tradeGold === 'number') {
+    const total = tradeGold * newLevel;
+    updates['maxDailyGoldTradeAmount'] = total;
+    console.log(`💰 Max Daily Gold Trade Amount → ${total}`);
+  }
+
 
   // 🧮 BUILDING QUEUE
   const queueSlots = updatedBuildingDef.provides?.buildingQueueSlots;

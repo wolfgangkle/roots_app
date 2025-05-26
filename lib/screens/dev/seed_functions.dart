@@ -8,6 +8,7 @@ import 'package:roots_app/modules/combat/data/enemy_data.dart';
 import 'package:roots_app/modules/combat/data/event_data.dart';
 import 'package:roots_app/modules/spells/data/spell_data.dart';
 import 'package:roots_app/modules/village/data/building_definitions.dart';
+import 'package:roots_app/modules/village/data/trading_rates.dart';
 
 Future<void> triggerPeacefulAIEvent(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
@@ -131,6 +132,30 @@ Future<void> seedEncounterEvents(BuildContext context) async {
     const SnackBar(content: Text("🧪 Seeded encounterEvents to Firestore!")),
   );
 }
+
+
+
+Future<void> seedTradingRates(BuildContext context) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final ref = FirebaseFirestore.instance.doc('config/tradingRates');
+
+  final payload = {
+    ...tradingRatesData,
+    'createdAt': FieldValue.serverTimestamp(),
+  };
+
+  try {
+    await ref.set(payload, SetOptions(merge: true));
+    messenger.showSnackBar(
+      const SnackBar(content: Text('💱 Seeded balanced trading rates to Firestore!')),
+    );
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('❌ Failed to seed trading rates: $e')),
+    );
+  }
+}
+
 
 Future<void> seedBuildingDefinitions(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
