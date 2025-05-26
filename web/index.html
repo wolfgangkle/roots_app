@@ -1,30 +1,30 @@
-<!DOCTYPE html>
-<html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+
+  <!-- 👇 Custom description here -->
+  <meta name="description" content="ROOTS is a text-based RPG with persistent village building, exploration, and multiplayer battles.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="roots_app">
+  <meta name="apple-mobile-web-app-title" content="ROOTS">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>roots_app</title>
+  <!-- 👇 Custom page title here -->
+  <title>ROOTS - Strategy RPG</title>
+
   <link rel="manifest" href="manifest.json">
 
-  <!-- Firebase JS SDKs (only needed if you're manually using Firebase JS in plain HTML/JS apps) -->
-  <!-- Not needed for most Flutter apps unless you need analytics on web -->
+  <!-- Firebase JS SDKs (if needed) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js"></script>
 
-  <!-- Initialize Firebase only for Analytics (optional) -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDo2msl_Dui6zYVH5iSbjrd6isGBR729cw",
@@ -33,14 +33,10 @@
       storageBucket: "roots-backend-ce2ec.appspot.com",
       messagingSenderId: "693756626112",
       appId: "1:693756626112:android:d7ffa6168bf8ff8ce71925",
-      measurementId: "G-XXXXXXXXXX" // <-- optional
+      measurementId: "G-XXXXXXXXXX"
     };
 
     firebase.initializeApp(firebaseConfig);
-    firebase.analytics(); // optional, no harm if unused
+    firebase.analytics();
   </script>
 </head>
-<body>
-<script src="flutter_bootstrap.js" async></script>
-</body>
-</html>
