@@ -119,7 +119,36 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
         );
 
       case VillageTab.items:
-        return VillageItemsTab(villageId: village.id);
+        return Column(
+          children: [
+            if (village.currentCraftingJob != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.bolt),
+                  label: const Text('🔥 Finish Crafting Now'),
+                  onPressed: () async {
+                    try {
+                      await FirebaseFunctions.instance
+                          .httpsCallable('devFinishCraftingNow')
+                          .call({'villageId': village.id});
+
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Crafting job finished!')),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  },
+                ),
+              ),
+            Expanded(child: VillageItemsTab(villageId: village.id)),
+          ],
+        );
 
       case VillageTab.storage:
         return const Center(child: Text('📦 Storage view coming soon!'));

@@ -5,11 +5,13 @@ export async function applyBuildingEffects({
   villageRef,
   buildingType,
   newLevel,
+  assignedWorkers, // ✅ optional param
 }: {
   userId: string;
   villageRef: FirebaseFirestore.DocumentReference;
   buildingType: string;
   newLevel: number;
+  assignedWorkers?: number;
 }) {
   const updates: FirebaseFirestore.UpdateData<Record<string, any>> = {};
 
@@ -34,6 +36,8 @@ export async function applyBuildingEffects({
     return;
   }
 
+  const resourceBuildingKeys = ['woodcutter', 'quarry', 'farm', 'mine'];
+
   // 👷 WORKERS
   let totalWorkers = 0;
   for (const [type, def] of buildingDefinitions.entries()) {
@@ -42,38 +46,35 @@ export async function applyBuildingEffects({
     totalWorkers += workersProvided * level;
   }
 
-  const resourceBuildingKeys = ['woodcutter', 'quarry', 'farm', 'mine'];
-  let assignedWorkers = 0;
+  let assigned = 0;
   for (const key of resourceBuildingKeys) {
     const b = buildings[key];
-    if (b?.assignedWorkers) assignedWorkers += b.assignedWorkers;
+    if (b?.assignedWorkers) assigned += b.assignedWorkers;
   }
 
-  const freeWorkers = Math.max(0, totalWorkers - assignedWorkers);
+  const freeWorkers = Math.max(0, totalWorkers - assigned);
   updates['freeWorkers'] = freeWorkers;
-  console.log(`👷 Workers → total: ${totalWorkers}, assigned: ${assignedWorkers}, free: ${freeWorkers}`);
+  console.log(`👷 Workers → total: ${totalWorkers}, assigned: ${assigned}, free: ${freeWorkers}`);
 
-  // 👁️ SPY
-  let totalSpy = 0;
+  // 👁️ Spy
+  let spy = 0;
   for (const [type, def] of buildingDefinitions.entries()) {
     const level = buildings[type]?.level || 0;
     const spyPoints = def.provides?.spy || 0;
-    totalSpy += spyPoints * level;
+    spy += spyPoints * level;
   }
-  updates['spy'] = totalSpy;
-  console.log(`👁️ Spy stat → ${totalSpy}`);
+  updates['spy'] = spy;
 
-  // 🌿 CAMOUFLAGE
-  let totalCamouflage = 0;
+  // 🌿 Camouflage
+  let camouflage = 0;
   for (const [type, def] of buildingDefinitions.entries()) {
     const level = buildings[type]?.level || 0;
-    const camouflageValue = def.provides?.camouflage || 0;
-    totalCamouflage += camouflageValue * level;
+    const camo = def.provides?.camouflage || 0;
+    camouflage += camo * level;
   }
-  updates['camouflage'] = totalCamouflage;
-  console.log(`🌿 Camouflage stat → ${totalCamouflage}`);
+  updates['camouflage'] = camouflage;
 
-  // 📦 STORAGE
+  // 📦 Storage
   const providesStorage = updatedBuildingDef.provides?.storageCapacity;
   if (providesStorage) {
     for (const [resourceType, baseValue] of Object.entries(providesStorage)) {
@@ -81,22 +82,19 @@ export async function applyBuildingEffects({
       const addition = (baseValue as number) * newLevel;
       const total = previous + addition;
       updates[`storageCapacity.${resourceType}`] = total;
-      console.log(`📦 Storage → ${resourceType}: ${previous} + ${addition} = ${total}`);
     }
   }
 
-
-  // 🛡️ BUNKERS
+  // 🛡️ Secured resources
   const providesSecured = updatedBuildingDef.provides?.maxSecuredResources;
   if (providesSecured) {
     for (const [resourceType, baseValue] of Object.entries(providesSecured)) {
       const total = (baseValue as number) * newLevel;
       updates[`securedResources.${resourceType}`] = total;
-      console.log(`🛡️ Secured → ${resourceType}: ${total}`);
     }
   }
 
-  // 🏹 DEFENSE STRUCTURES
+  // 🏹 Defense
   const combatStats = updatedBuildingDef.provides?.combatStats;
   if (combatStats) {
     const scaledStats: Record<string, number> = {};
@@ -108,66 +106,59 @@ export async function applyBuildingEffects({
       level: newLevel,
       combatStats: scaledStats,
     };
-
-    console.log(`🏹 Defense → ${buildingType}:`, scaledStats);
   }
 
-  // 🏭 PRODUCTION
+  // 🏭 Production
   const providesProduction = updatedBuildingDef.provides?.maxProductionPerHour;
   if (providesProduction) {
     for (const [resourceType, baseValue] of Object.entries(providesProduction)) {
       const total = (baseValue as number) * newLevel;
       updates[`maxProductionPerHour.${resourceType}`] = total;
-      console.log(`🏭 Max Production → ${resourceType}: ${total}`);
     }
   }
 
-  // 🧱 WALL HP
-  let totalWallHp = 0;
+  // 🧱 Wall HP
+  let wallHp = 0;
   for (const [type, def] of buildingDefinitions.entries()) {
     const level = buildings[type]?.level || 0;
-    const wallHp = def.provides?.combatStats?.wallHp || 0;
-    totalWallHp += wallHp * level;
+    const wall = def.provides?.combatStats?.wallHp || 0;
+    wallHp += wall * level;
   }
-  updates['wallHp'] = totalWallHp;
-  console.log(`🧱 Wall HP stat → ${totalWallHp}`);
+  updates['wallHp'] = wallHp;
 
-  // 🚚 TRADE
-  const tradeRes = updatedBuildingDef.provides?.maxDailyResourceTradeAmount;
-  if (typeof tradeRes === 'number') {
-    const total = tradeRes * newLevel;
-    updates['maxDailyResourceTradeAmount'] = total;
-    console.log(`🚚 Max Daily Resource Trade Amount → ${total}`);
+  // 🚚 Trade
+  if (updatedBuildingDef.provides?.maxDailyResourceTradeAmount) {
+    updates['maxDailyResourceTradeAmount'] =
+      updatedBuildingDef.provides.maxDailyResourceTradeAmount * newLevel;
   }
-
-  const tradeGold = updatedBuildingDef.provides?.maxDailyGoldTradeAmount;
-  if (typeof tradeGold === 'number') {
-    const total = tradeGold * newLevel;
-    updates['maxDailyGoldTradeAmount'] = total;
-    console.log(`💰 Max Daily Gold Trade Amount → ${total}`);
+  if (updatedBuildingDef.provides?.maxDailyGoldTradeAmount) {
+    updates['maxDailyGoldTradeAmount'] =
+      updatedBuildingDef.provides.maxDailyGoldTradeAmount * newLevel;
   }
 
-
-  // 🧮 BUILDING QUEUE
-  const queueSlots = updatedBuildingDef.provides?.buildingQueueSlots;
-  if (typeof queueSlots === 'number') {
-    const total = queueSlots * newLevel;
-    updates['buildingQueueSlots'] = total;
-    console.log(`🧮 Building Queue Slots → ${total}`);
+  // 🧮 Queue
+  if (updatedBuildingDef.provides?.buildingQueueSlots) {
+    updates['buildingQueueSlots'] =
+      updatedBuildingDef.provides.buildingQueueSlots * newLevel;
   }
 
-  // 🏆 BUILDING POINTS
-  const buildingPoints = updatedBuildingDef.points || 0;
-  if (buildingPoints > 0) {
+  // 🏆 Points
+  if (updatedBuildingDef.points) {
     const profileRef = admin.firestore().doc(`users/${userId}/profile/main`);
     await profileRef.set(
-      { totalBuildingPoints: admin.firestore.FieldValue.increment(buildingPoints) },
+      { totalBuildingPoints: admin.firestore.FieldValue.increment(updatedBuildingDef.points) },
       { merge: true }
     );
-    console.log(`🏆 Added ${buildingPoints} points to user profile.`);
   }
 
-  // 🔄 COMMIT
+  // ✅ Restore assignedWorkers
+  if (resourceBuildingKeys.includes(buildingType)) {
+    const safeAssigned = typeof assignedWorkers === 'number' ? assignedWorkers : 0;
+    updates[`buildings.${buildingType}.assignedWorkers`] = safeAssigned;
+    console.log(`🔁 Restored assignedWorkers for ${buildingType}: ${safeAssigned}`);
+  }
+
+  // 🔄 Commit
   if (Object.keys(updates).length > 0) {
     await villageRef.update(updates);
   }

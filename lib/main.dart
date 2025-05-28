@@ -10,11 +10,14 @@ import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/map/providers/terrain_provider.dart';
 import 'package:roots_app/modules/settings/models/user_settings_model.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+
 
   if (kDebugMode) {
     debugPrint('✅ Firebase initialized successfully');
@@ -33,6 +36,7 @@ void main() async {
     ),
   );
 }
+
 
 
 class MyApp extends StatefulWidget {

@@ -20,10 +20,11 @@ import 'package:roots_app/modules/chat/guild_chat_panel.dart';
 import 'package:roots_app/modules/alliances/views/create_alliance_screen.dart';
 import 'package:roots_app/modules/alliances/views/alliance_members_screen.dart';
 import 'package:roots_app/modules/alliances/views/alliance_invite_inbox_screen.dart';
+import 'package:roots_app/modules/reports/views/finished_jobs_screen.dart';
+import 'package:roots_app/screens/helpers/finished_jobs_tab_tile.dart';
 
 class NavigationListContent extends StatelessWidget {
-  final void Function({required String title, required Widget content})?
-  onSelectDynamicTab;
+  final void Function({required String title, required Widget content})? onSelectDynamicTab;
   final bool isInDrawer;
 
   const NavigationListContent({
@@ -45,8 +46,7 @@ class NavigationListContent extends StatelessWidget {
     final screenSize = LayoutHelper.getSizeCategory(screenWidth);
     final isMobile = screenSize == ScreenSizeCategory.small;
 
-    final sectionHeaderStyle =
-    Theme.of(context).textTheme.titleMedium?.copyWith(
+    final sectionHeaderStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.bold,
       color: Theme.of(context).colorScheme.onSurface,
     );
@@ -60,8 +60,7 @@ class NavigationListContent extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: inviteStream,
       builder: (context, guildInviteSnapshot) {
-        final hasGuildInvites =
-            guildInviteSnapshot.data?.docs.isNotEmpty ?? false;
+        final hasGuildInvites = guildInviteSnapshot.data?.docs.isNotEmpty ?? false;
 
         if (hasGuild && isLeader && profile.guildId != null) {
           return StreamBuilder<QuerySnapshot>(
@@ -71,8 +70,7 @@ class NavigationListContent extends StatelessWidget {
                 .collection('allianceInvites')
                 .snapshots(),
             builder: (context, allianceInviteSnapshot) {
-              final hasAllianceInvites =
-                  allianceInviteSnapshot.data?.docs.isNotEmpty ?? false;
+              final hasAllianceInvites = allianceInviteSnapshot.data?.docs.isNotEmpty ?? false;
               return _buildNavigation(
                 context,
                 profile,
@@ -122,7 +120,11 @@ class NavigationListContent extends StatelessWidget {
       children: [
         Text('🔔 Notifications', style: sectionHeaderStyle),
         _buildTabTile(context, isMobile, 'Event Logs', const ReportsListScreen()),
-        _buildTabTile(context, isMobile, 'Finished Jobs', const Placeholder()),
+        FinishedJobsTabTile(
+          isMobile: isMobile,
+          isInDrawer: isInDrawer,
+          onSelectDynamicTab: onSelectDynamicTab,
+        ),
         if (hasGuildInvites)
           _buildTabTile(context, isMobile, 'Guild Invites', const GuildInviteInboxScreen()),
         if (hasAllianceInvites)
@@ -163,15 +165,14 @@ class NavigationListContent extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
           title: Text('Logout', style: Theme.of(context).textTheme.bodyLarge),
-            onTap: () async {
-              final navigator = Navigator.of(context); // Store before async gap
-              await FirebaseAuth.instance.signOut();
-
-              navigator.pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (route) => false,
-              );
-            }
+          onTap: () async {
+            final navigator = Navigator.of(context);
+            await FirebaseAuth.instance.signOut();
+            navigator.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+            );
+          },
         ),
       ],
     );
@@ -187,7 +188,6 @@ class NavigationListContent extends StatelessWidget {
         title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
         onTap: () {
           if (isInDrawer) Navigator.pop(context);
-
           if (isMobile && onSelectDynamicTab != null) {
             onSelectDynamicTab!(title: title, content: content);
           } else {
@@ -199,3 +199,7 @@ class NavigationListContent extends StatelessWidget {
     );
   }
 }
+
+
+
+

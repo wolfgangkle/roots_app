@@ -17,7 +17,7 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
 
   const dataObj = doc.data()!;
   const buildJob = dataObj.currentBuildJob;
-  const buildings: Record<string, { level: number }> = dataObj.buildings || {};
+  const buildings: Record<string, any> = dataObj.buildings || {};
   const lastCheck = (dataObj.lastUpgradeCheck instanceof admin.firestore.Timestamp)
     ? dataObj.lastUpgradeCheck.toDate()
     : new Date(0);
@@ -49,22 +49,35 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
 
   const type = buildJob.buildingType;
   const targetLevel = buildJob.targetLevel;
-  const newBuildings = { ...buildings, [type]: { level: targetLevel } };
 
-  // 🏗️ Update buildings first to ensure correct state for effect logic
+  // 🛠️ Preserve assignedWorkers if it exists
+  const existing = buildings[type] || {};
+  const assignedWorkers = existing.assignedWorkers;
+  const upgradedBuilding: Record<string, any> = { level: targetLevel };
+  if (typeof assignedWorkers === 'number') {
+    upgradedBuilding.assignedWorkers = assignedWorkers;
+    console.log(`👷 Preserved ${assignedWorkers} assigned workers for ${type}`);
+  }
+
+  const newBuildings = {
+    ...buildings,
+    [type]: upgradedBuilding,
+  };
+
   await villageRef.update({
     buildings: newBuildings,
   });
 
-  // 🧩 Apply additional building-specific effects AFTER updating the level
+  // 🧩 Apply effects, safely reusing assignedWorkers
   await applyBuildingEffects({
     userId,
     villageRef,
     buildingType: type,
     newLevel: targetLevel,
+    assignedWorkers, // ✅ passed forward
   });
 
-  // 🗑️ Try to delete the scheduled task (if it exists)
+  // 🗑️ Delete scheduled Cloud Task (if exists)
   const taskName = dataObj.currentBuildTaskName;
   if (taskName) {
     try {
@@ -77,7 +90,7 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
     }
   }
 
-  // 🧹 Clean up build job & metadata
+  // 🧹 Cleanup build job metadata
   await villageRef.update({
     currentBuildJob: admin.firestore.FieldValue.delete(),
     lastUpgradeCheck: admin.firestore.Timestamp.fromDate(now),
@@ -85,6 +98,20 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
     currentBuildTaskName: admin.firestore.FieldValue.delete(),
   });
 
+  // 📬 Create event report
+  const reportRef = villageRef.collection('eventReports').doc();
+  await reportRef.set({
+    type: 'upgrade',
+    title: `🏗️ ${type} upgraded to level ${targetLevel}`,
+    buildingType: type,
+    newLevel: targetLevel,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    hiddenForUserIds: [],
+    read: false,
+    userId,
+  });
+
+  console.log(`📬 Upgrade report created for village ${villageId}`);
   console.log(`✅ Finished upgrade for ${villageId}: ${type} → Level ${targetLevel}`);
 
   return {
