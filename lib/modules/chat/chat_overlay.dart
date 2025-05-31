@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/modules/chat/chat_service.dart';
 import 'package:roots_app/modules/chat/chat_message_model.dart';
-import 'package:roots_app/profile/models/user_profile_model.dart';
+import 'package:roots_app/modules/profile/models/user_profile_model.dart';
 import 'package:intl/intl.dart';
 
 class ChatOverlay extends StatefulWidget {

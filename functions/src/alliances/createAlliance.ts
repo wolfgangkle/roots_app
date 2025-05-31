@@ -1,5 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js';
 
 const db = admin.firestore();
 
@@ -69,7 +70,10 @@ export async function createAlliance(request: any) {
     });
   });
 
+  // 🧠 Trigger a fresh point tally for leaderboard goodness
+  await recalculateGuildAndAlliancePoints();
   console.log(`🤝 Created alliance "${trimmedName}" [${trimmedTag}] by guild ${guildRef.id}`);
+
 
   return {
     allianceId: allianceRef.id,

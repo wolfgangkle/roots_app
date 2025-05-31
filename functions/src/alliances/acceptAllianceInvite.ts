@@ -1,5 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js'; // ✅ path must match your setup
 
 const db = admin.firestore();
 
@@ -70,6 +71,9 @@ export async function acceptAllianceInvite(request: any) {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
   });
+
+  // 🧠 Trigger a fresh point tally for leaderboard goodness
+  await recalculateGuildAndAlliancePoints();
 
   console.log(`✅ Guild ${guildId} accepted alliance invite to ${allianceId}`);
 

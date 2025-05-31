@@ -3,6 +3,8 @@ import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
 import 'register_screen.dart';
 import 'package:roots_app/screens/dev/seed_functions.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -99,6 +101,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
                   onPressed: () => cleanMapTiles(context),
                 ),
+
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.schedule_send),
+                  label: const Text("📊 Start Guild Points Scheduler (1h)"),
+                  onPressed: () async {
+                    try {
+                      final callable = FirebaseFunctions.instance.httpsCallable('startGuildPointsScheduler');
+                      final result = await callable.call({'delaySeconds': 30});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(result.data['message'] ?? 'Scheduled')),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('❌ Error scheduling task: $e')),
+                      );
+                    }
+                  },
+                ),
+
+
+
+
+
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.bolt),

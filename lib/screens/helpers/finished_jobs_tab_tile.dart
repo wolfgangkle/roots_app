@@ -31,7 +31,7 @@ class FinishedJobsTabTile extends StatelessWidget {
 
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collectionGroup('eventReports')
+              .collectionGroup('finishedJobs')
               .where('type', whereIn: ['upgrade', 'crafting'])
               .where('read', isEqualTo: false)
               .where('userId', isEqualTo: user.uid)

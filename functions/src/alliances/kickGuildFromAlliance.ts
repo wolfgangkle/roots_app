@@ -1,5 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js';
 
 const db = admin.firestore();
 
@@ -69,6 +70,10 @@ export async function kickGuildFromAlliance(request: any) {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
   });
+
+  // 🧠 Trigger a fresh point tally for leaderboard goodness
+  await recalculateGuildAndAlliancePoints();
+
 
   console.log(`👢 Guild ${targetGuildId} was kicked from alliance ${allianceId} by ${profile.guildId}`);
 

@@ -44,6 +44,10 @@ export const executeTrade = onCall(async (request) => {
   return executeTrade(request);
 });
 
+// === Scheduled Tasks ===
+export { recalculateGuildAndAlliancePointsScheduled } from './points/recalculateGuildAndAlliancePointsScheduled.js';
+
+export { startGuildPointsScheduler } from './points/startGuildPointsScheduler.js';
 
 
 // === Onboarding ===

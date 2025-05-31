@@ -955,7 +955,7 @@ final buildingDefinitions = [
       "requiredLevel": 5
     },
     "provides": {
-      "unlocksCraftingTypes": ["weapons"]
+      "unlocksCraftingTypes": ["weapons"],
       "researchPoints": 1
     },
     "points": 7,
@@ -982,8 +982,8 @@ final buildingDefinitions = [
       "requiredLevel": 6
     },
     "provides": {
-      "unlocksCraftingTypes": ["armor"]
-      "researchPoints": 1
+      "unlocksCraftingTypes": ["armor"],
+      "researchPoints": 1,
     },
     "points": 7,
     "raceNames": {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/modules/chat/chat_panel.dart';
-import 'package:roots_app/profile/models/user_profile_model.dart';
+import 'package:roots_app/modules/profile/models/user_profile_model.dart';
 
 class ChatScreen extends StatelessWidget {
   const ChatScreen({super.key}); // Not const due to Provider usage

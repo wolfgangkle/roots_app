@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:roots_app/profile/models/user_profile_model.dart';
+import 'package:roots_app/modules/profile/models/user_profile_model.dart';
 
 class AllianceInviteInboxScreen extends StatefulWidget {
   const AllianceInviteInboxScreen({super.key});

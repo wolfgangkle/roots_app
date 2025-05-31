@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:roots_app/modules/chat/chat_service.dart';
 import 'package:roots_app/modules/chat/chat_message_model.dart';
 import 'package:roots_app/modules/chat/guild_chat_message_tile.dart';
-import 'package:roots_app/profile/models/user_profile_model.dart';
+import 'package:roots_app/modules/profile/models/user_profile_model.dart';
 import 'package:roots_app/modules/chat/guild_chat_input_field.dart';
 
 class GuildChatPanel extends StatelessWidget {

@@ -102,8 +102,6 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
     type: 'crafting',
     title: `🛠️ Crafted ${quantity}x ${itemData.name ?? itemId}`,
     itemId,
-    quantity,
-    craftedStats,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     hiddenForUserIds: [],
     read: false,

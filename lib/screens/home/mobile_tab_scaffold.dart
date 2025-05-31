@@ -7,7 +7,7 @@ import 'package:roots_app/screens/home/panels/navigation_drawer.dart';
 import 'package:roots_app/modules/village/views/village_panel.dart';
 import 'package:roots_app/modules/village/views/village_center_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
-import 'package:roots_app/profile/models/user_profile_model.dart';
+import 'package:roots_app/modules/profile/models/user_profile_model.dart';
 
 class MobileTabScaffold extends StatefulWidget {
   const MobileTabScaffold({super.key});

@@ -1,5 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js'; // 👈 Import the helper
 
 const db = admin.firestore();
 
@@ -66,6 +67,9 @@ export async function acceptGuildInvite(request: any) {
   });
 
   console.log(`✅ ${userId} (${heroName}) accepted invite to guild ${guildId}`);
+
+  // 🧮 Trigger recalculation of guild and alliance points
+  await recalculateGuildAndAlliancePoints();
 
   return {
     guildId,

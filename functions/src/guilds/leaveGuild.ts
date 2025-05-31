@@ -1,5 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js'; // ✅ adjust path if needed
 
 const db = admin.firestore();
 
@@ -37,7 +38,8 @@ export async function leaveGuild(request: any) {
       guildRole: admin.firestore.FieldValue.delete(),
     });
 
-    const invitesQuery = await db.collection('guildInvites')
+    const invitesQuery = await db
+      .collection('guildInvites')
       .where('fromUserId', '==', userId)
       .get();
 
@@ -54,6 +56,9 @@ export async function leaveGuild(request: any) {
   });
 
   console.log(`🚪 ${userId} (${heroName}) has left guild ${guildId}`);
+
+  // 🧮 Recalculate points for guild + alliance
+  await recalculateGuildAndAlliancePoints();
 
   return {
     status: 'left',

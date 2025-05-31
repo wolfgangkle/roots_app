@@ -12,7 +12,7 @@ import 'package:roots_app/modules/map/screens/map_grid_view.dart';
 import 'package:roots_app/modules/guild/views/guild_screen.dart';
 import 'package:roots_app/modules/guild/views/create_guild_screen.dart';
 import 'package:roots_app/modules/guild/views/browse_guilds_placeholder.dart';
-import 'package:roots_app/profile/models/user_profile_model.dart';
+import 'package:roots_app/modules/profile/models/user_profile_model.dart';
 import 'package:roots_app/modules/guild/views/guild_members_screen.dart';
 import 'package:roots_app/modules/guild/views/guild_invite_inbox_screen.dart';
 import 'package:roots_app/modules/guild/views/guild_settings_screen.dart';
@@ -22,6 +22,9 @@ import 'package:roots_app/modules/alliances/views/alliance_members_screen.dart';
 import 'package:roots_app/modules/alliances/views/alliance_invite_inbox_screen.dart';
 import 'package:roots_app/modules/reports/views/finished_jobs_screen.dart';
 import 'package:roots_app/screens/helpers/finished_jobs_tab_tile.dart';
+import 'package:roots_app/modules/profile/views/player_leaderboard_screen.dart';
+import 'package:roots_app/modules/profile/views/guild_leaderboard_screen.dart';
+import 'package:roots_app/modules/profile/views/alliance_leaderboard_screen.dart';
 
 class NavigationListContent extends StatelessWidget {
   final void Function({required String title, required Widget content})? onSelectDynamicTab;
@@ -129,9 +132,11 @@ class NavigationListContent extends StatelessWidget {
           _buildTabTile(context, isMobile, 'Guild Invites', const GuildInviteInboxScreen()),
         if (hasAllianceInvites)
           _buildTabTile(context, isMobile, 'Alliance Invites', const AllianceInviteInboxScreen()),
+
         const SizedBox(height: 12),
         Text('🌍 World', style: sectionHeaderStyle),
         _buildTabTile(context, isMobile, '🌍 Map', const MapGridView()),
+
         const SizedBox(height: 12),
         Text('🏰 Guild', style: sectionHeaderStyle),
         if (!hasGuild) ...[
@@ -143,6 +148,7 @@ class NavigationListContent extends StatelessWidget {
           if (isLeader)
             _buildTabTile(context, isMobile, 'Guild Settings', const GuildSettingsScreen()),
         ],
+
         if ((hasAlliance || (hasGuild && isLeader && !hasAlliance))) ...[
           const SizedBox(height: 12),
           Text('🤝 Alliance', style: sectionHeaderStyle),
@@ -151,11 +157,19 @@ class NavigationListContent extends StatelessWidget {
           if (hasAlliance)
             _buildTabTile(context, isMobile, 'Alliance Members', const AllianceMembersScreen()),
         ],
+
+        const SizedBox(height: 12),
+        Text('📊 Leaderboards', style: sectionHeaderStyle),
+        _buildTabTile(context, isMobile, 'Players', const PlayerLeaderboardScreen()),
+        _buildTabTile(context, isMobile, 'Guilds', const GuildLeaderboardScreen()),
+        _buildTabTile(context, isMobile, 'Alliances', const AllianceLeaderboardScreen()),
+
         const SizedBox(height: 12),
         Text('💬 Chat', style: sectionHeaderStyle),
         _buildTabTile(context, isMobile, 'Global Chat', ChatScreen()),
         if (hasGuild)
           _buildTabTile(context, isMobile, 'Guild Chat', const GuildChatPanel()),
+
         const SizedBox(height: 12),
         Text('⚙️ Settings', style: sectionHeaderStyle),
         _buildTabTile(context, isMobile, 'Settings', const SettingsScreen()),
@@ -199,7 +213,3 @@ class NavigationListContent extends StatelessWidget {
     );
   }
 }
-
-
-
-
