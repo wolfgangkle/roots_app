@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/modules/profile/views/player_profile_screen.dart';
+import 'package:roots_app/modules/profile/views/guild_profile_screen.dart';
+import 'package:roots_app/modules/profile/views/alliance_profile_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
 class PlayerLeaderboardScreen extends StatelessWidget {
@@ -44,9 +46,13 @@ class PlayerLeaderboardScreen extends StatelessWidget {
               'heroName': heroName,
               'totalPoints': total,
               'userId': userId,
+              'guildTag': data['guildTag'],
+              'allianceTag': data['allianceTag'],
+              'guildId': data['guildId'],
+              'allianceId': data['allianceId'],
             };
           })
-              .where((e) => e['userId'] != null) // filter out invalid entries
+              .where((e) => e['userId'] != null)
               .toList();
 
           docs.sort((a, b) =>
@@ -62,6 +68,13 @@ class PlayerLeaderboardScreen extends StatelessWidget {
               final heroName = entry['heroName'];
               final totalPoints = entry['totalPoints'];
               final userId = entry['userId'];
+              final guildTag = entry['guildTag'];
+              final allianceTag = entry['allianceTag'];
+              final guildId = entry['guildId'];
+              final allianceId = entry['allianceId'];
+
+              final controller =
+              Provider.of<MainContentController>(context, listen: false);
 
               return ListTile(
                 leading: CircleAvatar(
@@ -71,7 +84,46 @@ class PlayerLeaderboardScreen extends StatelessWidget {
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
-                title: Text(heroName),
+                title: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (allianceTag != null && allianceId != null)
+                      GestureDetector(
+                        onTap: () {
+                          controller.setCustomContent(AllianceProfileScreen(allianceId: allianceId));
+                        },
+                        child: Text(
+                          '[$allianceTag]',
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    if (guildTag != null && guildId != null)
+                      GestureDetector(
+                        onTap: () {
+                          controller.setCustomContent(GuildProfileScreen(guildId: guildId));
+                        },
+                        child: Text(
+                          '[$guildTag]',
+                          style: const TextStyle(
+                            color: Colors.blueAccent,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      heroName,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+
                 trailing: Text(
                   '$totalPoints pts',
                   style: const TextStyle(
@@ -80,8 +132,6 @@ class PlayerLeaderboardScreen extends StatelessWidget {
                   ),
                 ),
                 onTap: () {
-                  final controller =
-                  Provider.of<MainContentController>(context, listen: false);
                   controller.setCustomContent(PlayerProfileScreen(userId: userId));
                 },
               );

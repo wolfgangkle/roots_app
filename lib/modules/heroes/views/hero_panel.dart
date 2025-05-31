@@ -9,6 +9,8 @@ import 'package:roots_app/modules/heroes/widgets/hero_card.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/profile/views/player_profile_screen.dart';
+import 'package:roots_app/modules/profile/views/guild_profile_screen.dart';
+import 'package:roots_app/modules/profile/views/alliance_profile_screen.dart';
 
 class HeroPanel extends StatelessWidget {
   final MainContentController controller;
@@ -57,15 +59,13 @@ class HeroPanel extends StatelessWidget {
         heroes.sort((a, b) {
           if (a.type == 'mage' && b.type != 'mage') return -1;
           if (b.type == 'mage' && a.type != 'mage') return 1;
-
-          final aTime = (a.createdAt)?.millisecondsSinceEpoch ?? 0;
-          final bTime = (b.createdAt)?.millisecondsSinceEpoch ?? 0;
+          final aTime = a.createdAt?.millisecondsSinceEpoch ?? 0;
+          final bTime = b.createdAt?.millisecondsSinceEpoch ?? 0;
           return aTime.compareTo(bTime);
         });
 
         final hasMainHero = heroes.any((h) => h.type == 'mage');
 
-        // 🧙 Onboarding screen: only show "Create Main Hero" if none exist
         if (!hasMainHero) {
           return Center(
             child: Column(
@@ -108,42 +108,77 @@ class HeroPanel extends StatelessWidget {
                 usedTotal < currentMaxSlots && usedCompanions < maxCompanions;
 
             final allianceTag = profile?['allianceTag'];
+            final allianceId = profile?['allianceId'];
             final guildTag = profile?['guildTag'];
+            final guildId = profile?['guildId'];
             final heroName = profile?['heroName'] ?? 'Unnamed Hero';
-
-            final tags = [
-              if (allianceTag != null) '[$allianceTag]',
-              if (guildTag != null) '[$guildTag]'
-            ].join(' ');
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                InkWell(
-                  onTap: () {
-                    final isMobile = MediaQuery.of(context).size.width < 1024;
-                    if (isMobile) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PlayerProfileScreen(userId: uid),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (allianceTag != null && allianceId != null)
+                        GestureDetector(
+                          onTap: () {
+                            controller.setCustomContent(
+                              AllianceProfileScreen(allianceId: allianceId),
+                            );
+                          },
+                          child: Text(
+                            '[$allianceTag] ',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.teal,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
                         ),
-                      );
-                    } else {
-                      controller.setPlayerProfileScreen(uid);
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(
-                      '$tags $heroName',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blueAccent,
-                        decoration: TextDecoration.underline,
+                      if (guildTag != null && guildId != null)
+                        GestureDetector(
+                          onTap: () {
+                            controller.setCustomContent(
+                              GuildProfileScreen(guildId: guildId),
+                            );
+                          },
+                          child: Text(
+                            '[$guildTag] ',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      GestureDetector(
+                        onTap: () {
+                          final isMobile = MediaQuery.of(context).size.width < 1024;
+                          if (isMobile) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PlayerProfileScreen(userId: uid),
+                              ),
+                            );
+                          } else {
+                            controller.setPlayerProfileScreen(uid);
+                          }
+                        },
+                        child: Text(
+                          heroName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.deepPurple,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
                 Expanded(
