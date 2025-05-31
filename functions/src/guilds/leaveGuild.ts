@@ -35,7 +35,10 @@ export async function leaveGuild(request: any) {
   await db.runTransaction(async (tx) => {
     tx.update(profileRef, {
       guildId: admin.firestore.FieldValue.delete(),
+      guildTag: admin.firestore.FieldValue.delete(),
       guildRole: admin.firestore.FieldValue.delete(),
+      allianceId: admin.firestore.FieldValue.delete(),
+      allianceTag: admin.firestore.FieldValue.delete(),
     });
 
     const invitesQuery = await db

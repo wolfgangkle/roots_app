@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/modules/profile/views/alliance_profile_screen.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
 class AllianceLeaderboardScreen extends StatefulWidget {
   const AllianceLeaderboardScreen({super.key});
@@ -52,7 +55,8 @@ class _AllianceLeaderboardScreenState extends State<AllianceLeaderboardScreen> {
             itemCount: docs.length,
             separatorBuilder: (_, __) => const Divider(height: 0),
             itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
+              final doc = docs[index];
+              final data = doc.data() as Map<String, dynamic>;
               final name = data['name'] ?? 'Unnamed Alliance';
               final points = data['points'] ?? 0;
               final rank = index + 1;
@@ -70,9 +74,13 @@ class _AllianceLeaderboardScreenState extends State<AllianceLeaderboardScreen> {
                   '$points pts',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15, // ✨ Matches the new style
+                    fontSize: 15,
                   ),
                 ),
+                onTap: () {
+                  final controller = Provider.of<MainContentController>(context, listen: false);
+                  controller.setCustomContent(AllianceProfileScreen(allianceId: doc.id));
+                },
               );
             },
           );

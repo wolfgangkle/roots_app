@@ -54,26 +54,41 @@ export async function kickGuildFromAlliance(request: any) {
 
   const systemMessage = `⚔️ Guild ${targetGuild?.tag ?? targetGuildId} was removed from the alliance.`;
 
+  const affectedProfiles = await db
+    .collectionGroup('profile')
+    .where('guildId', '==', targetGuildId)
+    .get();
+
   await db.runTransaction(async (tx) => {
+    // Clear alliance info from guild
     tx.update(targetGuildRef, {
       allianceId: admin.firestore.FieldValue.delete(),
       allianceRole: admin.firestore.FieldValue.delete(),
     });
 
+    // Remove from alliance's list
     tx.update(allianceRef, {
       guildIds: admin.firestore.FieldValue.arrayRemove(targetGuildId),
     });
 
+    // System log
     tx.set(allianceLogRef.doc(), {
       type: 'system',
       content: systemMessage,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    // Clear alliance info from user profiles
+    for (const doc of affectedProfiles.docs) {
+      tx.update(doc.ref, {
+        allianceId: admin.firestore.FieldValue.delete(),
+        allianceTag: admin.firestore.FieldValue.delete(),
+      });
+    }
   });
 
-  // 🧠 Trigger a fresh point tally for leaderboard goodness
+  // 🧠 Update leaderboard
   await recalculateGuildAndAlliancePoints();
-
 
   console.log(`👢 Guild ${targetGuildId} was kicked from alliance ${allianceId} by ${profile.guildId}`);
 

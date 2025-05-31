@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/modules/profile/views/guild_profile_screen.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
 class GuildLeaderboardScreen extends StatelessWidget {
   const GuildLeaderboardScreen({super.key});
@@ -29,7 +32,8 @@ class GuildLeaderboardScreen extends StatelessWidget {
             itemCount: docs.length,
             separatorBuilder: (_, __) => const Divider(height: 0),
             itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
+              final doc = docs[index];
+              final data = doc.data() as Map<String, dynamic>;
               final name = data['name'] ?? 'Unnamed Guild';
               final points = data['points'] ?? 0;
               final rank = index + 1;
@@ -47,9 +51,13 @@ class GuildLeaderboardScreen extends StatelessWidget {
                   '$points pts',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15, // 🎯 Clean and consistent
+                    fontSize: 15,
                   ),
                 ),
+                onTap: () {
+                  final controller = Provider.of<MainContentController>(context, listen: false);
+                  controller.setCustomContent(GuildProfileScreen(guildId: doc.id));
+                },
               );
             },
           );

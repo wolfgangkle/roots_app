@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../modules/village/models/village_model.dart';
 import '../../modules/village/views/village_center_screen.dart';
+import '../../modules/profile/views/player_profile_screen.dart';
 
 enum MainContentType {
   village,
@@ -14,27 +15,25 @@ class MainContentController extends ChangeNotifier {
   Widget? get currentContent => _currentContent;
   MainContentType? get currentType => _currentType;
 
-  /// Shows the village center screen in the middle column
   void showVillageCenter(VillageModel village) {
-    debugPrint(
-        '[MainContentController] showVillageCenter() called for ${village.name}');
-    _currentContent = VillageCenterScreen(villageId: village.id); // ✅ updated here
+    _currentContent = VillageCenterScreen(villageId: village.id);
     _currentType = MainContentType.village;
     notifyListeners();
   }
 
-  /// Manually set any widget as center content
   void setCustomContent(Widget widget) {
-    debugPrint(
-        '[MainContentController] setCustomContent() called with ${widget.runtimeType}');
     _currentContent = widget;
     _currentType = MainContentType.custom;
     notifyListeners();
   }
 
-  /// Clears current view (e.g. reset to home message)
+  void setPlayerProfileScreen(String userId) {
+    _currentContent = PlayerProfileScreen(userId: userId);
+    _currentType = MainContentType.custom;
+    notifyListeners();
+  }
+
   void reset() {
-    debugPrint('[MainContentController] reset() called');
     _currentContent = null;
     _currentType = null;
     notifyListeners();

@@ -1,6 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js'; // ✅ path must match your setup
+import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js';
 
 const db = admin.firestore();
 
@@ -49,7 +49,8 @@ export async function acceptAllianceInvite(request: any) {
   }
 
   const allianceData = allianceSnap.data();
-  const systemMessage = `📜 Guild ${guild?.tag ?? guildId} has joined the alliance [${allianceData?.tag ?? ''}]`;
+  const allianceTag = allianceData?.tag ?? '';
+  const systemMessage = `📜 Guild ${guild?.tag ?? guildId} has joined the alliance [${allianceTag}]`;
 
   const allianceLogRef = db.collection('alliances').doc(allianceId).collection('log');
 
@@ -63,6 +64,11 @@ export async function acceptAllianceInvite(request: any) {
       guildIds: admin.firestore.FieldValue.arrayUnion(guildId),
     });
 
+    tx.update(profileRef, {
+      allianceId,
+      allianceTag,
+    });
+
     tx.delete(inviteRef);
 
     tx.set(allianceLogRef.doc(), {
@@ -72,7 +78,7 @@ export async function acceptAllianceInvite(request: any) {
     });
   });
 
-  // 🧠 Trigger a fresh point tally for leaderboard goodness
+  // 🧮 Trigger a fresh point tally for leaderboard goodness
   await recalculateGuildAndAlliancePoints();
 
   console.log(`✅ Guild ${guildId} accepted alliance invite to ${allianceId}`);

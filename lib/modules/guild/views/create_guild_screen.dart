@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:provider/provider.dart';
-import 'package:roots_app/modules/guild/views/guild_dashboard_view.dart';
+import 'package:roots_app/modules/profile/views/guild_profile_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:flutter/services.dart';
 
-// 🔹 Add this wrapper widget
 class CreateGuildScreen extends StatefulWidget {
   const CreateGuildScreen({super.key});
 
@@ -13,7 +12,6 @@ class CreateGuildScreen extends StatefulWidget {
   State<CreateGuildScreen> createState() => _CreateGuildScreenState();
 }
 
-// 🔹 This is your stateful logic
 class _CreateGuildScreenState extends State<CreateGuildScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -33,7 +31,7 @@ class _CreateGuildScreenState extends State<CreateGuildScreen> {
 
     try {
       final HttpsCallable callable =
-          FirebaseFunctions.instance.httpsCallable('createGuild');
+      FirebaseFunctions.instance.httpsCallable('createGuild');
       final result = await callable.call({
         'name': name,
         'tag': tag,
@@ -50,8 +48,8 @@ class _CreateGuildScreenState extends State<CreateGuildScreen> {
       );
 
       final controller =
-          Provider.of<MainContentController>(context, listen: false);
-      controller.setCustomContent(GuildDashboardView(guildId: guildId));
+      Provider.of<MainContentController>(context, listen: false);
+      controller.setCustomContent(GuildProfileScreen(guildId: guildId));
     } catch (e) {
       debugPrint("🔥 Error creating guild: $e");
       if (mounted) {
@@ -74,7 +72,6 @@ class _CreateGuildScreenState extends State<CreateGuildScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Your form code goes here
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Form(
@@ -95,16 +92,14 @@ class _CreateGuildScreenState extends State<CreateGuildScreen> {
               },
             ),
             const SizedBox(height: 24),
-            const Text("Guild Tag (2–4 letters)",
-                style: TextStyle(fontSize: 16)),
+            const Text("Guild Tag (2–4 letters)", style: TextStyle(fontSize: 16)),
             TextFormField(
               controller: _tagController,
               inputFormatters: [
                 LengthLimitingTextInputFormatter(4),
                 FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
               ],
-              textCapitalization:
-                  TextCapitalization.characters, // optional: keep to help users
+              textCapitalization: TextCapitalization.characters,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return "Guild tag is required";
@@ -120,8 +115,7 @@ class _CreateGuildScreenState extends State<CreateGuildScreen> {
               },
             ),
             const SizedBox(height: 24),
-            const Text("Description (optional)",
-                style: TextStyle(fontSize: 16)),
+            const Text("Description (optional)", style: TextStyle(fontSize: 16)),
             TextFormField(
               controller: _descController,
               maxLines: 4,
@@ -131,10 +125,10 @@ class _CreateGuildScreenState extends State<CreateGuildScreen> {
             ElevatedButton.icon(
               icon: _isSubmitting
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
                   : const Icon(Icons.check),
               label: Text(_isSubmitting ? "Creating..." : "Create Guild"),
               onPressed: _isSubmitting ? null : _submit,

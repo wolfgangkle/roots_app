@@ -17,7 +17,7 @@ export async function createAlliance(request: any) {
   }
 
   const trimmedName = name.trim();
-  const trimmedTag = tag.trim()
+  const trimmedTag = tag.trim();
   const trimmedDesc = typeof description === 'string' ? description.trim() : '';
 
   const alliancesRef = db.collection('alliances');
@@ -68,12 +68,15 @@ export async function createAlliance(request: any) {
       allianceId: allianceRef.id,
       allianceRole: 'leader',
     });
+    tx.update(userProfileRef, {
+      allianceId: allianceRef.id,
+      allianceTag: trimmedTag,
+    });
   });
 
   // 🧠 Trigger a fresh point tally for leaderboard goodness
   await recalculateGuildAndAlliancePoints();
   console.log(`🤝 Created alliance "${trimmedName}" [${trimmedTag}] by guild ${guildRef.id}`);
-
 
   return {
     allianceId: allianceRef.id,

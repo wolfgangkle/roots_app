@@ -36,26 +36,41 @@ export async function leaveAlliance(request: any) {
 
   const systemMessage = `👋 Guild ${guild.tag ?? guildRef.id} has left the alliance.`;
 
+  const affectedProfiles = await db
+    .collectionGroup('profile')
+    .where('guildId', '==', guildRef.id)
+    .get();
+
   await db.runTransaction(async (tx) => {
+    // Remove alliance from guild doc
     tx.update(guildRef, {
       allianceId: admin.firestore.FieldValue.delete(),
       allianceRole: admin.firestore.FieldValue.delete(),
     });
 
+    // Remove guild from alliance array
     tx.update(allianceRef, {
       guildIds: admin.firestore.FieldValue.arrayRemove(guildRef.id),
     });
 
+    // Add alliance log
     tx.set(allianceLogRef.doc(), {
       type: 'system',
       content: systemMessage,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    // Remove alliance info from all members
+    for (const doc of affectedProfiles.docs) {
+      tx.update(doc.ref, {
+        allianceId: admin.firestore.FieldValue.delete(),
+        allianceTag: admin.firestore.FieldValue.delete(),
+      });
+    }
   });
 
-  // 🧠 Trigger a fresh point tally for leaderboard goodness
+  // 🧠 Leaderboard update
   await recalculateGuildAndAlliancePoints();
-
 
   console.log(`🏳️ Guild ${guildRef.id} has left alliance ${guild.allianceId}`);
 

@@ -50,13 +50,15 @@ export async function createGuild(request: any) {
     tx.set(guildRef, guildData);
     tx.update(profileRef, {
       guildId: guildRef.id,
+      guildTag: trimmedTag,
       guildRole: 'leader',
+      allianceId: admin.firestore.FieldValue.delete(),
+      allianceTag: admin.firestore.FieldValue.delete(),
     });
   });
 
   console.log(`🏰 Created guild "${trimmedName}" [${trimmedTag}] by user ${userId}`);
 
-  // 🧮 Trigger recalculation of points for guild + alliance
   await recalculateGuildAndAlliancePoints();
 
   return {

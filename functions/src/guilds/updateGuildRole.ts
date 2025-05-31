@@ -16,7 +16,8 @@ export async function updateGuildRole(request: any) {
   }
 
   const isKick = newRole === null;
-  if (!isKick && !['member', 'officer'].includes(newRole)) {
+  const validRoles = ['member', 'officer'];
+  if (!isKick && !validRoles.includes(newRole)) {
     throw new HttpsError('invalid-argument', 'Invalid newRole value.');
   }
 
@@ -32,14 +33,11 @@ export async function updateGuildRole(request: any) {
     throw new HttpsError('not-found', 'Caller or target profile not found.');
   }
 
-  const caller = callerSnap.data();
-  const target = targetSnap.data();
+  const caller = callerSnap.data()!;
+  const target = targetSnap.data()!;
 
-  if (!caller || !target) {
-    throw new HttpsError('not-found', 'Caller or target profile data missing.');
-  }
 
-  if (caller.guildId !== target.guildId || !caller.guildId) {
+  if (!caller?.guildId || caller.guildId !== target.guildId) {
     throw new HttpsError('failed-precondition', 'Both users must be in the same guild.');
   }
 
@@ -51,9 +49,26 @@ export async function updateGuildRole(request: any) {
     throw new HttpsError('permission-denied', 'You cannot modify the leader.');
   }
 
-  if (caller.guildRole !== 'leader' && caller.guildRole !== 'officer') {
+  const callerRole = caller.guildRole;
+  const targetRole = target.guildRole;
+
+  const isCallerLeader = callerRole === 'leader';
+  const isCallerOfficer = callerRole === 'officer';
+
+  if (!isCallerLeader && !isCallerOfficer) {
     throw new HttpsError('permission-denied', 'You must be a leader or officer to do this.');
   }
+
+  if (isCallerOfficer) {
+    if (!isKick || targetRole !== 'member') {
+      throw new HttpsError('permission-denied', 'Officers can only kick members.');
+    }
+  }
+
+  const heroName = target.heroName ?? 'Unnamed Hero';
+  const guildId = caller.guildId;
+
+  const logRef = db.collection(`guilds/${guildId}/log`).doc();
 
   await db.runTransaction(async (tx) => {
     if (isKick) {
@@ -61,18 +76,34 @@ export async function updateGuildRole(request: any) {
         guildId: admin.firestore.FieldValue.delete(),
         guildRole: admin.firestore.FieldValue.delete(),
       });
+
+      tx.set(logRef, {
+        type: 'system',
+        content: `👢 ${heroName} was kicked from the guild.`,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
     } else {
       tx.update(targetRef, {
         guildRole: newRole,
       });
+
+      const action = newRole === 'officer' ? 'promoted to officer' : 'demoted to member';
+      tx.set(logRef, {
+        type: 'system',
+        content: `📜 ${heroName} was ${action}.`,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
     }
   });
 
-  console.log(`🔧 ${callerId} changed role of ${targetUserId} to ${newRole ?? 'kicked'}`);
+  console.log(`🔧 ${callerId} (${callerRole}) ${isKick ? 'kicked' : 'changed role of'} ${targetUserId} to ${newRole ?? 'none'}`);
 
   return {
+    status: isKick ? 'kicked' : 'updated',
     targetUserId,
     newRole,
-    status: isKick ? 'kicked' : 'updated',
+    message: isKick
+      ? 'Member kicked from guild.'
+      : `Guild role updated to ${newRole}.`,
   };
 }

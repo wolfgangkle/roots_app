@@ -39,11 +39,14 @@ export async function disbandGuild(request: any) {
     .get();
 
   await db.runTransaction(async (tx) => {
-    // Remove all guild member roles
+    // Remove guild and alliance data from all member profiles
     for (const memberDoc of memberQuery.docs) {
       tx.update(memberDoc.ref, {
         guildId: admin.firestore.FieldValue.delete(),
+        guildTag: admin.firestore.FieldValue.delete(),
         guildRole: admin.firestore.FieldValue.delete(),
+        allianceId: admin.firestore.FieldValue.delete(),
+        allianceTag: admin.firestore.FieldValue.delete(),
       });
     }
 

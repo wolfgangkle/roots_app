@@ -8,6 +8,7 @@ import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_card.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/modules/profile/views/player_profile_screen.dart';
 
 class HeroPanel extends StatelessWidget {
   final MainContentController controller;
@@ -23,8 +24,8 @@ class HeroPanel extends StatelessWidget {
         .where('ownerId', isEqualTo: user.uid)
         .snapshots()
         .map((query) => query.docs.map((doc) {
-              return HeroModel.fromFirestore(doc.id, doc.data());
-            }).toList());
+      return HeroModel.fromFirestore(doc.id, doc.data());
+    }).toList());
   }
 
   Future<Map<String, dynamic>?> _loadProfile() async {
@@ -52,7 +53,7 @@ class HeroPanel extends StatelessWidget {
 
         final heroes = snapshot.data!;
 
-// Sort: mage first, then companions by createdAt
+        // Sort: mage first, then companions by createdAt
         heroes.sort((a, b) {
           if (a.type == 'mage' && b.type != 'mage') return -1;
           if (b.type == 'mage' && a.type != 'mage') return 1;
@@ -88,61 +89,63 @@ class HeroPanel extends StatelessWidget {
           );
         }
 
-        // 🧙 Otherwise, continue as usual
-
         return FutureBuilder<Map<String, dynamic>?>(
           future: _loadProfile(),
           builder: (context, profileSnap) {
-            final slotInfo = profileSnap.data;
-            final current = slotInfo?['currentSlotUsage'] ?? {};
-            final limits = slotInfo?['slotLimits'] ?? {};
+            final profile = profileSnap.data;
+            final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+            final current = profile?['currentSlotUsage'] ?? {};
+            final limits = profile?['slotLimits'] ?? {};
 
             final usedCompanions = current['companions'] ?? 0;
             final usedVillages = current['villages'] ?? 0;
             final maxCompanions = limits['maxCompanions'] ?? 0;
-
-            final currentMaxSlots =
-                slotInfo?['currentMaxSlots'] ?? (limits['maxSlots'] ?? 0);
+            final currentMaxSlots = profile?['currentMaxSlots'] ?? (limits['maxSlots'] ?? 0);
             final usedTotal = usedCompanions + usedVillages;
 
             final canAddCompanion =
                 usedTotal < currentMaxSlots && usedCompanions < maxCompanions;
 
+            final allianceTag = profile?['allianceTag'];
+            final guildTag = profile?['guildTag'];
+            final heroName = profile?['heroName'] ?? 'Unnamed Hero';
+
+            final tags = [
+              if (allianceTag != null) '[$allianceTag]',
+              if (guildTag != null) '[$guildTag]'
+            ].join(' ');
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (canAddCompanion)
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        controller
-                            .setCustomContent(const CreateCompanionScreen());
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text("Create Companion"),
+                InkWell(
+                  onTap: () {
+                    final isMobile = MediaQuery.of(context).size.width < 1024;
+                    if (isMobile) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PlayerProfileScreen(userId: uid),
+                        ),
+                      );
+                    } else {
+                      controller.setPlayerProfileScreen(uid);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      '$tags $heroName',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blueAccent,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Slots used: $usedTotal / $currentMaxSlots",
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
-                      const SizedBox(height: 2),
-                      Text("Companions: $usedCompanions",
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
-                      Text("Villages: $usedVillages",
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
-                    ],
-                  ),
                 ),
-                const SizedBox(height: 8),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -161,14 +164,40 @@ class HeroPanel extends StatelessWidget {
                               ),
                             );
                           } else {
-                            controller.setCustomContent(
-                                HeroDetailsScreen(hero: hero));
+                            controller.setCustomContent(HeroDetailsScreen(hero: hero));
                           }
                         },
                       );
                     },
                   ),
                 ),
+                if (canAddCompanion)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        controller.setCustomContent(const CreateCompanionScreen());
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text("Create Companion"),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Slots used: $usedTotal / $currentMaxSlots",
+                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text("Companions: $usedCompanions",
+                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text("Villages: $usedVillages",
+                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
               ],
             );
           },

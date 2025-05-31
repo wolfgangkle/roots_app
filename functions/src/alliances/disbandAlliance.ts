@@ -43,19 +43,30 @@ export async function disbandAlliance(request: any) {
     .where('allianceId', '==', allianceId)
     .get();
 
-  // Step 1: Remove references + delete alliance doc
+  const allProfilesQuery = await db
+    .collectionGroup('profile')
+    .where('allianceId', '==', allianceId)
+    .get();
+
   await db.runTransaction(async (tx) => {
-    for (const doc of allGuildsQuery.docs) {
-      tx.update(doc.ref, {
+    for (const guildDoc of allGuildsQuery.docs) {
+      tx.update(guildDoc.ref, {
         allianceId: admin.firestore.FieldValue.delete(),
         allianceRole: admin.firestore.FieldValue.delete(),
+      });
+    }
+
+    for (const profileDoc of allProfilesQuery.docs) {
+      tx.update(profileDoc.ref, {
+        allianceId: admin.firestore.FieldValue.delete(),
+        allianceTag: admin.firestore.FieldValue.delete(),
       });
     }
 
     tx.delete(allianceRef);
   });
 
-  // Step 2: Delete all logs in alliances/{id}/log
+  // Delete logs outside transaction (not supported inside)
   const logDocs = await db.collection(`alliances/${allianceId}/log`).listDocuments();
   for (const doc of logDocs) {
     await doc.delete();

@@ -1,6 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js'; // 👈 Import the helper
+import { recalculateGuildAndAlliancePoints } from '../helpers/recalculateGuildAndAlliancePoints.js';
 
 const db = admin.firestore();
 
@@ -44,13 +44,19 @@ export async function acceptGuildInvite(request: any) {
     throw new HttpsError('not-found', 'Target guild does not exist.');
   }
 
+  const guildData = guildSnap.data();
   const heroName = profile?.heroName ?? 'Someone';
+  const guildTag = guildData?.tag ?? '';
+
   const guildChatRef = db.collection('guilds').doc(guildId).collection('chat');
 
   await db.runTransaction(async (tx) => {
     tx.update(profileRef, {
       guildId,
+      guildTag,
       guildRole: 'member',
+      allianceId: admin.firestore.FieldValue.delete(),
+      allianceTag: admin.firestore.FieldValue.delete(),
     });
 
     tx.update(inviteRef, {
