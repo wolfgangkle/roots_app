@@ -58,7 +58,7 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
   const research = data.research?.[itemId] || {};
   const craftedStats = buildCraftedStats(baseStats, research, type);
 
-  // Build query
+  // 🔍 Try to find identical existing item
   let query = itemsRef.where('itemId', '==', itemId).limit(1);
   if ('minDamage' in craftedStats && 'maxDamage' in craftedStats) {
     query = query
@@ -89,11 +89,27 @@ export async function finishCraftingJobLogic(request: CallableRequest<any>) {
     });
   }
 
+  // 🧹 Cleanup crafting job
   await villageRef.update({
     currentCraftingJob: admin.firestore.FieldValue.delete(),
     lastCraftingCheck: admin.firestore.Timestamp.fromDate(now),
     lastCraftingMethod: request.auth?.uid ? 'onCall' : 'scheduled',
   });
+
+  // 📬 Create crafting event report
+  const reportRef = villageRef.collection('finishedJobs').doc();
+  await reportRef.set({
+    type: 'crafting',
+    title: `🛠️ Crafted ${quantity}x ${itemData.name ?? itemId}`,
+    itemId,
+    quantity,
+    craftedStats,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    hiddenForUserIds: [],
+    read: false,
+    userId,
+  });
+  console.log(`📬 Crafting report created for village ${villageId}`);
 
   console.log(`✅ Finished crafting ${quantity}x ${itemId} for village ${villageId}`);
 

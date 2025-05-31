@@ -221,6 +221,14 @@ final buildingDefinitions = [
       "dependsOn": "hut",
       "requiredLevel": 3,
     },
+    "provides": {
+      "spellUnlocksByLevel": {
+        "1": ["burst_of_light"],
+        "2": ["mend_wounds"],
+        "3": ["speed_surge"],
+        "4": ["summon_atronach", "stone_armor", "natures_gift"]
+      }
+    },
     "points": 10,
     "raceNames": {
       "human": "Academy of Arts",
@@ -894,6 +902,9 @@ final buildingDefinitions = [
       "dependsOn": "iron_mine",
       "requiredLevel": 7
     },
+    "provides": {
+      "researchPoints": 1
+    },
     "points": 8,
     "raceNames": {
       "human": "Blacksmith",
@@ -945,6 +956,7 @@ final buildingDefinitions = [
     },
     "provides": {
       "unlocksCraftingTypes": ["weapons"]
+      "researchPoints": 1
     },
     "points": 7,
     "raceNames": {
@@ -971,6 +983,7 @@ final buildingDefinitions = [
     },
     "provides": {
       "unlocksCraftingTypes": ["armor"]
+      "researchPoints": 1
     },
     "points": 7,
     "raceNames": {

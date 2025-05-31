@@ -39,7 +39,7 @@ class FinishedJobsScreen extends StatelessWidget {
         // Collect all streams of /eventReports from each village
         final streams = villageDocs.map((villageDoc) {
           return villageDoc.reference
-              .collection('eventReports')
+              .collection('finishedJobs')
               .orderBy('createdAt', descending: true)
               .snapshots();
         }).toList();

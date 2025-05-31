@@ -158,6 +158,56 @@ export async function applyBuildingEffects({
     console.log(`🔁 Restored assignedWorkers for ${buildingType}: ${safeAssigned}`);
   }
 
+ // 🧙 Spell unlocking logic (now dynamic from building definition)
+ if (buildingType === 'academy_of_arts') {
+   const spellUnlockMap = updatedBuildingDef.provides?.spellUnlocksByLevel;
+   const spellIds = spellUnlockMap?.[newLevel?.toString()] ?? [];
+
+   if (spellIds.length > 0) {
+     const userProfileRef = admin.firestore().doc(`userProfiles/${userId}`);
+     const profileSnap = await userProfileRef.get();
+     const userRace = profileSnap.get('race');
+
+     if (!userRace) {
+       console.warn(`⚠️ User race not found in userProfiles/${userId}`);
+     } else {
+       const spellsRef = admin.firestore().collection('spells');
+       const spellDocs = await Promise.all(
+         spellIds.map((id: string) => spellsRef.doc(id).get())
+       );
+
+       for (const doc of spellDocs) {
+         if (!doc.exists) continue;
+         const spell = doc.data();
+         const spellId = doc.id;
+
+         const isForAll = spell.availableToAllRaces === true;
+         const allowedRaces = spell.availableToRaces ?? [];
+         const isForRace = allowedRaces.includes(userRace);
+
+         if (isForAll || isForRace) {
+           updates[`${spellId}UnlockedToLearn`] = true;
+           console.log(`✨ Spell unlocked to learn: ${spellId}`);
+         }
+       }
+     }
+   }
+ }
+
+
+
+  // 🧪 Research Points
+  const researchPoints = updatedBuildingDef.provides?.researchPoints;
+  if (typeof researchPoints === 'number' && researchPoints > 0) {
+    const gained = researchPoints * newLevel;
+    updates['totalResearchPoints'] = (villageData.totalResearchPoints ?? 0) + gained;
+    updates['freeResearchPoints'] = (villageData.freeResearchPoints ?? 0) + gained;
+
+    console.log(`🔬 Gained ${gained} research points from ${buildingType}`);
+  }
+
+
+
   // 🔄 Commit
   if (Object.keys(updates).length > 0) {
     await villageRef.update(updates);

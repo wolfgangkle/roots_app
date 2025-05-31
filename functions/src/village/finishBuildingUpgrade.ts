@@ -99,7 +99,7 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
   });
 
   // 📬 Create event report
-  const reportRef = villageRef.collection('eventReports').doc();
+  const reportRef = villageRef.collection('finishedJobs').doc();
   await reportRef.set({
     type: 'upgrade',
     title: `🏗️ ${type} upgraded to level ${targetLevel}`,
