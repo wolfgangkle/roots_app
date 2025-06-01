@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
+/// 🔥 Dark red for crafting progress bars
+const Color kCraftingRed = Color(0xFF6B2C2C);
+
 class CraftingProgressIndicator extends StatefulWidget {
   final DateTime startedAt;
   final DateTime endsAt;
@@ -35,8 +38,7 @@ class _CraftingProgressIndicatorState extends State<CraftingProgressIndicator> {
         : rawDuration;
 
     _updateRemaining();
-    _timer =
-        Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
   }
 
   void _updateRemaining() {
@@ -96,7 +98,7 @@ class _CraftingProgressIndicatorState extends State<CraftingProgressIndicator> {
           value: progress,
           minHeight: 12,
           backgroundColor: Colors.grey.shade300,
-          color: Colors.green, // 💚 Use a different color than upgrade
+          color: kCraftingRed, // 🔥 Forge-tier visual feedback
         ),
         const SizedBox(height: 4),
         Text(

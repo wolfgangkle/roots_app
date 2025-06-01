@@ -7,6 +7,7 @@ import 'package:roots_app/modules/village/extensions/village_model_extension.dar
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
 import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.dart';
 import 'package:roots_app/modules/village/data/building_definitions.dart';
+import 'package:roots_app/modules/village/data/items.dart';
 
 class VillageCard extends StatefulWidget {
   final VillageModel village;
@@ -86,11 +87,11 @@ class VillageCardState extends State<VillageCard> {
               // 📊 Resource Table
               Table(
                 columnWidths: const {
-                  0: FixedColumnWidth(28), // Emoji
-                  1: FlexColumnWidth(),    // Label
-                  2: FixedColumnWidth(80), // Amount
-                  3: FixedColumnWidth(40), // Workers
-                  4: FixedColumnWidth(60), // Secured
+                  0: FixedColumnWidth(28),
+                  1: FlexColumnWidth(),
+                  2: FixedColumnWidth(80),
+                  3: FixedColumnWidth(40),
+                  4: FixedColumnWidth(60),
                 },
                 defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                 children: [
@@ -107,7 +108,7 @@ class VillageCardState extends State<VillageCard> {
               // ⏳ Upgrade progress
               if (upgrade != null) ...[
                 Text(
-                  'Upgrading: ${upgrade.buildingType}',
+                  'Upgrading: ${_getBuildingDisplayName(upgrade.buildingType)}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
@@ -122,7 +123,7 @@ class VillageCardState extends State<VillageCard> {
               if (crafting != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Crafting: ${crafting['itemId'] ?? 'unknown'}',
+                  'Crafting: ${_getItemName(crafting['itemId'])}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
@@ -152,7 +153,6 @@ class VillageCardState extends State<VillageCard> {
     final assigned = widget.village.buildings[buildingType]?.assignedWorkers ?? 0;
     final level = widget.village.buildings[buildingType]?.level ?? 0;
 
-    // Get definition
     final def = buildingDefinitions.cast<Map<String, dynamic>?>().firstWhere(
           (b) => b?['type'] == buildingType,
       orElse: () => null,
@@ -190,5 +190,19 @@ class VillageCardState extends State<VillageCard> {
         securedText,
       ],
     );
+  }
+
+  String _getBuildingDisplayName(String buildingType) {
+    final def = buildingDefinitions
+        .cast<Map<String, dynamic>?>()
+        .firstWhere((b) => b?['type'] == buildingType, orElse: () => null);
+
+    return def?['displayName']?['default'] ?? buildingType;
+  }
+
+  String _getItemName(String? itemId) {
+    if (itemId == null) return 'unknown item';
+    final def = gameItems[itemId];
+    return def?['name'] ?? itemId;
   }
 }

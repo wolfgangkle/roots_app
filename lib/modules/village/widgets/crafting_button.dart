@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
+const Color kCraftingRed = Color(0xFF6B2C2C);
+
 class CraftButton extends StatefulWidget {
   final String itemId;
   final String villageId;
@@ -41,12 +43,10 @@ class _CraftButtonState extends State<CraftButton> {
     widget.onOptimisticCraft?.call();
 
     try {
-      // ✅ Step 1: Update village resources before crafting
       await FirebaseFunctions.instance
           .httpsCallable('updateVillageResources')
           .call({'villageId': widget.villageId});
 
-      // ✅ Step 2: Start crafting job
       await FirebaseFunctions.instance.httpsCallable('startCraftingJob').call({
         'villageId': widget.villageId,
         'itemId': widget.itemId,
@@ -87,21 +87,27 @@ class _CraftButtonState extends State<CraftButton> {
     return ElevatedButton(
       onPressed: disabled ? null : _handleCraft,
       style: ElevatedButton.styleFrom(
-        elevation: disabled ? 0 : 2,
-        backgroundColor: disabled ? Colors.grey.shade300 : Colors.green,
+        elevation: disabled ? 0 : 3,
+        backgroundColor: disabled ? Colors.grey.shade300 : kCraftingRed,
         foregroundColor: disabled ? Colors.grey.shade600 : Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
       ),
       child: _isProcessing
           ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        ),
+      )
           : Text(widget.label ?? 'Craft'),
     );
   }

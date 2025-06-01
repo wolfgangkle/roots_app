@@ -2,29 +2,42 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Stores and persists user-specific UI settings like dark mode and chat overlay.
 class UserSettingsModel extends ChangeNotifier {
-  bool _showChatOverlay = true;
-  bool get showChatOverlay => _showChatOverlay;
-
-  bool _darkMode = false;
-  bool get darkMode => _darkMode;
-
-  bool _isLoaded = false;
-  bool get isLoaded => _isLoaded;
-
-  bool _hasSetDarkMode = false; // ✅ added flag to detect local change
-
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
+  // 🔒 Private state
+  bool _showChatOverlay = true;
+  bool _darkMode = false;
+  bool _isLoaded = false;
+  bool _hasSetDarkMode = false; // prevents Firestore from overwriting local toggle
+
+  // 🌐 Public getters
+  bool get showChatOverlay => _showChatOverlay;
+  bool get darkMode => _darkMode;
+  bool get isLoaded => _isLoaded;
+
+  // 🧠 Load initial settings from Firestore
   UserSettingsModel() {
+    debugPrint('🛠️ UserSettingsModel constructor called');
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
-    final user = _auth.currentUser;
+    debugPrint('📦 _loadSettings() started');
+
+    // 🔄 Wait for Firebase Auth to provide a user (sometimes async takes time)
+    User? user;
+    int retries = 0;
+    while (user == null && retries < 20) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      user = _auth.currentUser;
+      retries++;
+    }
 
     if (user == null) {
+      debugPrint('🚫 No current user after waiting — skipping settings load.');
       _isLoaded = true;
       notifyListeners();
       return;
@@ -38,17 +51,28 @@ class UserSettingsModel extends ChangeNotifier {
         .get();
 
     if (doc.exists) {
-      final data = doc.data()!;
-      _showChatOverlay = data['showChatOverlay'] ?? true;
+      final data = doc.data();
+      debugPrint('📥 Firestore settings doc: $data');
 
-      // ✅ only overwrite darkMode if we didn't already change it
+      _showChatOverlay = data?['showChatOverlay'] ?? true;
+
       if (!_hasSetDarkMode) {
-        _darkMode = data['darkMode'] ?? false;
+        final darkRaw = data?['darkMode'];
+        debugPrint('🌙 Firestore darkMode value: $darkRaw');
+
+        if (darkRaw is bool) {
+          _darkMode = darkRaw;
+        } else {
+          debugPrint('❌ darkMode is invalid or missing, falling back to false.');
+          _darkMode = false;
+        }
       }
     } else {
-      await _saveSettings(); // create default settings if missing
+      debugPrint('📄 No settings document found. Creating default.');
+      await _saveSettings(); // create default settings
     }
 
+    debugPrint('✅ Settings loaded → darkMode: $_darkMode');
     _isLoaded = true;
     notifyListeners();
   }
@@ -77,7 +101,7 @@ class UserSettingsModel extends ChangeNotifier {
   Future<void> setDarkMode(bool value) async {
     debugPrint('🔥 setDarkMode called → $value');
     _darkMode = value;
-    _hasSetDarkMode = true; // ✅ prevent load from overriding this
+    _hasSetDarkMode = true;
     notifyListeners();
     await _saveSettings();
   }

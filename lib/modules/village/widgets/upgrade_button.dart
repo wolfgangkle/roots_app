@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
+const Color kAccentGreenLight = Color(0xFF3B5743);
+const Color kAccentGreenDark = Color(0xFF5B7C68); // Optional for dark mode adjustments
+
 class UpgradeButton extends StatefulWidget {
   final String buildingType;
   final int currentLevel;
@@ -85,14 +88,21 @@ class UpgradeButtonState extends State<UpgradeButton> {
   @override
   Widget build(BuildContext context) {
     final disabled = _isProcessing || widget.isGloballyDisabled;
+
     return ElevatedButton(
       onPressed: disabled ? null : _handleUpgrade,
       style: ElevatedButton.styleFrom(
-        elevation: disabled ? 0 : 2,
-        backgroundColor: disabled ? Colors.grey.shade300 : Colors.blue,
+        elevation: disabled ? 0 : 3,
+        backgroundColor: disabled ? Colors.grey.shade300 : kAccentGreenLight,
         foregroundColor: disabled ? Colors.grey.shade600 : Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
       ),
       child: _isProcessing
           ? const SizedBox(
@@ -100,7 +110,7 @@ class UpgradeButtonState extends State<UpgradeButton> {
         height: 20,
         child: CircularProgressIndicator(
           strokeWidth: 2,
-          color: Colors.white,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
         ),
       )
           : Text(widget.label ?? 'Upgrade'),

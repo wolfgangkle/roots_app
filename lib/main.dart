@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart'; // <== ADD THIS
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -10,14 +10,15 @@ import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/map/providers/terrain_provider.dart';
 import 'package:roots_app/modules/settings/models/user_settings_model.dart';
 
+// 🌿 Accent colors
+const Color kAccentGreenLight = Color(0xFF3B5743); // earthy green
+const Color kAccentGreenDark = Color(0xFF5B7C68);  // muted moss green
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-
 
   if (kDebugMode) {
     debugPrint('✅ Firebase initialized successfully');
@@ -36,8 +37,6 @@ void main() async {
     ),
   );
 }
-
-
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -67,7 +66,7 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: const ColorScheme.light(
-          primary: Color(0xFF4A4A4A),
+          primary: kAccentGreenLight,
           onPrimary: Colors.white,
           secondary: Color(0xFF8D8D8D),
           onSecondary: Colors.white,
@@ -80,7 +79,7 @@ class _MyAppState extends State<MyApp> {
           foregroundColor: Colors.black87,
           elevation: 1,
         ),
-        cardTheme: const CardThemeData(
+        cardTheme: const CardTheme(
           color: Colors.white,
           elevation: 2,
           margin: EdgeInsets.all(8),
@@ -90,7 +89,7 @@ class _MyAppState extends State<MyApp> {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4A4A4A),
+            backgroundColor: kAccentGreenLight,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -98,13 +97,13 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         textTheme: ThemeData.light().textTheme.apply(
-              bodyColor: Colors.black87,
-              displayColor: Colors.black87,
-            ),
+          bodyColor: Colors.black87,
+          displayColor: Colors.black87,
+        ),
       ),
       darkTheme: ThemeData(
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFD0BCFF),
+          primary: kAccentGreenDark,
           onPrimary: Colors.black,
           secondary: Color(0xFF03DAC6),
           onSecondary: Colors.black,
@@ -117,7 +116,7 @@ class _MyAppState extends State<MyApp> {
           foregroundColor: Colors.white,
           elevation: 1,
         ),
-        cardTheme: const CardThemeData(
+        cardTheme: const CardTheme(
           color: Color(0xFF1E1E1E),
           elevation: 2,
           margin: EdgeInsets.all(8),
@@ -127,7 +126,7 @@ class _MyAppState extends State<MyApp> {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFFD0BCFF),
+            backgroundColor: kAccentGreenDark,
             foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -135,9 +134,9 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         textTheme: ThemeData.dark().textTheme.apply(
-              bodyColor: Colors.white,
-              displayColor: Colors.white,
-            ),
+          bodyColor: Colors.white,
+          displayColor: Colors.white,
+        ),
       ),
       themeMode: settings.darkMode ? ThemeMode.dark : ThemeMode.light,
       routes: {

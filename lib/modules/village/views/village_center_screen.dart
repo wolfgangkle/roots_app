@@ -9,6 +9,9 @@ import 'package:roots_app/modules/village/views/workers_tab.dart';
 import 'package:roots_app/modules/village/views/trading_tab.dart';
 import 'package:roots_app/modules/village/views/techtree_tab.dart';
 
+// 🌿 Theme color
+const Color kAccentGreenLight = Color(0xFF3B5743);
+
 enum VillageTab { buildings, items, storage, workers, trading, techtree }
 
 class VillageCenterScreen extends StatefulWidget {
@@ -78,7 +81,7 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
         label,
         style: TextStyle(
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.blue : Colors.black,
+          color: isSelected ? kAccentGreenLight : Colors.black87,
         ),
       ),
     );
@@ -95,6 +98,13 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.bolt),
                   label: const Text('🔥 Finish Building Now'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kAccentGreenLight,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onPressed: () async {
                     try {
                       await FirebaseFunctions.instance
@@ -127,6 +137,13 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.bolt),
                   label: const Text('🔥 Finish Crafting Now'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF6B2C2C), // 🔥 crafting red
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onPressed: () async {
                     try {
                       await FirebaseFunctions.instance

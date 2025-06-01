@@ -1,6 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'dart:async';
+
+
+// 🌿 Use the same green as UpgradeButton
+const Color kAccentGreenLight = Color(0xFF3B5743);
 
 class UpgradeProgressIndicator extends StatefulWidget {
   final DateTime startedAt;
@@ -95,7 +99,7 @@ class _UpgradeProgressIndicatorState extends State<UpgradeProgressIndicator> {
           value: progress,
           minHeight: 12,
           backgroundColor: Colors.grey.shade300,
-          color: Colors.blueAccent,
+          color: kAccentGreenLight, // 🌿 Thematic upgrade color!
         ),
         const SizedBox(height: 4),
         Text(

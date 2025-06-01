@@ -62,14 +62,15 @@ class SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Enable Dark Mode'),
+                  title: const Text('🌗 Embrace the Darkness'),
+                  subtitle: const Text('Toggle dark fantasy theme'),
                   value: settings.darkMode,
                   onChanged: settings.setDarkMode,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
                 const Divider(height: 0),
                 SwitchListTile(
-                  title: const Text('Show Global Chat Overlay'),
+                  title: const Text('💬 Show Global Chat Overlay'),
                   value: settings.showChatOverlay,
                   onChanged: settings.setShowChatOverlay,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -107,8 +108,7 @@ class SettingsScreenState extends State<SettingsScreen> {
                               border: const OutlineInputBorder(),
                               isDense: true,
                               filled: true,
-                              fillColor: theme.colorScheme.surfaceContainerHighest
-                                  .withAlpha((0.1 * 255).toInt()),
+                              fillColor: theme.colorScheme.surface.withOpacity(0.1),
                             ),
                             style: const TextStyle(fontFamily: 'monospace'),
                           ),
