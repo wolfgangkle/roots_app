@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
 import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
-import 'package:roots_app/modules/heroes/views/hero_movement_screen.dart';
+import 'package:roots_app/modules/heroes/views/hero_group_movement_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
+import 'package:roots_app/modules/heroes/models/hero_group_model.dart';
+
 
 class HeroStatsTab extends StatefulWidget {
   final HeroModel hero;
@@ -19,7 +21,7 @@ class HeroStatsTab extends StatefulWidget {
 }
 
 class _HeroStatsTabState extends State<HeroStatsTab> {
-  Map<String, dynamic>? _groupData;
+  HeroGroupModel? _groupData;
   String? _villageName;
   bool _checkingTile = false;
 
@@ -33,18 +35,18 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     final groupId = widget.hero.groupId;
     if (groupId == null) return;
 
-    final groupSnap = await FirebaseFirestore.instance
-        .collection('heroGroups')
-        .doc(groupId)
-        .get();
+    final groupSnap =
+    await FirebaseFirestore.instance.collection('heroGroups').doc(groupId).get();
     final data = groupSnap.data();
     if (data == null || !mounted) return;
 
-    setState(() => _groupData = data);
+    setState(() => _groupData = HeroGroupModel.fromFirestore(groupSnap.id, groupSnap.data()!));
 
-    if (_groupData!['insideVillage'] == true) {
+
+
+    if (_groupData!.insideVillage == true) {
       final name =
-      await _getVillageName(_groupData!['tileX'], _groupData!['tileY']);
+      await _getVillageName(_groupData!.tileX, _groupData!.tileY);
       if (!mounted) return;
       setState(() => _villageName = name);
     }
@@ -63,13 +65,10 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     return null;
   }
 
-  bool _canFoundVillage(HeroModel hero) {
-    return true;
-  }
+  bool _canFoundVillage(HeroModel hero) => true;
 
   Future<void> _handleFoundVillage(HeroModel hero) async {
     setState(() => _checkingTile = true);
-
     final tileKey = '${hero.tileX}_${hero.tileY}';
     final snapshot = await FirebaseFirestore.instance
         .collectionGroup('villages')
@@ -122,9 +121,9 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     if (_groupData == null) {
       locationText = 'Loading...';
     } else {
-      final x = _groupData!['tileX'];
-      final y = _groupData!['tileY'];
-      final inVillage = _groupData!['insideVillage'] == true;
+      final x = _groupData!.tileX;
+      final y = _groupData!.tileY;
+      final inVillage = _groupData!.insideVillage == true;
       final villageLabel = inVillage
           ? _villageName != null
           ? " • In village ‘$_villageName’"
@@ -138,24 +137,49 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Top: Location + Movement button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "📍 $locationText",
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.edit_location_alt),
+                label: Text(hero.state == 'idle' ? 'Move Hero' : 'Edit Movement'),
+                onPressed: _groupData == null
+                    ? null
+                    : () {
+                  if (isMobile) {
+                    pushResponsiveScreen(
+                      context,
+                      HeroGroupMovementScreen(
+                        hero: hero,
+                        group: _groupData!,
+                      ),
+                    );
+                  } else {
+                    final controller = Provider.of<MainContentController>(context, listen: false);
+                    controller.setCustomContent(
+                      HeroGroupMovementScreen(
+                        hero: hero,
+                        group: _groupData!,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
           _infoCard("🧙 Hero Info", [
             _statRow("Name", hero.heroName),
             _statRow("Race", hero.race),
             _statRow("Level", hero.level.toString()),
-            _statRow("Location", "📍 $locationText"),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("State"),
-                Text(
-                  _formatHeroState(hero.state),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: _stateColor(hero.state),
-                  ),
-                ),
-              ],
-            ),
+            _statRow("State", _formatHeroState(hero.state),
+                color: _stateColor(hero.state)),
           ]),
           if (hasMovement)
             _infoCard("🧭 Movement Status", [
@@ -195,8 +219,7 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
                 tooltip: "Used to resist attacks and avoid hits."),
             _statRowWithInfo("Combat Level", hero.combatLevel.toString(),
                 tooltip: "Represents overall power. Used to match against enemies."),
-            _statRowWithInfo(
-                "Regen per Tick", hero.combat['regenPerTick'].toString(),
+            _statRowWithInfo("Regen per Tick", hero.combat['regenPerTick'].toString(),
                 tooltip: "HP regenerated per ~10s combat tick."),
             _statRowWithInfo("Attack Speed",
                 _formatMsToMinutesSeconds(hero.combat['attackSpeedMs']),
@@ -215,20 +238,6 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
           ]),
           _debugCard(hero),
           const SizedBox(height: 32),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.edit_location_alt),
-            label: Text(hero.state == 'idle' ? 'Move Hero' : 'Edit Movement'),
-            onPressed: () {
-              if (isMobile) {
-                pushResponsiveScreen(context, HeroMovementScreen(hero: hero));
-              } else {
-                final controller =
-                Provider.of<MainContentController>(context, listen: false);
-                controller.setCustomContent(HeroMovementScreen(hero: hero));
-              }
-            },
-          ),
-          const SizedBox(height: 12),
           ElevatedButton.icon(
             icon: const Icon(Icons.location_city),
             label: const Text("Found New Village"),
@@ -288,16 +297,16 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     );
   }
 
-  Widget _statRow(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label),
-            Text(value),
-          ],
-        ),
-      );
+  Widget _statRow(String label, String value, {Color? color}) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(value, style: TextStyle(color: color)),
+      ],
+    ),
+  );
 
   Widget _statRowWithInfo(String label, String value, {String? tooltip}) {
     return Padding(

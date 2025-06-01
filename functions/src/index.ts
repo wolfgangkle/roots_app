@@ -2,11 +2,20 @@ import * as admin from 'firebase-admin';
 import { onCall, onRequest, Request } from 'firebase-functions/v2/https';
 import type { Response } from 'express';
 
-import { startHeroMovements } from './heroes/startHeroMovements.js';
-import { processHeroArrivalCallableLogic } from './heroes/processHeroArrival.js';
-import { processCombatTick } from './combat/processCombatTick.js';
+
 
 admin.initializeApp();
+
+
+// === Movement ===
+export const startHeroGroupMovement = onCall(async (request) => {
+  const { startHeroGroupMovement } = await import('./movement/startHeroGroupMovement.js');
+  return startHeroGroupMovement(request);
+});
+
+
+
+
 
 // === Village Management ===
 export const createVillage = onCall(async (request) => {
@@ -83,9 +92,6 @@ export const learnSpell = onCall(async (request) => {
   return learnSpellLogic(request);
 });
 
-
-
-
 export const connectHeroToGroup = onCall(async (request) => {
   const { connectHeroToGroupLogic } = await import('./heroes/connectHeroToGroup.js');
   return connectHeroToGroupLogic(request);
@@ -136,9 +142,7 @@ export const transferHeroResources = onCall(async (request) => {
   return transferHeroResources(request);
 });
 
-export const startHeroMovementsFunction = onCall(startHeroMovements);
 
-export const processHeroArrivalCallable = onCall(processHeroArrivalCallableLogic);
 
 // === Crafting ===
 export const startCraftingJob = onCall(async (request) => {
@@ -233,26 +237,32 @@ export { generatePeacefulEventFromAI } from './events/generatePeacefulEventFromA
 export { generateCombatEventFromAI } from './events/generateCombatEventFromAI.js';
 
 // === HTTP Scheduled Tasks ===
-export const processHeroArrival = onRequest(async (req: Request, res: Response) => {
+
+export const processHeroGroupArrival = onRequest(async (req: Request, res: Response) => {
   try {
     if (req.method !== 'POST') {
       res.status(405).send('Method Not Allowed');
       return;
     }
 
-    const { heroId } = req.body;
-    if (!heroId) {
-      res.status(400).send('Missing heroId in request body.');
+    const { groupId } = req.body;
+    if (!groupId) {
+      res.status(400).send('Missing groupId in request body.');
       return;
     }
 
-    const { processHeroArrival } = await import('./heroes/processHeroArrival.js');
-    return processHeroArrival(req, res);
+    const { processHeroGroupArrival } = await import('./movement/processHeroGroupArrival.js');
+    await processHeroGroupArrival(groupId);
+    res.status(200).send('OK');
   } catch (error: any) {
-    console.error('❌ Scheduled hero arrival error:', error.message);
+    console.error('❌ Scheduled group arrival error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+
+
+
 
 export const finishBuildingUpgradeScheduled = onRequest(async (req: Request, res: Response) => {
   try {
@@ -281,5 +291,3 @@ export const finishBuildingUpgradeScheduled = onRequest(async (req: Request, res
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
-export const processCombatTickScheduled = onRequest(processCombatTick);
