@@ -48,6 +48,14 @@ export async function connectHeroToGroupLogic(request: any) {
         throw new HttpsError('failed-precondition', 'Heroes must be on the same tile.');
       }
 
+      // ✅ NEW: Check that both are either inside or outside the village
+      if ((heroData.insideVillage ?? false) !== (targetData.insideVillage ?? false)) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Heroes must both be inside or outside the village.'
+        );
+      }
+
       if (targetData.groupLeaderId && targetData.groupLeaderId !== targetHeroId) {
         throw new HttpsError('failed-precondition', 'Target hero is not a group leader.');
       }
@@ -99,7 +107,7 @@ export async function connectHeroToGroupLogic(request: any) {
         leaderHeroId: targetHeroId,
         movementSpeed: slowestSpeed,
         insideVillage,
-        combatLevel: totalCombatLevel, // ✅ NEW
+        combatLevel: totalCombatLevel,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
 

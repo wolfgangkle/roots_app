@@ -7,6 +7,7 @@ import 'package:roots_app/modules/heroes/views/details_tabs/hero_equipment_tab.d
 import 'package:roots_app/modules/heroes/views/details_tabs/hero_resources_tab.dart';
 import 'package:roots_app/modules/heroes/views/details_tabs/hero_settings_tab.dart';
 import 'package:roots_app/modules/heroes/views/details_tabs/hero_group_tab.dart';
+import 'package:roots_app/modules/heroes/views/details_tabs/hero_spellbook_tab.dart'; // 🧙 NEW
 
 class HeroDetailsScreen extends StatelessWidget {
   final HeroModel hero;
@@ -58,25 +59,27 @@ class HeroDetailsScreen extends StatelessWidget {
               );
             }
 
-            final groupData =
-                groupSnapshot.data!.data() as Map<String, dynamic>;
+            final groupData = groupSnapshot.data!.data() as Map<String, dynamic>;
             final tileX = groupData['tileX'] ?? 0;
             final tileY = groupData['tileY'] ?? 0;
             final insideVillage = groupData['insideVillage'] ?? false;
 
+            final bool isMage = currentHero.type == 'mage'; // ✅ FIXED HERE
+
             return DefaultTabController(
-              length: 5,
+              length: isMage ? 6 : 5,
               child: Scaffold(
                 appBar: AppBar(
                   title: Text(currentHero.heroName),
                   automaticallyImplyLeading: isMobile,
-                  bottom: const TabBar(
+                  bottom: TabBar(
                     tabs: [
-                      Tab(text: 'Stats'),
-                      Tab(text: 'Equipment'),
-                      Tab(text: 'Resources'),
-                      Tab(text: 'Hero Settings'),
-                      Tab(text: 'Groups'),
+                      const Tab(text: 'Stats'),
+                      const Tab(text: 'Equipment'),
+                      const Tab(text: 'Resources'),
+                      const Tab(text: 'Hero Settings'),
+                      const Tab(text: 'Groups'),
+                      if (isMage) const Tab(text: 'Spellbook'),
                     ],
                   ),
                 ),
@@ -92,6 +95,14 @@ class HeroDetailsScreen extends StatelessWidget {
                     HeroResourcesTab(hero: currentHero),
                     const HeroSettingsTab(),
                     HeroGroupsTab(hero: currentHero),
+                    if (isMage)
+                      HeroSpellbookTab(
+                        heroId: currentHero.id,
+                        userId: currentHero.ownerId,
+                        tileX: tileX,
+                        tileY: tileY,
+                        insideVillage: insideVillage,
+                      ),
                   ],
                 ),
               ),

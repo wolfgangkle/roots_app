@@ -67,6 +67,25 @@ export const createCompanion = onCall(async (request) => {
   return createCompanionLogic(request);
 });
 
+export const assignSpellToHero = onCall(async (request) => {
+  const { assignSpellToHeroLogic } = await import('./heroes/assignSpellToHero.js');
+  return assignSpellToHeroLogic(request);
+});
+
+export const removeAssignedSpellFromHero = onCall(async (request) => {
+  const { removeAssignedSpellFromHero } = await import('./heroes/removeAssignedSpellFromHero.js');
+  return removeAssignedSpellFromHero(request);
+});
+
+
+export const learnSpell = onCall(async (request) => {
+  const { learnSpellLogic } = await import('./heroes/learnSpell.js');
+  return learnSpellLogic(request);
+});
+
+
+
+
 export const connectHeroToGroup = onCall(async (request) => {
   const { connectHeroToGroupLogic } = await import('./heroes/connectHeroToGroup.js');
   return connectHeroToGroupLogic(request);

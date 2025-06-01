@@ -219,9 +219,12 @@ class _HeroGroupsTabState extends State<HeroGroupsTab> {
 
                       final sameTileHeroes = groupSnapshot.data!
                           .where((entry) =>
-                              entry.value['tileX'] == tileX &&
-                              entry.value['tileY'] == tileY)
+                      entry.value['tileX'] == tileX &&
+                          entry.value['tileY'] == tileY &&
+                          (entry.value['insideVillage'] ?? false) ==
+                              (groupData['insideVillage'] ?? false))
                           .toList();
+
 
                       if (sameTileHeroes.isEmpty) {
                         return const Text("• No heroes nearby.");
