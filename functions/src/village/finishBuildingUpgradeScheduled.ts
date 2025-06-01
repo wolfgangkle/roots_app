@@ -2,6 +2,7 @@ import * as functions from 'firebase-functions';
 import { finishBuildingUpgradeLogic } from './finishBuildingUpgrade.js'; // Reuse your existing logic
 import { CallableRequest } from 'firebase-functions/v2/https';
 
+
 /**
  * 🌐 HTTP-triggered function for scheduled building upgrade via Cloud Tasks
  * Accepts { userId, villageId } as POST JSON body
@@ -13,16 +14,16 @@ export const finishBuildingUpgradeScheduled = functions.https.onRequest(async (r
       return;
     }
 
-    const { userId, villageId } = req.body;
+    const { userId, villageId, forceFinish = false } = req.body;
 
     if (!userId || !villageId) {
       res.status(400).send('Missing userId or villageId in request body.');
       return;
     }
 
-    // Simulate a CallableRequest
+    // ✅ Include forceFinish here
     const fakeRequest = {
-      data: { villageId },
+      data: { villageId, forceFinish },
       auth: { uid: userId },
     } as CallableRequest<any>;
 
@@ -35,3 +36,4 @@ export const finishBuildingUpgradeScheduled = functions.https.onRequest(async (r
     res.status(500).json({ success: false, error: error.message });
   }
 });
+

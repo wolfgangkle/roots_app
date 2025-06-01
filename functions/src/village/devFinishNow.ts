@@ -1,6 +1,6 @@
 import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import { finishBuildingUpgradeLogic } from './finishBuildingUpgrade.js';
+import { finishBuildingUpgradeLogic } from './finishBuildingUpgrade.js'; // <- Important import
 
 const db = admin.firestore();
 
@@ -39,31 +39,22 @@ export async function devFinishNowLogic(request: CallableRequest<any>) {
     console.log('ℹ️ No scheduled task to delete.');
   }
 
-  const fakeRequest = {
-    data: {
-      villageId,
-      forceFinish: true, // ✅ Important: Bypass time checks
-    },
-    auth: {
-      uid: userId,
-    },
-  } as CallableRequest<any>;
-
+  // ✅ Call logic directly instead of HTTP
   try {
-    console.log('⚙️ Calling finishBuildingUpgradeLogic...');
-    const result = await finishBuildingUpgradeLogic(fakeRequest);
-    console.log('✅ Upgrade completed:', JSON.stringify(result));
+    console.log('⚡ Running finishBuildingUpgradeLogic with forceFinish: true...');
+    const result = await finishBuildingUpgradeLogic({
+      data: { villageId, forceFinish: true },
+      auth: { uid: userId },
+    } as CallableRequest<any>);
 
-    await villageRef.update({
-      currentBuildTaskName: admin.firestore.FieldValue.delete(),
-    });
+    console.log('✅ Logic executed directly:', result);
 
     return {
       success: true,
       result,
     };
   } catch (error: any) {
-    console.error('❌ finishBuildingUpgradeLogic failed:', error.message);
+    console.error('❌ Direct logic execution failed:', error.message);
     return {
       success: false,
       error: error.message,

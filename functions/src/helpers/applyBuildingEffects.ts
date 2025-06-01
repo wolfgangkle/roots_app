@@ -158,26 +158,34 @@ export async function applyBuildingEffects({
     console.log(`🔁 Restored assignedWorkers for ${buildingType}: ${safeAssigned}`);
   }
 
- // 🧙 Spell unlocking logic (now dynamic from building definition)
  if (buildingType === 'academy_of_arts') {
+   console.log(`🧙 Academy upgrade detected at level ${newLevel}`);
+
    const spellUnlockMap = updatedBuildingDef.provides?.spellUnlocksByLevel;
    const spellIds = spellUnlockMap?.[newLevel?.toString()] ?? [];
 
+   console.log(`📚 Spell IDs to unlock at this level:`, spellIds);
+
    if (spellIds.length > 0) {
-     const userProfileRef = admin.firestore().doc(`userProfiles/${userId}`);
+     const userProfileRef = admin.firestore().doc(`users/${userId}/profile/main`);
      const profileSnap = await userProfileRef.get();
      const userRace = profileSnap.get('race');
 
      if (!userRace) {
-       console.warn(`⚠️ User race not found in userProfiles/${userId}`);
+       console.warn(`⚠️ User race not found in users/${userId}/profile/main`);
      } else {
+       console.log(`🎭 User race detected: ${userRace}`);
        const spellsRef = admin.firestore().collection('spells');
        const spellDocs = await Promise.all(
          spellIds.map((id: string) => spellsRef.doc(id).get())
        );
 
        for (const doc of spellDocs) {
-         if (!doc.exists) continue;
+         if (!doc.exists) {
+           console.warn(`❌ Spell doc not found: ${doc.id}`);
+           continue;
+         }
+
          const spell = doc.data();
          const spellId = doc.id;
 
@@ -185,14 +193,17 @@ export async function applyBuildingEffects({
          const allowedRaces = spell.availableToRaces ?? [];
          const isForRace = allowedRaces.includes(userRace);
 
+         console.log(`🧪 Spell check → ${spellId}: forAll=${isForAll}, forRace=${isForRace}, races=${allowedRaces}`);
+
          if (isForAll || isForRace) {
-           updates[`${spellId}UnlockedToLearn`] = true;
-           console.log(`✨ Spell unlocked to learn: ${spellId}`);
+           updates[`spellsUnlocked.${spellId}`] = true;
+           console.log(`✨ Spell unlocked in village: ${spellId}`);
          }
        }
      }
    }
  }
+
 
 
 

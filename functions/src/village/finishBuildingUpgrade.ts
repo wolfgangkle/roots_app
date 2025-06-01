@@ -43,9 +43,14 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
   const duration = buildJob.durationSeconds || 0;
   const finishTime = new Date(startedAt.getTime() + duration * 1000);
 
-  if (!forceFinish && now < finishTime) {
-    return { message: 'Upgrade is not complete yet.' };
+  if (now < finishTime) {
+    if (!forceFinish) {
+      return { message: 'Upgrade is not complete yet.' };
+    } else {
+      console.log(`🚀 Force finishing early: ${villageId} (scheduled until ${finishTime.toISOString()})`);
+    }
   }
+
 
   const type = buildJob.buildingType;
   const targetLevel = buildJob.targetLevel;
@@ -116,6 +121,7 @@ export async function finishBuildingUpgradeLogic(request: CallableRequest<any>) 
 
   return {
     finished: true,
+    forced: !!forceFinish,
     newLevel: targetLevel,
     buildingType: type,
   };
