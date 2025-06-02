@@ -139,6 +139,10 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
   }
 
   Future<void> _cancelMovement() async {
+    if (_isSending) return;
+
+    setState(() => _isSending = true);
+
     try {
       final callable =
       FirebaseFunctions.instance.httpsCallable('cancelHeroGroupMovement');
@@ -176,8 +180,11 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🔥 Error: $e')),
       );
+    } finally {
+      if (mounted) setState(() => _isSending = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

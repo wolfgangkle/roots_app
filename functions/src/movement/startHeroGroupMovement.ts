@@ -20,7 +20,7 @@ export async function startHeroGroupMovement(request: any) {
   const group = groupSnap.data()!;
   const members: string[] = group.members ?? [];
 
-  // Verify that the user controls at least one hero in the group
+  // Verify ownership
   const ownedHeroesSnap = await db.getAll(...members.map(id => db.doc(`heroes/${id}`)));
   const ownsAny = ownedHeroesSnap.some(doc => doc.exists && doc.data()?.ownerId === userId);
   if (!ownsAny) throw new HttpsError('permission-denied', 'You do not control any heroes in this group.');
@@ -49,10 +49,14 @@ export async function startHeroGroupMovement(request: any) {
     throw new HttpsError('failed-precondition', 'Hero group has no defined movement speed.');
   }
 
-  const now = Date.now();
-  const arrivesAt = admin.firestore.Timestamp.fromMillis(now + movementSpeed * 1000);
+  // 🧮 Adjust movement duration based on distance (e.g., diagonal steps take longer)
+  const distance = Math.sqrt(dx * dx + dy * dy); // 1.0 for straight, ~1.41 for diagonal
+  const travelTime = movementSpeed * distance;
 
-  // 🧹 Delete previous movement task if exists
+  const now = Date.now();
+  const arrivesAt = admin.firestore.Timestamp.fromMillis(now + travelTime * 1000);
+
+  // 🧹 Delete previous task if exists
   const previousTaskName = group.currentMovementTaskName;
   if (previousTaskName) {
     try {
@@ -65,14 +69,14 @@ export async function startHeroGroupMovement(request: any) {
     }
   }
 
-  // 🚶 Update movement data
+  // 🚶 Update group movement
   await groupRef.update({
     movementQueue,
     currentStep: firstStep,
     arrivesAt,
   });
 
-  // Set state = 'moving' on all group heroes
+  // 🚨 Update all group heroes to "moving"
   const batch = db.batch();
   for (const heroSnap of ownedHeroesSnap) {
     if (heroSnap.exists) {
@@ -81,10 +85,10 @@ export async function startHeroGroupMovement(request: any) {
   }
   await batch.commit();
 
-  // 🗓️ Schedule arrival task (new task name will be stored inside)
-  await scheduleHeroGroupArrivalTask({ groupId, delaySeconds: movementSpeed });
+  // 🗓️ Schedule arrival task using the adjusted travel time
+  await scheduleHeroGroupArrivalTask({ groupId, delaySeconds: travelTime });
 
-  console.log(`🚶 HeroGroup ${groupId} started moving to (${firstStep.x}, ${firstStep.y})`);
+  console.log(`🚶 HeroGroup ${groupId} started moving to (${firstStep.x}, ${firstStep.y}) with travelTime ${travelTime.toFixed(2)}s`);
 
   return {
     success: true,

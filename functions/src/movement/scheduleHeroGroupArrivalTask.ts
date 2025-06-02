@@ -10,7 +10,7 @@ export async function scheduleHeroGroupArrivalTask({
   const { CloudTasksClient } = await import('@google-cloud/tasks'); // ✅ now inside the function
 
   const project = process.env.GCLOUD_PROJECT!;
-  const location = 'europe-central2';
+  const location = 'us-central1';
   const queue = 'default';
   const url = `https://${location}-${project}.cloudfunctions.net/processHeroGroupArrival`;
 
