@@ -13,7 +13,15 @@ export const startHeroGroupMovement = onCall(async (request) => {
   return startHeroGroupMovement(request);
 });
 
+export const editHeroGroupMovement = onCall(async (request) => {
+  const { editHeroGroupMovement } = await import('./movement/editHeroGroupMovement.js');
+  return editHeroGroupMovement(request);
+});
 
+export const cancelHeroGroupMovement = onCall(async (request) => {
+  const { cancelHeroGroupMovement } = await import('./movement/cancelHeroGroupMovement.js');
+  return cancelHeroGroupMovement(request);
+});
 
 
 

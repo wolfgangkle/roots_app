@@ -45,14 +45,32 @@ export async function resolveMovementStep(groupId: string): Promise<boolean> {
     arrivesAt: nextStep ? arrivesAt : null,
   };
 
+  if (!nextStep) {
+    update.state = 'idle';
+    update.currentMovementTaskName = admin.firestore.FieldValue.delete(); // ✅ here
+  }
+
   await groupRef.update(update);
 
-  // Schedule next arrival if needed
+
   if (nextStep?.action === 'walk') {
     await scheduleHeroGroupArrivalTask({ groupId, delaySeconds: movementSpeed });
     console.log(`⏭️ Scheduled next step for group ${groupId}`);
   } else {
     console.log(`🛑 No more walk steps, group ${groupId} will be idle soon.`);
+
+    // 💤 Set all group hero states to 'idle'
+    const memberIds: string[] = group.members ?? [];
+    const heroSnaps = await db.getAll(...memberIds.map(id => db.doc(`heroes/${id}`)));
+    const batch = db.batch();
+    for (const snap of heroSnaps) {
+      if (snap.exists) {
+        batch.update(snap.ref, { state: 'idle' });
+      }
+    }
+    await batch.commit();
+
+    console.log(`😌 Group ${groupId} and its heroes are now idle.`);
   }
 
   return true;

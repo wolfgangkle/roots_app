@@ -3,94 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
-import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
-import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
-import 'package:roots_app/modules/heroes/views/hero_group_movement_screen.dart';
+import 'package:roots_app/modules/heroes/models/hero_group_model.dart';
+import 'package:roots_app/modules/heroes/widgets/hero_movement_card.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
-import 'package:roots_app/modules/heroes/models/hero_group_model.dart';
+import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
+import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
 
-
-class HeroStatsTab extends StatefulWidget {
+class HeroStatsTab extends StatelessWidget {
   final HeroModel hero;
 
   const HeroStatsTab({super.key, required this.hero});
-
-  @override
-  State<HeroStatsTab> createState() => _HeroStatsTabState();
-}
-
-class _HeroStatsTabState extends State<HeroStatsTab> {
-  HeroGroupModel? _groupData;
-  String? _villageName;
-  bool _checkingTile = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadGroupData();
-  }
-
-  Future<void> _loadGroupData() async {
-    final groupId = widget.hero.groupId;
-    if (groupId == null) return;
-
-    final groupSnap =
-    await FirebaseFirestore.instance.collection('heroGroups').doc(groupId).get();
-    final data = groupSnap.data();
-    if (data == null || !mounted) return;
-
-    setState(() => _groupData = HeroGroupModel.fromFirestore(groupSnap.id, groupSnap.data()!));
-
-
-
-    if (_groupData!.insideVillage == true) {
-      final name =
-      await _getVillageName(_groupData!.tileX, _groupData!.tileY);
-      if (!mounted) return;
-      setState(() => _villageName = name);
-    }
-  }
-
-  Future<String?> _getVillageName(int x, int y) async {
-    final query = await FirebaseFirestore.instance
-        .collectionGroup('villages')
-        .where('tileX', isEqualTo: x)
-        .where('tileY', isEqualTo: y)
-        .limit(1)
-        .get();
-    if (query.docs.isNotEmpty) {
-      return query.docs.first.data()['name'];
-    }
-    return null;
-  }
-
-  bool _canFoundVillage(HeroModel hero) => true;
-
-  Future<void> _handleFoundVillage(HeroModel hero) async {
-    setState(() => _checkingTile = true);
-    final tileKey = '${hero.tileX}_${hero.tileY}';
-    final snapshot = await FirebaseFirestore.instance
-        .collectionGroup('villages')
-        .where('tileKey', isEqualTo: tileKey)
-        .limit(1)
-        .get();
-
-    final occupied = snapshot.docs.isNotEmpty;
-    if (!mounted) return;
-    setState(() => _checkingTile = false);
-
-    if (occupied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A village already exists on this tile!')),
-      );
-      return;
-    }
-
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => FoundVillageScreen(hero: hero),
-    ));
-  }
 
   String _formatTime(int seconds) {
     if (seconds < 60) return '$seconds s';
@@ -110,158 +33,85 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final hero = widget.hero;
     final isMobile = MediaQuery.of(context).size.width < 1024;
-    final bool isMoving = hero.state == 'moving' && hero.arrivesAt != null;
-    final bool hasQueuedWaypoints =
-        hero.movementQueue != null && hero.movementQueue!.isNotEmpty;
-    final bool hasMovement = isMoving || hasQueuedWaypoints;
 
-    final String locationText;
-    if (_groupData == null) {
-      locationText = 'Loading...';
-    } else {
-      final x = _groupData!.tileX;
-      final y = _groupData!.tileY;
-      final inVillage = _groupData!.insideVillage == true;
-      final villageLabel = inVillage
-          ? _villageName != null
-          ? " • In village ‘$_villageName’"
-          : " • In Village"
-          : "";
-      locationText = "($x, $y)$villageLabel";
-    }
+    return StreamBuilder<DocumentSnapshot>(
+      stream: hero.groupId != null
+          ? FirebaseFirestore.instance
+          .collection('heroGroups')
+          .doc(hero.groupId)
+          .snapshots()
+          : null,
+      builder: (context, snapshot) {
+        HeroGroupModel? group;
+        String locationText = 'Loading...';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top: Location + Movement button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+          group = HeroGroupModel.fromFirestore(
+            snapshot.data!.id,
+            snapshot.data!.data()! as Map<String, dynamic>,
+          );
+          final inVillage = group.insideVillage == true;
+          locationText = "(${group.tileX}, ${group.tileY})${inVillage ? ' • In Village' : ''}";
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "📍 $locationText",
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.edit_location_alt),
-                label: Text(hero.state == 'idle' ? 'Move Hero' : 'Edit Movement'),
-                onPressed: _groupData == null
-                    ? null
-                    : () {
-                  if (isMobile) {
-                    pushResponsiveScreen(
-                      context,
-                      HeroGroupMovementScreen(
-                        hero: hero,
-                        group: _groupData!,
-                      ),
-                    );
-                  } else {
-                    final controller = Provider.of<MainContentController>(context, listen: false);
-                    controller.setCustomContent(
-                      HeroGroupMovementScreen(
-                        hero: hero,
-                        group: _groupData!,
-                      ),
-                    );
-                  }
-                },
-              ),
+              Text("📍 $locationText", style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              HeroMovementCard(hero: hero, group: group, isMobile: isMobile),
+              const SizedBox(height: 12),
+              _infoCard(context, "🧙 Hero Info", [
+                _statRow("Name", hero.heroName),
+                _statRow("Race", hero.race),
+                _statRow("Level", hero.level.toString()),
+                _statRow("State", _formatHeroState(hero.state), color: _stateColor(hero.state)),
+              ]),
+              _infoCard(context, "⚔️ Combat Stats", [
+                _statRow("Experience", hero.experience.toString()),
+                _statRow("Magic Resistance", hero.magicResistance.toString()),
+                _barRow(context, "HP", hero.hp, hero.hpMax, color: Theme.of(context).colorScheme.error),
+                if (hero.type != 'companion')
+                  _barRow(context, "Mana", hero.mana, hero.manaMax, color: Theme.of(context).colorScheme.primary),
+              ]),
+              _infoCard(context, "📊 Attributes", [
+                _attributeBar(context, "Strength", hero.stats['strength'] ?? 0),
+                _attributeBar(context, "Dexterity", hero.stats['dexterity'] ?? 0),
+                _attributeBar(context, "Intelligence", hero.stats['intelligence'] ?? 0),
+                _attributeBar(context, "Constitution", hero.stats['constitution'] ?? 0),
+              ]),
+              _infoCard(context, "🗌 Movement & Waypoints", [
+                _statRow("Movement Speed", _formatTime(hero.movementSpeed)),
+                _statRowWithInfo("Max Waypoints", hero.maxWaypoints.toString(), tooltip: "Scales with INT later."),
+              ]),
+              _infoCard(context, "⚙️ Combat Mechanics", [
+                _statRow("Attack Min", hero.combat['attackMin'].toString()),
+                _statRow("Attack Max", hero.combat['attackMax'].toString()),
+                _statRow("Armor", hero.combat['defense'].toString()),
+                _statRowWithInfo("Attack Rating (at)", hero.combat['at'].toString(), tooltip: "Hit chance."),
+                _statRowWithInfo("Defense Rating (def)", hero.combat['def'].toString(), tooltip: "Avoid hits."),
+                _statRowWithInfo("Combat Level", hero.combatLevel.toString(), tooltip: "Matchmaking power."),
+                _statRowWithInfo("Regen per Tick", hero.combat['regenPerTick'].toString(), tooltip: "HP per 10s."),
+                _statRowWithInfo("Attack Speed", _formatMsToMinutesSeconds(hero.combat['attackSpeedMs']), tooltip: "Combat pacing."),
+                _statRowWithInfo("Estimated DPS", _calculateDPS(hero.combat), tooltip: "(min+max)/2 / speed"),
+              ]),
+              _infoCard(context, "🌿 Survival & Regen", [
+                _statRow("HP Regen", _formatTime(hero.hpRegen)),
+                _statRow("Mana Regen", _formatTime(hero.manaRegen)),
+                _statRow("Food consumption every", _formatTime(hero.foodDuration)),
+                HeroWeightBar(currentWeight: hero.currentWeight.toDouble(), carryCapacity: hero.carryCapacity.toDouble()),
+              ]),
             ],
           ),
-          const SizedBox(height: 12),
-
-          _infoCard("🧙 Hero Info", [
-            _statRow("Name", hero.heroName),
-            _statRow("Race", hero.race),
-            _statRow("Level", hero.level.toString()),
-            _statRow("State", _formatHeroState(hero.state),
-                color: _stateColor(hero.state)),
-          ]),
-          if (hasMovement)
-            _infoCard("🧭 Movement Status", [
-              _statRow("Currently Moving", isMoving ? "Yes" : "No"),
-              if (hasQueuedWaypoints)
-                _statRow("Waypoints", "${hero.movementQueue?.length} queued"),
-            ]),
-          _infoCard("⚔️ Combat Stats", [
-            _statRow("Experience", hero.experience.toString()),
-            _statRow("Magic Resistance", hero.magicResistance.toString()),
-            _barRow("HP", hero.hp, hero.hpMax,
-                color: Theme.of(context).colorScheme.error),
-            if (hero.type != 'companion')
-              _barRow("Mana", hero.mana, hero.manaMax,
-                  color: Theme.of(context).colorScheme.primary),
-          ]),
-          _infoCard("📊 Attributes", [
-            _attributeBar("Strength", hero.stats['strength'] ?? 0),
-            _attributeBar("Dexterity", hero.stats['dexterity'] ?? 0),
-            _attributeBar("Intelligence", hero.stats['intelligence'] ?? 0),
-            _attributeBar("Constitution", hero.stats['constitution'] ?? 0),
-          ]),
-          _infoCard("🗺️ Movement & Waypoints", [
-            _statRow("Movement Speed", _formatTime(hero.movementSpeed)),
-            _statRowWithInfo(
-                "Max Waypoints", hero.maxWaypoints.toString(),
-                tooltip:
-                "Max path steps your hero can queue. Scales with INT later."),
-          ]),
-          _infoCard("⚙️ Combat Mechanics", [
-            _statRow("Attack Min", hero.combat['attackMin'].toString()),
-            _statRow("Attack Max", hero.combat['attackMax'].toString()),
-            _statRow("Armor", hero.combat['defense'].toString()),
-            _statRowWithInfo("Attack Rating (at)", hero.combat['at'].toString(),
-                tooltip: "Used to calculate hit chance in combat."),
-            _statRowWithInfo("Defense Rating (def)", hero.combat['def'].toString(),
-                tooltip: "Used to resist attacks and avoid hits."),
-            _statRowWithInfo("Combat Level", hero.combatLevel.toString(),
-                tooltip: "Represents overall power. Used to match against enemies."),
-            _statRowWithInfo("Regen per Tick", hero.combat['regenPerTick'].toString(),
-                tooltip: "HP regenerated per ~10s combat tick."),
-            _statRowWithInfo("Attack Speed",
-                _formatMsToMinutesSeconds(hero.combat['attackSpeedMs']),
-                tooltip: "Time between each attack. Affects combat pacing."),
-            _statRowWithInfo("Estimated DPS", _calculateDPS(hero.combat),
-                tooltip: "Average DPS = ((min+max)/2) / attack speed"),
-          ]),
-          _infoCard("🌿 Survival & Regen", [
-            _statRow("HP Regen", _formatTime(hero.hpRegen)),
-            _statRow("Mana Regen", _formatTime(hero.manaRegen)),
-            _statRow("Food consumption every", _formatTime(hero.foodDuration)),
-            HeroWeightBar(
-              currentWeight: hero.currentWeight.toDouble(),
-              carryCapacity: hero.carryCapacity.toDouble(),
-            ),
-          ]),
-          _debugCard(hero),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.location_city),
-            label: const Text("Found New Village"),
-            onPressed: _checkingTile || !_canFoundVillage(hero)
-                ? null
-                : () => _handleFoundVillage(hero),
-          ),
-          if (hero.type == 'companion') ...[
-            const SizedBox(height: 8),
-            Text(
-              "💡 Companions can be converted into villages.\n"
-                  "If no free slot is available, they will be sacrificed to make space.",
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.orange),
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _infoCard(String title, List<Widget> children) {
+  Widget _infoCard(BuildContext context, String title, List<Widget> children) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -270,29 +120,11 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             ...children,
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _debugCard(HeroModel hero) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ExpansionTile(
-        title: Text("🛠️ Debug Info",
-            style: Theme.of(context).textTheme.titleSmall),
-        children: [
-          _statRow("Group ID", hero.groupId ?? '—'),
-          _statRow("Leader ID", hero.groupLeaderId ?? '—'),
-        ],
       ),
     );
   }
@@ -308,33 +140,30 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     ),
   );
 
-  Widget _statRowWithInfo(String label, String value, {String? tooltip}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Text(label),
-              if (tooltip != null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Tooltip(
-                    message: tooltip,
-                    child: const Icon(Icons.info_outline,
-                        size: 14, color: Colors.grey),
-                  ),
+  Widget _statRowWithInfo(String label, String value, {String? tooltip}) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Text(label),
+            if (tooltip != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Tooltip(
+                  message: tooltip,
+                  child: const Icon(Icons.info_outline, size: 14, color: Colors.grey),
                 ),
-            ],
-          ),
-          Text(value),
-        ],
-      ),
-    );
-  }
+              ),
+          ],
+        ),
+        Text(value),
+      ],
+    ),
+  );
 
-  Widget _barRow(String label, int current, int max, {required Color color}) {
+  Widget _barRow(BuildContext context, String label, int current, int max, {required Color color}) {
     final percent = max > 0 ? (current / max).clamp(0.0, 1.0) : 0.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -359,7 +188,7 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
     );
   }
 
-  Widget _attributeBar(String label, int value) {
+  Widget _attributeBar(BuildContext context, String label, int value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -388,27 +217,19 @@ class _HeroStatsTabState extends State<HeroStatsTab> {
 
   Color _stateColor(String state) {
     switch (state) {
-      case 'idle':
-        return Colors.green;
-      case 'moving':
-        return Colors.orange;
-      case 'in_combat':
-        return Colors.red;
-      default:
-        return Colors.grey;
+      case 'idle': return Colors.green;
+      case 'moving': return Colors.orange;
+      case 'in_combat': return Colors.red;
+      default: return Colors.grey;
     }
   }
 
   String _formatHeroState(String state) {
     switch (state) {
-      case 'idle':
-        return '🟢 idle';
-      case 'moving':
-        return '🟡 moving';
-      case 'in_combat':
-        return '🔴 in combat';
-      default:
-        return '❔ unknown';
+      case 'idle': return '🟢 idle';
+      case 'moving': return '🟡 moving';
+      case 'in_combat': return '🔴 in combat';
+      default: return '❔ unknown';
     }
   }
 

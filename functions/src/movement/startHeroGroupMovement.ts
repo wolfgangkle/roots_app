@@ -52,6 +52,20 @@ export async function startHeroGroupMovement(request: any) {
   const now = Date.now();
   const arrivesAt = admin.firestore.Timestamp.fromMillis(now + movementSpeed * 1000);
 
+  // 🧹 Delete previous movement task if exists
+  const previousTaskName = group.currentMovementTaskName;
+  if (previousTaskName) {
+    try {
+      const { getCloudTasksClient } = await import('../utils/cloudTasksClient.js');
+      const client = await getCloudTasksClient();
+      await client.deleteTask({ name: previousTaskName });
+      console.log(`🗑️ Deleted lingering movement task: ${previousTaskName}`);
+    } catch (err: any) {
+      console.warn(`⚠️ Could not delete previous movement task: ${err.message}`);
+    }
+  }
+
+  // 🚶 Update movement data
   await groupRef.update({
     movementQueue,
     currentStep: firstStep,
@@ -67,6 +81,7 @@ export async function startHeroGroupMovement(request: any) {
   }
   await batch.commit();
 
+  // 🗓️ Schedule arrival task (new task name will be stored inside)
   await scheduleHeroGroupArrivalTask({ groupId, delaySeconds: movementSpeed });
 
   console.log(`🚶 HeroGroup ${groupId} started moving to (${firstStep.x}, ${firstStep.y})`);

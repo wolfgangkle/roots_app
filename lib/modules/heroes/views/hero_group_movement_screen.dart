@@ -81,8 +81,11 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
     setState(() => _isSending = true);
 
     try {
-      final callable =
-      FirebaseFunctions.instance.httpsCallable('startHeroGroupMovement');
+      final isMoving = widget.group.arrivesAt != null;
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        isMoving ? 'editHeroGroupMovement' : 'startHeroGroupMovement',
+      );
+
       final result = await callable.call({
         'groupId': widget.group.id,
         'movementQueue': _waypoints,
@@ -94,7 +97,13 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('🚶‍♂️ Hero group is on the move!')),
+          SnackBar(
+            content: Text(
+              isMoving
+                  ? '✅ Movement queue updated!'
+                  : '🚶‍♂️ Hero group is on the move!',
+            ),
+          ),
         );
 
         final updatedDoc = await widget.hero.ref.get();
@@ -116,16 +125,57 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Failed to start movement')),
+          const SnackBar(content: Text('❌ Failed to update movement')),
         );
       }
     } catch (e) {
-      debugPrint('🧨 Error starting group movement: $e');
+      debugPrint('🧨 Error updating group movement: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🔥 Error: $e')),
       );
     } finally {
       if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  Future<void> _cancelMovement() async {
+    try {
+      final callable =
+      FirebaseFunctions.instance.httpsCallable('cancelHeroGroupMovement');
+      final result = await callable.call({
+        'groupId': widget.group.id,
+      });
+
+      final arrivesBackAt = result.data['arrivesBackAt'];
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('↩️ Returning to origin (ETA: $arrivesBackAt)')),
+      );
+
+      final updatedDoc = await widget.hero.ref.get();
+      final updatedHero = HeroModel.fromFirestore(
+        updatedDoc.id,
+        updatedDoc.data()! as Map<String, dynamic>,
+      );
+
+      if (isMobile(context)) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => HeroDetailsScreen(hero: updatedHero),
+          ),
+        );
+      } else {
+        final controller =
+        Provider.of<MainContentController>(context, listen: false);
+        controller.setCustomContent(HeroDetailsScreen(hero: updatedHero));
+      }
+    } catch (e) {
+      debugPrint('🧨 Error canceling movement: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('🔥 Error: $e')),
+      );
     }
   }
 
@@ -155,6 +205,9 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
             HeroGroupMovementControls(
               onClear: _clearWaypoints,
               onSend: _sendMovement,
+              onCancelMovement: widget.group.arrivesAt != null
+                  ? _cancelMovement
+                  : null,
               isSending: _isSending,
               waypointCount: _waypoints.length,
             ),
