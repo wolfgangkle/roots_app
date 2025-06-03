@@ -80,6 +80,35 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     });
   }
 
+  void _handleTapUp(TapUpDetails details) {
+    final localPos = details.localPosition;
+
+    final worldX = (localPos.dx - _offset.dx) / _scale;
+    final worldY = (localPos.dy - _offset.dy) / _scale;
+
+    final tileX = (worldX / MapPainter.tileSize).floor() + minX;
+    final tileY = (worldY / MapPainter.tileSize).floor() + minY;
+
+    final tappedVillage = _villages.firstWhere(
+          (v) => v['x'] == tileX && v['y'] == tileY,
+      orElse: () => {},
+    );
+
+    if (tappedVillage.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Village Info'),
+          content: Text('🏰 Village at ($tileX, $tileY)\nName: ${tappedVillage['name'] ?? 'Unknown'}'),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tile: ($tileX, $tileY)')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -91,6 +120,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
           if (event is PointerScrollEvent) _handleScroll(event);
         },
         child: GestureDetector(
+          onTapUp: _handleTapUp,
           onScaleStart: _handleScaleStart,
           onScaleUpdate: _handleScaleUpdate,
           child: CustomPaint(
@@ -119,6 +149,8 @@ class MapPainter extends CustomPainter {
   final int minY;
   final List<Map<String, dynamic>> villages;
 
+  static final Map<String, TextPainter> _iconPainterCache = {};
+
   MapPainter({
     required this.offset,
     required this.scale,
@@ -127,6 +159,28 @@ class MapPainter extends CustomPainter {
     required this.minY,
     required this.villages,
   });
+
+  TextPainter _getCachedIconPainter(IconData icon, double fontSize) {
+    final cacheKey = '${icon.codePoint}_${fontSize.toStringAsFixed(1)}';
+
+    if (!_iconPainterCache.containsKey(cacheKey)) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: String.fromCharCode(icon.codePoint),
+          style: TextStyle(
+            fontFamily: icon.fontFamily,
+            package: icon.fontPackage,
+            fontSize: fontSize,
+            color: Colors.black87,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      _iconPainterCache[cacheKey] = tp;
+    }
+
+    return _iconPainterCache[cacheKey]!;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -143,55 +197,37 @@ class MapPainter extends CustomPainter {
 
       final left = (x - minX) * tileSize * scale + offset.dx;
       final top = (y - minY) * tileSize * scale + offset.dy;
-
       final rect = Rect.fromLTWH(left, top, tileSize * scale, tileSize * scale);
       canvas.drawRect(rect, paint);
 
-      // Only draw icons when zoomed in enough
-      if (scale > 1.2 && def?.icon != null) {
-        final icon = def!.icon!;
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: String.fromCharCode(icon.codePoint),
-            style: TextStyle(
-              fontFamily: icon.fontFamily,
-              package: icon.fontPackage,
-              fontSize: 12 * scale,
-              color: Colors.black87,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
+      if (terrain == 'water') continue;
 
-        final centerX = left + (tileSize * scale - textPainter.width) / 2;
-        final centerY = top + (tileSize * scale - textPainter.height) / 2;
-        textPainter.paint(canvas, Offset(centerX, centerY));
-      }
-    }
-
-    // 🏰 Draw villages (as emoji) if scale is safe
-    if (scale > 1.2) {
-      for (final village in villages) {
-        final int x = village['x'] ?? 0;
-        final int y = village['y'] ?? 0;
-
-        final left = (x - minX) * tileSize * scale + offset.dx;
-        final top = (y - minY) * tileSize * scale + offset.dy;
-
-        final tp = TextPainter(
-          text: TextSpan(
-            text: '🏰',
-            style: TextStyle(
-              fontSize: 12 * scale,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-
+      if (def?.icon != null) {
+        final tp = _getCachedIconPainter(def!.icon!, max(8.0, 12 * scale));
         final centerX = left + (tileSize * scale - tp.width) / 2;
         final centerY = top + (tileSize * scale - tp.height) / 2;
         tp.paint(canvas, Offset(centerX, centerY));
       }
+    }
+
+    for (final village in villages) {
+      final int x = village['x'] ?? 0;
+      final int y = village['y'] ?? 0;
+
+      final left = (x - minX) * tileSize * scale + offset.dx;
+      final top = (y - minY) * tileSize * scale + offset.dy;
+
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '🏰',
+          style: TextStyle(fontSize: max(8.0, 12 * scale)),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final centerX = left + (tileSize * scale - tp.width) / 2;
+      final centerY = top + (tileSize * scale - tp.height) / 2;
+      tp.paint(canvas, Offset(centerX, centerY));
     }
   }
 
