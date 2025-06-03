@@ -20,7 +20,6 @@ import 'package:roots_app/modules/chat/guild_chat_panel.dart';
 import 'package:roots_app/modules/alliances/views/create_alliance_screen.dart';
 import 'package:roots_app/modules/alliances/views/alliance_members_screen.dart';
 import 'package:roots_app/modules/alliances/views/alliance_invite_inbox_screen.dart';
-import 'package:roots_app/modules/reports/views/finished_jobs_screen.dart';
 import 'package:roots_app/screens/helpers/finished_jobs_tab_tile.dart';
 import 'package:roots_app/modules/profile/views/player_leaderboard_screen.dart';
 import 'package:roots_app/modules/profile/views/guild_leaderboard_screen.dart';

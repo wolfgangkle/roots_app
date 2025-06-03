@@ -13,7 +13,7 @@ class FinishedJobsTabTile extends StatelessWidget {
   final bool isInDrawer;
   final void Function({required String title, required Widget content})? onSelectDynamicTab;
 
-  const FinishedJobsTabTile({
+  const FinishedJobsTabTile({super.key, 
     required this.isMobile,
     required this.isInDrawer,
     required this.onSelectDynamicTab,

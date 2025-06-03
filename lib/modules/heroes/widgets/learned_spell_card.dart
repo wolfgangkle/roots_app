@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/heroes/views/assign_spell_screen.dart';
-import 'package:roots_app/modules/heroes/widgets/cast_spell_button.dart';
 
 class LearnedSpellCard extends StatelessWidget {
   final Map<String, dynamic> spell;

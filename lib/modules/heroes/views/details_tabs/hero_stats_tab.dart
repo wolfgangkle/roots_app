@@ -1,13 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/models/hero_group_model.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_movement_card.dart';
-import 'package:roots_app/screens/controllers/main_content_controller.dart';
-import 'package:roots_app/screens/helpers/responsive_push.dart';
-import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
 
 class HeroStatsTab extends StatelessWidget {
