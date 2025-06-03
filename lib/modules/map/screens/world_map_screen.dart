@@ -8,6 +8,9 @@ import 'package:roots_app/modules/map/services/map_data_loader.dart';
 import 'package:roots_app/modules/map/models/enriched_tile_data.dart';
 import 'package:roots_app/modules/map/widgets/map_painter.dart';
 import 'package:roots_app/modules/map/widgets/tile_info_popup.dart';
+import 'package:roots_app/modules/profile/views/player_profile_screen.dart';
+import 'package:roots_app/modules/profile/views/guild_profile_screen.dart';
+import 'package:roots_app/modules/profile/views/alliance_profile_screen.dart';
 
 class WorldMapScreen extends StatefulWidget {
   const WorldMapScreen({super.key});
@@ -25,6 +28,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
 
   List<EnrichedTileData> _tiles = [];
   EnrichedTileData? _selectedTile;
+  Widget? _activePopup;
+  Map<String, List<Map<String, dynamic>>> _liveHeroGroups = {};
 
   late int minX, maxX, minY, maxY;
 
@@ -104,10 +109,16 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     });
   }
 
+  void _openPopup(Widget popup) {
+    setState(() => _activePopup = popup);
+  }
+
+  void _closePopup() {
+    setState(() => _activePopup = null);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       appBar: AppBar(title: const Text('🌍 World Map')),
       body: StreamBuilder<QuerySnapshot>(
@@ -116,30 +127,22 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
             .where('insideVillage', isEqualTo: false)
             .snapshots(),
         builder: (context, snapshot) {
-          // 🔁 Copy the original _tiles list to update heroGroups
-          final tilesWithLiveHeroes = _tiles.map((tile) {
-            final matchingHeroes = snapshot.data?.docs.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return data['tileX'] == tile.x && data['tileY'] == tile.y;
-            }).map((doc) => doc.data() as Map<String, dynamic>).toList();
+          if (snapshot.hasData) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  final newMap = <String, List<Map<String, dynamic>>>{};
+                  for (var doc in snapshot.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final key = '${data['tileX']}_${data['tileY']}';
+                    newMap.putIfAbsent(key, () => []).add(data);
+                  }
+                  _liveHeroGroups = newMap;
+                });
+              }
+            });
+          }
 
-            return EnrichedTileData(
-              tileKey: tile.tileKey,
-              x: tile.x,
-              y: tile.y,
-              terrain: tile.terrain,
-              villageId: tile.villageId,
-              villageName: tile.villageName,
-              ownerId: tile.ownerId,
-              ownerName: tile.ownerName,
-              guildId: tile.guildId,
-              guildName: tile.guildName,
-              guildTag: tile.guildTag,
-              allianceId: tile.allianceId,
-              allianceTag: tile.allianceTag,
-              heroGroups: matchingHeroes ?? [],
-            );
-          }).toList();
 
           return Stack(
             children: [
@@ -151,21 +154,23 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                   onTapUp: _handleTapUp,
                   onScaleStart: _handleScaleStart,
                   onScaleUpdate: _handleScaleUpdate,
-                  child: CustomPaint(
-                    painter: MapPainter(
-                      offset: _offset,
-                      scale: _scale,
-                      screenSize: MediaQuery.of(context).size,
-                      minX: minX,
-                      minY: minY,
-                      tiles: tilesWithLiveHeroes,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: MapPainter(
+                        offset: _offset,
+                        scale: _scale,
+                        screenSize: MediaQuery.of(context).size,
+                        minX: minX,
+                        minY: minY,
+                        tiles: _tiles,
+                        liveHeroGroups: _liveHeroGroups,
+                      ),
+                      size: MediaQuery.of(context).size,
                     ),
-                    size: MediaQuery.of(context).size,
                   ),
                 ),
               ),
 
-              // 🪄 Tile Info Popup
               if (_selectedTile != null)
                 Positioned(
                   top: 20,
@@ -175,6 +180,38 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                     child: TileInfoPopup(
                       tile: _selectedTile!,
                       onClose: () => setState(() => _selectedTile = null),
+                      onProfileTap: _openPopup,
+                    ),
+                  ),
+                ),
+
+              if (_activePopup != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: false,
+                    child: Center(
+                      child: Container(
+                        width: 420,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)],
+                        ),
+                        child: Stack(
+                          children: [
+                            _activePopup!,
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: _closePopup,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

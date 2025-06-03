@@ -23,12 +23,13 @@ class HeroGroupMovementScreen extends StatefulWidget {
   });
 
   @override
-  State<HeroGroupMovementScreen> createState() =>
-      _HeroGroupMovementScreenState();
+  State<HeroGroupMovementScreen> createState() => HeroGroupMovementScreenState();
 }
 
-class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
+class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
   final List<Map<String, dynamic>> _waypoints = [];
+  final _minimapKey = GlobalKey<HeroGroupMovementMiniMapState>();
+
   bool _isSending = false;
   Set<String> _villageTiles = {};
 
@@ -38,9 +39,18 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
   @override
   void initState() {
     super.initState();
+
     _waypoints.addAll(widget.group.movementQueue ?? []);
-    _gridCenterX = widget.group.tileX;
-    _gridCenterY = widget.group.tileY;
+
+    if (_waypoints.isNotEmpty) {
+      final last = _waypoints.last;
+      _gridCenterX = last['x'] ?? widget.group.tileX;
+      _gridCenterY = last['y'] ?? widget.group.tileY;
+    } else {
+      _gridCenterX = widget.group.tileX;
+      _gridCenterY = widget.group.tileY;
+    }
+
     _fetchVillageTiles();
   }
 
@@ -65,14 +75,32 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
       _gridCenterX = x;
       _gridCenterY = y;
     });
+
+    _minimapKey.currentState?.centerOnTile(x, y);
   }
 
   void _clearWaypoints() {
-    setState(() {
-      _waypoints.clear();
-      _gridCenterX = widget.group.tileX;
-      _gridCenterY = widget.group.tileY;
-    });
+    if (_waypoints.isNotEmpty) {
+      final currentStep = _waypoints.first;
+
+      setState(() {
+        _waypoints
+          ..clear()
+          ..add(currentStep);
+
+        _gridCenterX = currentStep['x'] ?? widget.group.tileX;
+        _gridCenterY = currentStep['y'] ?? widget.group.tileY;
+      });
+
+      _minimapKey.currentState?.centerOnTile(_gridCenterX, _gridCenterY);
+    } else {
+      setState(() {
+        _gridCenterX = widget.group.tileX;
+        _gridCenterY = widget.group.tileY;
+      });
+
+      _minimapKey.currentState?.centerOnTile(_gridCenterX, _gridCenterY);
+    }
   }
 
   Future<void> _sendMovement() async {
@@ -185,7 +213,6 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -195,9 +222,12 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            HeroGroupMovementMiniMap(group: widget.group),
+            HeroGroupMovementMiniMap(
+              key: _minimapKey,
+              group: widget.group,
+              waypoints: _waypoints,
+            ),
             const SizedBox(height: 12),
-
             HeroGroupMovementGrid(
               currentX: _gridCenterX,
               currentY: _gridCenterY,
@@ -206,9 +236,7 @@ class _HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
               onTapTile: _addStep,
               villageTiles: _villageTiles,
             ),
-
             const SizedBox(height: 16),
-
             HeroGroupMovementControls(
               onClear: _clearWaypoints,
               onSend: _sendMovement,

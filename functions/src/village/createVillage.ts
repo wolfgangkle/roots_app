@@ -35,9 +35,25 @@ export async function createVillageLogic(request: any) {
     throw new HttpsError('failed-precondition', 'Hero must be idle to found a village.');
   }
 
-  const tileX = hero.tileX;
-  const tileY = hero.tileY;
-  const tileKey = `${tileX}_${tileY}`;
+  // 1. Find the heroGroup where this hero is the leader or a member
+  const heroGroupSnap = await db.collection('heroGroups')
+    .where('members', 'array-contains', heroId)
+    .limit(1)
+    .get();
+
+  if (heroGroupSnap.empty) {
+    throw new HttpsError('not-found', 'Hero group not found.');
+  }
+
+  const heroGroup = heroGroupSnap.docs[0].data();
+  const tileX = heroGroup.tileX;
+  const tileY = heroGroup.tileY;
+  const tileKey = heroGroup.tileKey;
+
+  if (tileX === undefined || tileY === undefined || !tileKey) {
+    throw new HttpsError('failed-precondition', 'Hero group is missing tile data.');
+  }
+
   const mapTileRef = db.collection('mapTiles').doc(tileKey);
   const mapTileSnap = await mapTileRef.get();
   const mapTile = mapTileSnap.data();

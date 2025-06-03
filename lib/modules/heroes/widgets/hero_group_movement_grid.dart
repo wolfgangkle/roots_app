@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/map/constants/tier1_map.dart';
-import 'package:roots_app/modules/map/widgets/map_tile_widget.dart';
+import 'package:roots_app/modules/map/widgets/map_tile_controls_widget.dart';
 
 class HeroGroupMovementGrid extends StatelessWidget {
   final int currentX;
@@ -50,11 +50,10 @@ class HeroGroupMovementGrid extends StatelessWidget {
             final hasVillage = villageTiles.contains(tileKey);
             final isBlocked = terrainId == 'water' || terrainId == 'mountain';
 
-            return MapTileWidget(
+            return MapTileControlsWidget(
               x: tileX,
               y: tileY,
               terrainId: terrainId,
-              small: false,
               showCoords: true,
               isCurrentTile: isCenter,
               hasVillage: hasVillage,

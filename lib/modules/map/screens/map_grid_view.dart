@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/map/constants/tier1_map.dart';
-import 'package:roots_app/modules/map/widgets/map_tile_widget.dart';
+import 'package:roots_app/modules/map/widgets/map_tile_minimap_widget.dart';
+
 
 class MapGridView extends StatefulWidget {
   const MapGridView({super.key});
@@ -57,7 +58,7 @@ class _MapGridViewState extends State<MapGridView> {
                   return SizedBox(
                     width: tileSize.toDouble(),
                     height: tileSize.toDouble(),
-                    child: MapTileWidget(
+                    child: MapTileMiniMapWidget(
                       x: x,
                       y: y,
                       terrainId: terrainId,

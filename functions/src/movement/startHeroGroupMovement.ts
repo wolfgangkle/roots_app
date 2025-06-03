@@ -74,6 +74,7 @@ export async function startHeroGroupMovement(request: any) {
     movementQueue,
     currentStep: firstStep,
     arrivesAt,
+    state: 'moving',
   });
 
   // 🚨 Update all group heroes to "moving"

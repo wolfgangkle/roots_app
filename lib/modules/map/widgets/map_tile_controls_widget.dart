@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/modules/map/providers/terrain_provider.dart';
 
-class MapTileWidget extends StatelessWidget {
+class MapTileControlsWidget extends StatelessWidget {
   final int x;
   final int y;
   final String terrainId;
   final bool showCoords;
-  final bool small;
 
   final bool isCurrentTile;
   final bool isWaypoint;
@@ -15,13 +14,12 @@ class MapTileWidget extends StatelessWidget {
   final bool isBlocked;
   final VoidCallback? onTap;
 
-  const MapTileWidget({
+  const MapTileControlsWidget({
     super.key,
     required this.x,
     required this.y,
     required this.terrainId,
     this.showCoords = false,
-    this.small = false,
     this.isCurrentTile = false,
     this.isWaypoint = false,
     this.hasVillage = false,
@@ -40,22 +38,9 @@ class MapTileWidget extends StatelessWidget {
       width: isBlocked ? 2.5 : 1.0,
     );
 
-    // ✅ Clean layout when small = true (for MiniMap)
-    if (small) {
-      return Container(
-        color: bgColor,
-        alignment: Alignment.center,
-        child: icon != null
-            ? Icon(icon, size: 10, color: Colors.black87)
-            : null,
-      );
-    }
-
-    // 🎯 Main Grid Tile (styled)
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(2), // Use internal padding
         decoration: BoxDecoration(
           color: bgColor,
           border: border,
@@ -87,7 +72,7 @@ class MapTileWidget extends StatelessWidget {
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
+                  padding: EdgeInsets.only(bottom: 2),
                   child: Text(
                     isCurrentTile ? 'You' : '($x,$y)',
                     style: const TextStyle(fontSize: 10, color: Colors.black),

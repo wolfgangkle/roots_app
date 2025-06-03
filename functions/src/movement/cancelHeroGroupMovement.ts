@@ -66,7 +66,9 @@ export async function cancelHeroGroupMovement(request: any) {
     },
     arrivesAt: newArrivesAt,
     returning: true,
+    state: 'moving', // ✅ Add this
   });
+
 
   await scheduleHeroGroupArrivalTask({ groupId, delaySeconds: returnTrip / 1000 });
 

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:roots_app/modules/map/models/enriched_tile_data.dart';
+import 'package:roots_app/modules/profile/views/guild_profile_screen.dart';
+import 'package:roots_app/modules/profile/views/alliance_profile_screen.dart';
+import 'package:roots_app/modules/profile/views/player_profile_screen.dart';
 
 class TileInfoPopup extends StatelessWidget {
   final EnrichedTileData tile;
   final VoidCallback onClose;
+  final void Function(Widget widget)? onProfileTap;
 
   const TileInfoPopup({
     super.key,
     required this.tile,
     required this.onClose,
+    this.onProfileTap,
   });
 
   @override
@@ -37,7 +42,6 @@ class TileInfoPopup extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 8),
 
             // 🏞 Terrain
@@ -68,9 +72,11 @@ class TileInfoPopup extends StatelessWidget {
               // 🔗 Owner info with tags
               Row(
                 children: [
-                  if (tile.allianceTag != null) ...[
+                  if (tile.allianceTag != null && tile.allianceId != null)
                     InkWell(
-                      onTap: () => print('TODO: View Alliance ${tile.allianceId}'),
+                      onTap: () => onProfileTap?.call(
+                        AllianceProfileScreen(allianceId: tile.allianceId!),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: Text(
@@ -78,14 +84,16 @@ class TileInfoPopup extends StatelessWidget {
                           style: const TextStyle(
                             color: Colors.blueAccent,
                             fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
                     ),
-                  ],
-                  if (tile.guildTag != null) ...[
+                  if (tile.guildTag != null && tile.guildId != null)
                     InkWell(
-                      onTap: () => print('TODO: View Guild ${tile.guildId}'),
+                      onTap: () => onProfileTap?.call(
+                        GuildProfileScreen(guildId: tile.guildId!),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: Text(
@@ -93,21 +101,24 @@ class TileInfoPopup extends StatelessWidget {
                           style: const TextStyle(
                             color: Colors.green,
                             fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
                     ),
-                  ],
-                  InkWell(
-                    onTap: () => print('TODO: View Player ${tile.ownerId}'),
-                    child: Text(
-                      tile.ownerName ?? 'Unknown',
-                      style: const TextStyle(
-                        decoration: TextDecoration.underline,
-                        color: Colors.black87,
+                  if (tile.ownerId != null)
+                    InkWell(
+                      onTap: () => onProfileTap?.call(
+                        PlayerProfileScreen(userId: tile.ownerId!),
+                      ),
+                      child: Text(
+                        tile.ownerName ?? 'Unknown',
+                        style: const TextStyle(
+                          decoration: TextDecoration.underline,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ],

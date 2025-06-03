@@ -1,10 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/models/hero_group_model.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_movement_card.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
+import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
+import 'package:roots_app/screens/controllers/main_content_controller.dart';
+
 
 class HeroStatsTab extends StatelessWidget {
   final HeroModel hero;
@@ -60,6 +64,36 @@ class HeroStatsTab extends StatelessWidget {
               const SizedBox(height: 12),
               HeroMovementCard(hero: hero, group: group, isMobile: isMobile),
               const SizedBox(height: 12),
+              if (group != null)
+                FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance.doc('mapTiles/${group.tileKey}').get(),
+                  builder: (context, snapshot) {
+                    final hasVillage = snapshot.data?.data() != null &&
+                        (snapshot.data!.data() as Map)['villageId'] != null;
+
+                    final isEligible = group != null &&
+                        hero.state == 'idle' &&
+                        !group.insideVillage &&
+                        !hasVillage;
+
+                    return Tooltip(
+                      message: isEligible
+                          ? 'Found a new village on this tile.'
+                          : 'Cannot found village: Hero must be idle, not in a village, and tile must be empty.',
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.flag),
+                        label: const Text("Found Village"),
+                        onPressed: isEligible
+                            ? () {
+                          Provider.of<MainContentController>(context, listen: false)
+                              .setCustomContent(FoundVillageScreen(group: group!));
+                        }
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+              const SizedBox(height: 16),
               _infoCard(context, "🧙 Hero Info", [
                 _statRow("Name", hero.heroName),
                 _statRow("Race", hero.race),
