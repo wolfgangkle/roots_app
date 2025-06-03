@@ -4,6 +4,10 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/map/constants/tier1_map.dart';
 import 'package:roots_app/modules/map/constants/terrain_definitions.dart';
+import 'package:roots_app/modules/map/services/map_data_loader.dart';
+import 'package:roots_app/modules/map/models/enriched_tile_data.dart';
+import 'package:roots_app/modules/map/widgets/map_painter.dart';
+import 'package:roots_app/modules/map/widgets/tile_info_popup.dart';
 
 class WorldMapScreen extends StatefulWidget {
   const WorldMapScreen({super.key});
@@ -19,14 +23,16 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   Offset _initialOffset = Offset.zero;
   double _initialScale = 1.0;
 
-  List<Map<String, dynamic>> _villages = [];
+  List<EnrichedTileData> _tiles = [];
+  EnrichedTileData? _selectedTile;
+
   late int minX, maxX, minY, maxY;
 
   @override
   void initState() {
     super.initState();
     _computeMapBounds();
-    _loadVillages();
+    _loadMapData();
   }
 
   void _computeMapBounds() {
@@ -38,10 +44,10 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     maxY = coords.map((c) => c[1]).reduce(max);
   }
 
-  Future<void> _loadVillages() async {
-    final snapshot = await FirebaseFirestore.instance.collectionGroup('villages').get();
+  Future<void> _loadMapData() async {
+    final enriched = await MapDataLoader.loadFullMapData();
     setState(() {
-      _villages = snapshot.docs.map((doc) => doc.data()).toList();
+      _tiles = enriched;
     });
   }
 
@@ -60,9 +66,9 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   }
 
   void _handleScroll(PointerScrollEvent event) {
-    const double zoomStep = 0.1;
-    final zoomDirection = event.scrollDelta.dy > 0 ? -1 : 1;
-    final zoomFactor = 1 + zoomStep * zoomDirection;
+    const zoomStep = 0.1;
+    final direction = event.scrollDelta.dy > 0 ? -1 : 1;
+    final factor = 1 + zoomStep * direction;
 
     final mouseX = event.localPosition.dx;
     final mouseY = event.localPosition.dy;
@@ -70,7 +76,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     final worldX = (mouseX - _offset.dx) / _scale;
     final worldY = (mouseY - _offset.dy) / _scale;
 
-    final newScale = (_scale * zoomFactor).clamp(0.2, 4.0);
+    final newScale = (_scale * factor).clamp(0.2, 4.0);
     final newOffsetX = mouseX - worldX * newScale;
     final newOffsetY = mouseY - worldY * newScale;
 
@@ -81,32 +87,21 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   }
 
   void _handleTapUp(TapUpDetails details) {
-    final localPos = details.localPosition;
-
-    final worldX = (localPos.dx - _offset.dx) / _scale;
-    final worldY = (localPos.dy - _offset.dy) / _scale;
+    final local = details.localPosition;
+    final worldX = (local.dx - _offset.dx) / _scale;
+    final worldY = (local.dy - _offset.dy) / _scale;
 
     final tileX = (worldX / MapPainter.tileSize).floor() + minX;
     final tileY = (worldY / MapPainter.tileSize).floor() + minY;
 
-    final tappedVillage = _villages.firstWhere(
-          (v) => v['x'] == tileX && v['y'] == tileY,
-      orElse: () => {},
+    final tapped = _tiles.firstWhere(
+          (t) => t.x == tileX && t.y == tileY,
+      orElse: () => EnrichedTileData(tileKey: '', terrain: '', x: tileX, y: tileY),
     );
 
-    if (tappedVillage.isNotEmpty) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Village Info'),
-          content: Text('🏰 Village at ($tileX, $tileY)\nName: ${tappedVillage['name'] ?? 'Unknown'}'),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tile: ($tileX, $tileY)')),
-      );
-    }
+    setState(() {
+      _selectedTile = tapped;
+    });
   }
 
   @override
@@ -115,122 +110,78 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('🌍 World Map')),
-      body: Listener(
-        onPointerSignal: (event) {
-          if (event is PointerScrollEvent) _handleScroll(event);
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collectionGroup('heroGroups')
+            .where('insideVillage', isEqualTo: false)
+            .snapshots(),
+        builder: (context, snapshot) {
+          // 🔁 Copy the original _tiles list to update heroGroups
+          final tilesWithLiveHeroes = _tiles.map((tile) {
+            final matchingHeroes = snapshot.data?.docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['tileX'] == tile.x && data['tileY'] == tile.y;
+            }).map((doc) => doc.data() as Map<String, dynamic>).toList();
+
+            return EnrichedTileData(
+              tileKey: tile.tileKey,
+              x: tile.x,
+              y: tile.y,
+              terrain: tile.terrain,
+              villageId: tile.villageId,
+              villageName: tile.villageName,
+              ownerId: tile.ownerId,
+              ownerName: tile.ownerName,
+              guildId: tile.guildId,
+              guildName: tile.guildName,
+              guildTag: tile.guildTag,
+              allianceId: tile.allianceId,
+              allianceTag: tile.allianceTag,
+              heroGroups: matchingHeroes ?? [],
+            );
+          }).toList();
+
+          return Stack(
+            children: [
+              Listener(
+                onPointerSignal: (event) {
+                  if (event is PointerScrollEvent) _handleScroll(event);
+                },
+                child: GestureDetector(
+                  onTapUp: _handleTapUp,
+                  onScaleStart: _handleScaleStart,
+                  onScaleUpdate: _handleScaleUpdate,
+                  child: CustomPaint(
+                    painter: MapPainter(
+                      offset: _offset,
+                      scale: _scale,
+                      screenSize: MediaQuery.of(context).size,
+                      minX: minX,
+                      minY: minY,
+                      tiles: tilesWithLiveHeroes,
+                    ),
+                    size: MediaQuery.of(context).size,
+                  ),
+                ),
+              ),
+
+              // 🪄 Tile Info Popup
+              if (_selectedTile != null)
+                Positioned(
+                  top: 20,
+                  left: (MediaQuery.of(context).size.width / 2) - 160,
+                  child: SizedBox(
+                    width: 320,
+                    child: TileInfoPopup(
+                      tile: _selectedTile!,
+                      onClose: () => setState(() => _selectedTile = null),
+                    ),
+                  ),
+                ),
+            ],
+          );
         },
-        child: GestureDetector(
-          onTapUp: _handleTapUp,
-          onScaleStart: _handleScaleStart,
-          onScaleUpdate: _handleScaleUpdate,
-          child: CustomPaint(
-            painter: MapPainter(
-              offset: _offset,
-              scale: _scale,
-              screenSize: size,
-              minX: minX,
-              minY: minY,
-              villages: _villages,
-            ),
-            size: size,
-          ),
-        ),
       ),
     );
   }
-}
-
-class MapPainter extends CustomPainter {
-  static const double tileSize = 24;
-  final Offset offset;
-  final double scale;
-  final Size screenSize;
-  final int minX;
-  final int minY;
-  final List<Map<String, dynamic>> villages;
-
-  static final Map<String, TextPainter> _iconPainterCache = {};
-
-  MapPainter({
-    required this.offset,
-    required this.scale,
-    required this.screenSize,
-    required this.minX,
-    required this.minY,
-    required this.villages,
-  });
-
-  TextPainter _getCachedIconPainter(IconData icon, double fontSize) {
-    final cacheKey = '${icon.codePoint}_${fontSize.toStringAsFixed(1)}';
-
-    if (!_iconPainterCache.containsKey(cacheKey)) {
-      final tp = TextPainter(
-        text: TextSpan(
-          text: String.fromCharCode(icon.codePoint),
-          style: TextStyle(
-            fontFamily: icon.fontFamily,
-            package: icon.fontPackage,
-            fontSize: fontSize,
-            color: Colors.black87,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      _iconPainterCache[cacheKey] = tp;
-    }
-
-    return _iconPainterCache[cacheKey]!;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint();
-
-    for (final entry in tier1Map.entries) {
-      final parts = entry.key.split('_');
-      final x = int.parse(parts[0]);
-      final y = int.parse(parts[1]);
-      final terrain = entry.value;
-
-      final def = terrainDefinitions[terrain];
-      paint.color = def?.color ?? Colors.green[400]!;
-
-      final left = (x - minX) * tileSize * scale + offset.dx;
-      final top = (y - minY) * tileSize * scale + offset.dy;
-      final rect = Rect.fromLTWH(left, top, tileSize * scale, tileSize * scale);
-      canvas.drawRect(rect, paint);
-
-      if (terrain == 'water') continue;
-
-      if (def?.icon != null) {
-        final tp = _getCachedIconPainter(def!.icon!, max(8.0, 12 * scale));
-        final centerX = left + (tileSize * scale - tp.width) / 2;
-        final centerY = top + (tileSize * scale - tp.height) / 2;
-        tp.paint(canvas, Offset(centerX, centerY));
-      }
-    }
-
-    for (final village in villages) {
-      final int x = village['x'] ?? 0;
-      final int y = village['y'] ?? 0;
-
-      final left = (x - minX) * tileSize * scale + offset.dx;
-      final top = (y - minY) * tileSize * scale + offset.dy;
-
-      final tp = TextPainter(
-        text: TextSpan(
-          text: '🏰',
-          style: TextStyle(fontSize: max(8.0, 12 * scale)),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      final centerX = left + (tileSize * scale - tp.width) / 2;
-      final centerY = top + (tileSize * scale - tp.height) / 2;
-      tp.paint(canvas, Offset(centerX, centerY));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

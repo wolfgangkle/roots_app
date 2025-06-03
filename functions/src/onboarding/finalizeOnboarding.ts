@@ -24,12 +24,13 @@ export async function finalizeOnboardingLogic(request: any) {
   }
 
   const zoneBounds: Record<string, { minX: number; maxX: number; minY: number; maxY: number }> = {
-    north: { minX: 20, maxX: 80, minY: 0, maxY: 20 },
-    south: { minX: 20, maxX: 80, minY: 80, maxY: 99 },
-    east: { minX: 80, maxX: 99, minY: 20, maxY: 80 },
-    west: { minX: 0, maxX: 20, minY: 20, maxY: 80 },
-    center: { minX: 40, maxX: 60, minY: 40, maxY: 60 },
+    north:  { minX: -40, maxX:  40, minY:  20, maxY: 100 },
+    south:  { minX: -40, maxX:  40, minY: -100, maxY: -20 },
+    east:   { minX:  20, maxX: 100, minY: -40, maxY:  40 },
+    west:   { minX: -100, maxX: -20, minY: -40, maxY: 40 },
+    center: { minX: -20, maxX:  20, minY: -20, maxY:  20 },
   };
+
 
   const zone = zoneBounds[startZone];
   if (!zone) {
