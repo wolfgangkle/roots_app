@@ -6,6 +6,7 @@ class TerrainTypeModel {
   final Color color;
   final IconData? icon;
   final bool walkable;
+  final double movementCost; // 🆕 Cost multiplier for movement
 
   const TerrainTypeModel({
     required this.id,
@@ -13,5 +14,6 @@ class TerrainTypeModel {
     required this.color,
     this.icon,
     required this.walkable,
+    this.movementCost = 1.0, // Default: normal terrain
   });
 }

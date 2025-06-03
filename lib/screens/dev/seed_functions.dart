@@ -9,6 +9,7 @@ import 'package:roots_app/modules/combat/data/event_data.dart';
 import 'package:roots_app/modules/spells/data/spell_data.dart';
 import 'package:roots_app/modules/village/data/building_definitions.dart';
 import 'package:roots_app/modules/village/data/trading_rates.dart';
+import 'package:roots_app/modules/map/constants/terrain_definitions.dart';
 
 Future<void> triggerPeacefulAIEvent(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
@@ -132,6 +133,35 @@ Future<void> seedEncounterEvents(BuildContext context) async {
     const SnackBar(content: Text("🧪 Seeded encounterEvents to Firestore!")),
   );
 }
+
+Future<void> seedTerrainTypes(BuildContext context) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final ref = FirebaseFirestore.instance.collection('terrainTypes');
+
+  final batch = FirebaseFirestore.instance.batch();
+
+  for (final terrain in terrainDefinitions.values) {
+    final docRef = ref.doc(terrain.id);
+
+    batch.set(docRef, {
+      'id': terrain.id,
+      'name': terrain.name,
+      'walkable': terrain.walkable,
+      'movementCost': terrain.movementCost,
+      'color': terrain.color.value, // store color as int
+      'icon': terrain.icon?.codePoint, // optional for UI use
+      'source': 'manual',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  await batch.commit();
+
+  messenger.showSnackBar(
+    const SnackBar(content: Text("🌍 Seeded terrain types to Firestore!")),
+  );
+}
+
 
 
 

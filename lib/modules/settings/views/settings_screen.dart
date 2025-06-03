@@ -1,57 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/settings/models/user_settings_model.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-
-  @override
-  SettingsScreenState createState() => SettingsScreenState();
-}
-
-class SettingsScreenState extends State<SettingsScreen> {
-  final TextEditingController exportController = TextEditingController();
-
-  Future<void> _exportTier1MapToText() async {
-    final mapRef = FirebaseFirestore.instance.collection('mapTiles');
-    final snapshot = await mapRef.get();
-
-    final buffer = StringBuffer();
-    buffer.writeln('const Map<String, String> tier1Map = {');
-
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
-      final id = doc.id;
-      final terrain = data['terrain'] ?? 'plains';
-      buffer.writeln("  '$id': '$terrain',");
-    }
-
-    buffer.writeln('};');
-
-    if (!mounted) return;
-
-    setState(() {
-      exportController.text = buffer.toString();
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Map exported into text field.")),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    exportController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<UserSettingsModel>();
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -76,47 +32,6 @@ class SettingsScreenState extends State<SettingsScreen> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.text_snippet),
-                    label: const Text("Export Tier 1 Map to Text"),
-                    onPressed: _exportTier1MapToText,
-                  ),
-                  const SizedBox(height: 12),
-                  if (exportController.text.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("📋 Copy-Paste Map Export:"),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 300,
-                          child: TextField(
-                            controller: exportController,
-                            maxLines: null,
-                            expands: true,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              border: const OutlineInputBorder(),
-                              isDense: true,
-                              filled: true,
-                              fillColor: theme.colorScheme.surface.withOpacity(0.1),
-                            ),
-                            style: const TextStyle(fontFamily: 'monospace'),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
             ),
           ),
         ],

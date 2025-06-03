@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+
 import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
 import 'register_screen.dart';
-import 'package:roots_app/screens/dev/seed_functions.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-
+import 'package:roots_app/screens/dev/dev_tools_screen.dart'; // 🛠️ Dev screen
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _devPasswordController = TextEditingController();
 
   String errorMessage = '';
-  bool _devModeEnabled = false;
 
   void _submit() async {
     final email = _emailController.text.trim();
@@ -45,23 +44,10 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } else {
       debugPrint('Logged in user: ${user.email}');
+
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const CheckUserProfile()),
             (route) => false,
-      );
-    }
-  }
-
-  void _tryEnableDevMode() {
-    final password = _devPasswordController.text.trim();
-    if (password == 'iamthedev') {
-      setState(() => _devModeEnabled = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("🔓 Dev mode activated")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("❌ Wrong dev password")),
       );
     }
   }
@@ -75,95 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              if (_devModeEnabled) ...[
-                // 🌿 AI + Seeding Buttons (only in dev mode)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.auto_awesome),
-                        label: const Text("🌿 AI Peaceful"),
-                        onPressed: () => triggerPeacefulAIEvent(context),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.auto_awesome_motion),
-                        label: const Text("⚔️ AI Combat"),
-                        onPressed: () => triggerCombatAIEvent(context),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.cleaning_services),
-                  label: const Text("🧼 Clean mapTiles (terrain/x/y only)"),
-                  onPressed: () => cleanMapTiles(context),
-                ),
-
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.schedule_send),
-                  label: const Text("📊 Start Guild Points Scheduler (1h)"),
-                  onPressed: () async {
-                    try {
-                      final callable = FirebaseFunctions.instance.httpsCallable('startGuildPointsScheduler');
-                      final result = await callable.call({'delaySeconds': 30});
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(result.data['message'] ?? 'Scheduled')),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('❌ Error scheduling task: $e')),
-                      );
-                    }
-                  },
-                ),
-
-
-
-
-
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.bolt),
-                  label: const Text("⚒️ Seed Crafting Items"),
-                  onPressed: () => seedCraftingItems(context),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.shield),
-                  label: const Text("💀 Seed Enemies"),
-                  onPressed: () => seedEnemies(context),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.local_fire_department),
-                  label: const Text("🧪 Seed Encounter Events"),
-                  onPressed: () => seedEncounterEvents(context),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.auto_fix_high),
-                  label: const Text("✨ Seed Spells"),
-                  onPressed: () => seedSpells(context),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.apartment),
-                  label: const Text("🏗️ Seed Buildings"),
-                  onPressed: () => seedBuildingDefinitions(context),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.currency_exchange),
-                  label: const Text("💱 Seed Trading Rates"),
-                  onPressed: () => seedTradingRates(context),
-                ),
-                const SizedBox(height: 32),
-              ],
-
               /// ✅ Always-visible dev login buttons
               Wrap(
                 spacing: 8,
@@ -207,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
               if (errorMessage.isNotEmpty)
                 Text(errorMessage, style: const TextStyle(color: Colors.red)),
 
-              // 🛠️ Dev Mode Entry
+              // 🛠️ Dev Mode Entry (optional fallback)
               const SizedBox(height: 30),
               const Divider(),
               TextField(
@@ -222,7 +119,17 @@ class _LoginScreenState extends State<LoginScreen> {
               ElevatedButton.icon(
                 icon: const Icon(Icons.vpn_key),
                 label: const Text("Enter Dev Mode"),
-                onPressed: _tryEnableDevMode,
+                onPressed: () {
+                  if (_devPasswordController.text.trim() == 'iamthedev') {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const DevToolsScreen()),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("❌ Wrong dev password")),
+                    );
+                  }
+                },
               ),
             ],
           ),

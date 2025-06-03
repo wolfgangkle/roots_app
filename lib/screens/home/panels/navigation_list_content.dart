@@ -24,6 +24,7 @@ import 'package:roots_app/screens/helpers/finished_jobs_tab_tile.dart';
 import 'package:roots_app/modules/profile/views/player_leaderboard_screen.dart';
 import 'package:roots_app/modules/profile/views/guild_leaderboard_screen.dart';
 import 'package:roots_app/modules/profile/views/alliance_leaderboard_screen.dart';
+import 'package:roots_app/modules/map/screens/world_map_screen.dart';
 
 class NavigationListContent extends StatelessWidget {
   final void Function({required String title, required Widget content})? onSelectDynamicTab;
@@ -134,7 +135,20 @@ class NavigationListContent extends StatelessWidget {
 
         const SizedBox(height: 12),
         Text('🌍 World', style: sectionHeaderStyle),
-        _buildTabTile(context, isMobile, '🌍 Map', const MapGridView()),
+        _buildTabTile(context, isMobile, '🌍 Map (legacy)', const MapGridView()),
+        ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          leading: Icon(Icons.arrow_right, color: Theme.of(context).colorScheme.onSurface),
+          title: Text('🗺️ World Map', style: Theme.of(context).textTheme.bodyLarge),
+          onTap: () {
+            if (isInDrawer) Navigator.pop(context);
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const WorldMapScreen()),
+            );
+          },
+        ),
+
 
         const SizedBox(height: 12),
         Text('🏰 Guild', style: sectionHeaderStyle),
