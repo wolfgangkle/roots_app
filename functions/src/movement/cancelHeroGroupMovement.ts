@@ -66,8 +66,13 @@ export async function cancelHeroGroupMovement(request: any) {
     },
     arrivesAt: newArrivesAt,
     returning: true,
-    state: 'moving', // ✅ Add this
+    state: 'moving',
+    tileKey: `${group.tileX}_${group.tileY}`,
+    activeCombatId: admin.firestore.FieldValue.delete(),
+    currentMovementTaskName: admin.firestore.FieldValue.delete(),
+    lastMovementStartedAt: admin.firestore.Timestamp.now(),
   });
+
 
 
   await scheduleHeroGroupArrivalTask({ groupId, delaySeconds: returnTrip / 1000 });

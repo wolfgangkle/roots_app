@@ -75,7 +75,12 @@ export async function startHeroGroupMovement(request: any) {
     currentStep: firstStep,
     arrivesAt,
     state: 'moving',
+    tileKey: `${tileX}_${tileY}`,
+    activeCombatId: admin.firestore.FieldValue.delete(),
+    currentMovementTaskName: admin.firestore.FieldValue.delete(), // optionally clear
+    lastMovementStartedAt: admin.firestore.Timestamp.now(), // optional but useful!
   });
+
 
   // 🚨 Update all group heroes to "moving"
   const batch = db.batch();

@@ -49,7 +49,14 @@ export async function editHeroGroupMovement(request: any) {
     }
   }
 
-  await groupRef.update({ movementQueue });
+  await groupRef.update({
+    movementQueue,
+    activeCombatId: admin.firestore.FieldValue.delete(),
+    returning: admin.firestore.FieldValue.delete(),
+    currentMovementTaskName: admin.firestore.FieldValue.delete(),
+    lastMovementStartedAt: admin.firestore.Timestamp.now(),
+  });
+
 
   // 🗓️ Reschedule the task based on time remaining
   const now = Date.now();
