@@ -4,6 +4,7 @@ import { maybeContinueGroupMovement } from './maybeContinueGroupMovement.js';
 import { maybeTriggerPveEvent } from './maybeTriggerPveEvent.js';
 import { createPveEvent } from './createPveEvent.js';
 import { handleTriggeredPveEvent } from './handleTriggeredPveEvent.js';
+import { HeroGroupData } from '../types/heroGroupData.js'; // 👈 make sure this path is correct
 
 const db = admin.firestore();
 
@@ -63,7 +64,7 @@ export async function processHeroGroupArrival(groupId: string) {
 
   // 🔍 Reload updated group
   const updatedSnap = await groupRef.get();
-  const updatedGroup = updatedSnap.data()!;
+  const updatedGroup = updatedSnap.data() as HeroGroupData; // ✅ Cast here
   console.log(`🧠 Group ${groupId} is now at ${updatedGroup.tileX}_${updatedGroup.tileY} and ready for PvE roll.`);
 
   // 🎲 Try triggering a PvE event
@@ -71,7 +72,7 @@ export async function processHeroGroupArrival(groupId: string) {
   if (triggerInfo.shouldTrigger) {
     try {
       console.log(`⚠️ Triggering PvE event: ${triggerInfo.type}, Level ${triggerInfo.level}`);
-      const eventResult = await createPveEvent(updatedGroup, triggerInfo.type!, triggerInfo.level!);
+      const eventResult = await createPveEvent(groupId, updatedGroup, triggerInfo.type!, triggerInfo.level!);
       console.log(`📜 PvE event created: ${eventResult.combatId ?? eventResult.peacefulReportId}`);
       await handleTriggeredPveEvent(eventResult, updatedGroup);
       console.log(`🏁 PvE event handled successfully.`);
@@ -84,5 +85,4 @@ export async function processHeroGroupArrival(groupId: string) {
 
   // 🏃 No PvE triggered → continue
   await maybeContinueGroupMovement(groupId);
-  return; // ✅ Important: prevent continuation after scheduling
 }

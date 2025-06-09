@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { handleCombatEnded } from './handleCombatEnded.js'; // adjust path if needed
 
 export async function checkCombatOutcomeAndUpdate({
   combatId,
@@ -58,6 +59,10 @@ export async function checkCombatOutcomeAndUpdate({
 
   await combatRef.update(updates);
   console.log(`🧾 Combat ${combatId} state: ${newState}`);
+
+  if (newState === 'ended') {
+    await handleCombatEnded(combat); // 🧹 Resume movement or set to idle
+  }
 
   return newState;
 }

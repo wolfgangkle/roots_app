@@ -110,34 +110,29 @@ class _HeroMovementCardState extends State<HeroMovementCard> {
                 ],
               ),
               if (waypoints.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text("Target Tile:"),
-                    Text(waypoints.first['action'] == 'walk'
-                        ? "(${waypoints.first['x']}, ${waypoints.first['y']})"
-                        : waypoints.first['action']),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text("Arrives in:"),
-                    Text(group.arrivesAt!.isAfter(now)
-                        ? _formatArrival(group.arrivesAt!.difference(now))
-                        : 'Arrived'),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text("Arrives at:"),
-                    Text(DateFormat('HH:mm:ss').format(group.arrivesAt!)),
-                  ],
-                ),
+                if (group.arrivesAt != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Arrives in:"),
+                      Text(group.arrivesAt!.isAfter(now)
+                          ? _formatArrival(group.arrivesAt!.difference(now))
+                          : 'Arrived'),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Arrives at:"),
+                      Text(DateFormat('HH:mm:ss').format(group.arrivesAt!)),
+                    ],
+                  ),
+                ] else ...[
+                  const Text("No arrival time set."),
+                ],
               ],
+
               const SizedBox(height: 12),
             ],
 

@@ -29,8 +29,10 @@ export async function processCombatTickHandler(req: any, res: any) {
     }
 
     if (combat.eventId && !combat.pvp) {
+      console.log(`🎯 Running PvE tick for combat ${combatId}`);
       await runGroupPveCombatTick(combatId, combat);
     } else {
+      console.warn(`❓ Unhandled combat config for ${combatId}: pvp=${combat.pvp}, eventId=${combat.eventId}`);
       throw new HttpsError('failed-precondition', 'Unrecognized combat configuration.');
     }
 
