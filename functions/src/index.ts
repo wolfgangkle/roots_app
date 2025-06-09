@@ -291,6 +291,26 @@ export const processCombatTickScheduled = onRequest(async (req: Request, res: Re
 });
 
 
+export const processCombatTick = onRequest(async (req: Request, res: Response) => {
+  try {
+    if (req.method !== 'POST') {
+      res.status(405).send('Method Not Allowed');
+      return;
+    }
+
+    const { combatId } = req.body;
+    if (!combatId) {
+      res.status(400).send('Missing combatId in request body.');
+      return;
+    }
+
+    const { processCombatTickHandler } = await import('./combat/processCombatTick.js');
+    await processCombatTickHandler(req, res);
+  } catch (error: any) {
+    console.error('❌ Combat tick error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 
 

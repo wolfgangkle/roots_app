@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:roots_app/modules/reports/views/report_detail_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/screens/helpers/layout_helper.dart';
-import 'package:provider/provider.dart';
 
 class ReportsListScreen extends StatelessWidget {
   const ReportsListScreen({super.key});
@@ -17,15 +17,14 @@ class ReportsListScreen extends StatelessWidget {
     }
 
     final screenSize =
-        LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+    LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
     final isMobile = screenSize == ScreenSizeCategory.small;
 
-    final reportsRef = FirebaseFirestore.instance
-        .collection('heroes')
-        .where('ownerId', isEqualTo: user.uid);
-
     return FutureBuilder<QuerySnapshot>(
-      future: reportsRef.get(),
+      future: FirebaseFirestore.instance
+          .collection('heroes')
+          .where('ownerId', isEqualTo: user.uid)
+          .get(),
       builder: (context, heroSnapshot) {
         if (!heroSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -36,87 +35,84 @@ class ReportsListScreen extends StatelessWidget {
           return const Center(child: Text("No heroes found."));
         }
 
-        final heroId = heroDocs.first.id;
+        final groupIds = <String>{};
+        final heroNamesByGroup = <String, List<String>>{};
+        final futures = <Future<DocumentSnapshot>>[];
 
-        final reportStream = FirebaseFirestore.instance
-            .collection('heroes')
-            .doc(heroId)
-            .collection('eventReports')
-            .orderBy('createdAt', descending: true)
-            .snapshots();
+        for (final doc in heroDocs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final groupId = data['groupId'];
+          if (groupId is String) {
+            groupIds.add(groupId);
+            futures.add(FirebaseFirestore.instance
+                .collection('heroGroups')
+                .doc(groupId)
+                .get());
+          }
+        }
 
-        return StreamBuilder<QuerySnapshot>(
-          stream: reportStream,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+        return FutureBuilder<List<DocumentSnapshot>>(
+          future: Future.wait(futures),
+          builder: (context, groupSnapshot) {
+            if (!groupSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final userId = user.uid;
-            final allDocs = snapshot.data!.docs;
-
-            final visibleReports = allDocs.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              final hiddenList =
-                  List<String>.from(data['hiddenForUserIds'] ?? []);
-              final type = data['type'] ?? 'unknown';
-              if (type == 'combat_xp') return false;
-              return !hiddenList.contains(userId);
-            }).toList();
-
-            if (visibleReports.isEmpty) {
-              return const Center(child: Text("No visible reports."));
+            for (final groupDoc in groupSnapshot.data!) {
+              final groupData = groupDoc.data() as Map<String, dynamic>? ?? {};
+              final memberIds = List<String>.from(groupData['members'] ?? []);
+              for (final id in memberIds) {
+                final matchingHeroes = heroDocs.where((doc) => doc.id == id);
+                if (matchingHeroes.isNotEmpty) {
+                  final hero = matchingHeroes.first;
+                  heroNamesByGroup.putIfAbsent(groupDoc.id, () => []);
+                  heroNamesByGroup[groupDoc.id]!
+                      .add((hero.data() as Map<String, dynamic>)['name'] ?? 'Unknown');
+                }
+              }
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: visibleReports.length,
-              itemBuilder: (context, index) {
-                final doc = visibleReports[index];
-                final data = doc.data() as Map<String, dynamic>;
-                final id = doc.id;
-                final type = data['type'] ?? 'unknown';
-                final title = data['title'] ?? 'Untitled Event';
-                final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
-                final formattedTime =
-                    createdAt != null ? _formatDate(createdAt) : 'No date';
-                final isCombat = type == 'combat';
+            final reportQuery = FirebaseFirestore.instance
+                .collection('peacefulReports')
+                .where('groupId', whereIn: groupIds.toList());
 
-                return Card(
-                  child: isCombat && data['combatId'] != null
-                      ? FutureBuilder<DocumentSnapshot>(
-                          future: FirebaseFirestore.instance
-                              .collection('combats')
-                              .doc(data['combatId'])
-                              .get(),
-                          builder: (context, combatSnapshot) {
-                            final combatData = combatSnapshot.data?.data()
-                                as Map<String, dynamic>?;
-                            final combatState =
-                                combatData?['state'] ?? 'unknown';
-                            final isOngoing = combatState == 'ongoing';
-                            // Optionally add a combat message (e.g. a summary or XP info)
-                            final combatMessage = combatData?['message'];
-                            final subtitle =
-                                "$formattedTime • ${isOngoing ? 'Ongoing' : 'Completed'}${combatMessage != null && combatMessage.toString().isNotEmpty ? " • $combatMessage" : ""}";
-                            return ListTile(
-                              leading: Icon(_iconForType(type)),
-                              title: Text(title),
-                              subtitle: Text(subtitle),
-                              trailing: _reportMenu(userId, doc),
-                              onTap: () =>
-                                  _openDetail(context, isMobile, heroId, id),
-                            );
-                          },
-                        )
-                      : ListTile(
-                          leading: Icon(_iconForType(type)),
-                          title: Text(title),
-                          subtitle: Text(formattedTime),
-                          trailing: _reportMenu(userId, doc),
-                          onTap: () =>
-                              _openDetail(context, isMobile, heroId, id),
-                        ),
+            return FutureBuilder<QuerySnapshot>(
+              future: reportQuery.get(),
+              builder: (context, reportSnapshot) {
+                if (!reportSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final reports = reportSnapshot.data!.docs;
+                reports.sort((a, b) {
+                  final aTime = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+                  final bTime = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+                  return bTime.compareTo(aTime);
+                });
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: reports.length,
+                  itemBuilder: (context, index) {
+                    final doc = reports[index];
+                    final data = doc.data() as Map<String, dynamic>;
+                    final groupId = data['groupId'] ?? 'unknown';
+                    final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+                    final formattedTime =
+                    createdAt != null ? _formatDate(createdAt) : 'No date';
+                    final description = data['description'] ?? 'Unknown event';
+                    final heroNames =
+                        heroNamesByGroup[groupId]?.join(', ') ?? 'Unknown';
+
+                    return Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.spa),
+                        title: Text(data['eventId'] ?? 'Unknown Event ID'),
+                        subtitle: Text('$formattedTime • Group: $heroNames'),
+                        onTap: () => _openDetail(context, isMobile, doc.id),
+                      ),
+                    );
+                  },
                 );
               },
             );
@@ -126,30 +122,8 @@ class ReportsListScreen extends StatelessWidget {
     );
   }
 
-  Widget _reportMenu(String userId, DocumentSnapshot doc) {
-    return PopupMenuButton<String>(
-      onSelected: (value) async {
-        if (value == 'hide') {
-          await doc.reference.update({
-            'hiddenForUserIds': FieldValue.arrayUnion([userId])
-          });
-        }
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: 'hide',
-          child: Text('Hide from my view'),
-        ),
-      ],
-    );
-  }
-
-  void _openDetail(
-      BuildContext context, bool isMobile, String heroId, String reportId) {
-    final detailScreen = ReportDetailScreen(
-      heroId: heroId,
-      reportId: reportId,
-    );
+  void _openDetail(BuildContext context, bool isMobile, String reportId) {
+    final detailScreen = ReportDetailScreen(reportId: reportId);
 
     if (isMobile) {
       Navigator.push(
@@ -158,23 +132,8 @@ class ReportsListScreen extends StatelessWidget {
       );
     } else {
       final controller =
-          Provider.of<MainContentController>(context, listen: false);
+      Provider.of<MainContentController>(context, listen: false);
       controller.setCustomContent(detailScreen);
-    }
-  }
-
-  IconData _iconForType(String type) {
-    switch (type) {
-      case 'combat':
-        return Icons.sports_martial_arts;
-      case 'combat_xp':
-        return Icons.star;
-      case 'peaceful':
-        return Icons.spa;
-      case 'upgrade':
-        return Icons.build;
-      default:
-        return Icons.info_outline;
     }
   }
 

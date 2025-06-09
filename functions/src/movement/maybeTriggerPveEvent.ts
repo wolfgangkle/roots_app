@@ -2,8 +2,8 @@ import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
 
-const BASE_COMBAT_CHANCE = 0.5;
-const BASE_PEACEFUL_CHANCE = 0.5;
+const BASE_COMBAT_CHANCE = 0.8;
+const BASE_PEACEFUL_CHANCE = 0.2;
 const COMBAT_COOLDOWN_50 = 180; // minutes
 const COMBAT_COOLDOWN_20 = 360; // minutes
 
