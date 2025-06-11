@@ -1,5 +1,7 @@
 import * as admin from 'firebase-admin';
 import { randomUUID } from 'crypto';
+import { simulateRegenForHero } from './simulateRegenForHero.js';
+
 
 const db = admin.firestore();
 
@@ -14,7 +16,8 @@ export async function createPveEvent(
   groupId: string,
   group: HeroGroupData,
   type: 'combat' | 'peaceful',
-  level: number
+  level: number,
+  terrain: string
 ): Promise<{
   type: 'combat' | 'peaceful';
   eventId: string;
@@ -54,18 +57,30 @@ export async function createPveEvent(
   const minField = type === 'combat' ? 'minLevel' : 'minCombatLevel';
   const maxField = type === 'combat' ? 'maxLevel' : 'maxCombatLevel';
 
-  const eventsSnap = await db.collection('encounterEvents')
+  const allEventsSnap = await db.collection('encounterEvents')
     .where('type', '==', type)
     .where(minField, '<=', level)
     .where(maxField, '>=', level)
     .get();
 
-  if (eventsSnap.empty) {
-    throw new Error(`❌ No suitable ${type} events found for level ${level}`);
+  const terrainFilteredEvents = allEventsSnap.docs.filter(doc => {
+    const event = doc.data();
+    const allowedTerrains = event.possibleTerrains ?? ['any'];
+    return allowedTerrains.includes('any') || allowedTerrains.includes(terrain);
+  });
+
+  if (terrainFilteredEvents.length === 0) {
+    throw new Error(`❌ No ${type} events found for level ${level} on terrain '${terrain}'`);
   }
 
-  const selected = eventsSnap.docs[Math.floor(Math.random() * eventsSnap.docs.length)];
+  const selected = terrainFilteredEvents[Math.floor(Math.random() * terrainFilteredEvents.length)];
+
+
+
+
+
   const eventData = selected.data();
+  console.log(`🎲 Selected event '${selected.id}' (${eventData.name}) for terrain '${terrain}'`);
   const eventId = selected.id;
 
   const scale = eventData.scale ?? { base: 1, scalePerLevel: 0.1, max: 5 };
@@ -110,39 +125,97 @@ export async function createPveEvent(
       return {
         instanceId: `enemy_${randomUUID()}`,
         enemyTypeId: snap.id,
-        name: data.name ?? 'Unknown',
-        currentHp: stats.hp,
-        hp: stats.hp,
-        minDamage: stats.minDamage,
-        maxDamage: stats.maxDamage,
-        armor: stats.defense ?? 0,
-        xp: data.xp ?? 0,
         type: snap.id,
+        name: data.name ?? 'Unknown',
+        description: data.description ?? '',
+        xp: data.xp ?? 0,
+        combatLevel: data.combatLevel ?? 1,
+        refPath: snap.ref.path,
+
+        // 🧠 Combat Stats (normalized)
+        hp: stats.hp,
+        hpMax: stats.hp,
+        currentHp: stats.hp,
+        attackMin: stats.minDamage,
+        attackMax: stats.maxDamage,
+        attackSpeedMs: stats.attackSpeedMs ?? 15000,
+        attackRating: stats.at ?? 0,
+        defense: stats.def ?? 0,
+
+        // 🔍 For debug / spell conditions / logging
         baseStats: stats,
       };
     });
 
+
+
     // 🦸 Fetch hero documents and snapshot stats
     const heroDocs = await db.getAll(...members.map(id => db.doc(`heroes/${id}`)));
 
-    const heroes = heroDocs.map((snap) => {
+    const heroes = await Promise.all(heroDocs.map(async (snap) => {
       const data = snap.data() || {};
+      const combat = data.combat ?? {};
+
+      // 🔮 Assigned Spells (from subcollection)
+      const spellsSnap = await db.collection(`heroes/${snap.id}/assignedSpells`).get();
+      const assignedSpells = spellsSnap.docs.map(spellSnap => {
+        const spellData = spellSnap.data() || {};
+        return {
+          spellId: spellSnap.id,
+          conditions: spellData.conditions ?? {},
+          castSpeedMs: spellData.castSpeedMs ?? 90000,
+        };
+      });
+
+      console.log(`🧙 Hero ${data.heroName ?? snap.id} has ${assignedSpells.length} assigned spells`);
+
+      // First simulate regen
+      const regen = simulateRegenForHero({
+        hp: data.hp ?? 100,
+        hpMax: data.hpMax ?? data.hp ?? 100,
+        mana: data.mana ?? 0,
+        manaMax: data.manaMax ?? 0,
+        hpRegen: data.hpRegen ?? 0,
+        manaRegen: data.manaRegen ?? 0,
+        lastRegenAt: data.lastRegenAt ?? Date.now(),
+      });
+
       return {
         id: snap.id,
-        name: data.name ?? 'Unknown Hero',
-        currentHp: data.currentHp ?? data.hp ?? 100,
-        hp: data.hp ?? 100,
-        mana: data.mana ?? 0,
-        maxMana: data.maxMana ?? 0,
-        minDamage: data.minDamage ?? 0,
-        maxDamage: data.maxDamage ?? 0,
-        armor: data.armor ?? 0,
-        xp: data.xp ?? 0,
-        level: data.level ?? 1,
+        name: data.heroName ?? data.name ?? 'Unknown Hero',
+        refPath: snap.ref.path,
+        groupId: data.groupId ?? null,
         race: data.race ?? 'unknown',
-        spellIds: data.spellIds ?? [],
+        level: data.level ?? 1,
+        xp: data.xp ?? 0,
+
+        // 🧠 Stats
+        hp: regen.hp,
+        hpMax: regen.hpMax,
+        hpRegen: data.hpRegen ?? 0,
+        mana: regen.mana,
+        manaMax: regen.manaMax,
+        manaRegen: data.manaRegen ?? 0,
+        carryCapacity: data.carryCapacity ?? 0,
+        currentWeight: data.currentWeight ?? 0,
+        combatLevel: data.combatLevel ?? 1,
+
+        // ⚔️ Combat Stats
+        attackMin: combat.attackMin ?? 5,
+        attackMax: combat.attackMax ?? 10,
+        attackSpeedMs: combat.attackSpeedMs ?? 15000,
+        attackRating: combat.at ?? 0,
+        defense: combat.def ?? combat.defense ?? 0,
+        regenPerTick: combat.regenPerTick ?? 0,
+
+        // 🔮 Spell logic
+        assignedSpells,
       };
-    });
+
+    }));
+
+
+
 
     const combatRef = db.collection('combats').doc();
     await combatRef.set({
@@ -160,6 +233,7 @@ export async function createPveEvent(
       heroActions: [],
       enemyActions: [],
       combatLog: [],
+      lastRegenAt: Date.now(),
     });
 
     return {

@@ -69,15 +69,25 @@ export async function processHeroGroupArrival(groupId: string) {
 
   // 🎲 Try triggering a PvE event
   const triggerInfo = await maybeTriggerPveEvent(updatedGroup);
+  const tileKey = updatedGroup.tileKey ?? `${updatedGroup.tileX}_${updatedGroup.tileY}`;
+  const tileSnap = await db.collection('mapTiles').doc(tileKey).get();
+  const terrain = tileSnap.get('terrain') ?? 'any';
+
   if (triggerInfo.shouldTrigger) {
     try {
       console.log(`⚠️ Triggering PvE event: ${triggerInfo.type}, Level ${triggerInfo.level}`);
-      const eventResult = await createPveEvent(groupId, {
-        tileX: updatedGroup.tileX,
-        tileY: updatedGroup.tileY,
-        tileKey: updatedGroup.tileKey,
-        members: updatedGroup.members ?? [],
-      }, triggerInfo.type!, triggerInfo.level!);
+      const eventResult = await createPveEvent(
+        groupId,
+        {
+          tileX: updatedGroup.tileX,
+          tileY: updatedGroup.tileY,
+          tileKey,
+          members: updatedGroup.members ?? [],
+        },
+        triggerInfo.type!,
+        triggerInfo.level!,
+        terrain // 🌲🌋🏔️⛰️
+      );
 
       console.log(`📜 PvE event created: ${eventResult.combatId ?? eventResult.peacefulReportId}`);
       await handleTriggeredPveEvent(eventResult, { ...updatedGroup, groupId }); // ✅ inject groupId!
