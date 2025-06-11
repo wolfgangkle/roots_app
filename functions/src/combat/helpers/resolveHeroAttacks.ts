@@ -1,15 +1,21 @@
-
-
 export async function resolveHeroAttacks({
   heroes,
   enemies,
 }: {
-  heroes: Array<{ id: string; data: any; ref: FirebaseFirestore.DocumentReference }>;
+  heroes: Array<{
+    id: string;
+    hp: number;
+    attackMin: number;
+    attackMax: number;
+    attackSpeedMs: number;
+    nextAttackAt?: number;
+    [key: string]: any;
+  }>;
   enemies: any[];
 }): Promise<{
   updatedEnemies: any[];
   heroLogs: Array<{ attackerId: string; targetIndex: number; damage: number }>;
-  heroUpdates: Record<string, number>; // { heroId: newNextAttackAt }
+  heroUpdates: Record<string, number>;
 }> {
   const now = Date.now();
   const updatedEnemies = [...enemies];
@@ -17,14 +23,14 @@ export async function resolveHeroAttacks({
   const heroUpdates: Record<string, number> = {};
 
   for (const hero of heroes) {
-    if (!hero.data || hero.data.hp <= 0) continue;
+    if (hero.hp <= 0) continue;
 
-    const nextAttackAt = hero.data.combat?.nextAttackAt ?? 0;
+    const nextAttackAt = hero.nextAttackAt ?? 0;
     if (now < nextAttackAt) continue;
 
-    const minDmg = hero.data.combat?.attackMin ?? 5;
-    const maxDmg = hero.data.combat?.attackMax ?? 10;
-    const speedMs = hero.data.combat?.attackSpeedMs ?? 15000;
+    const minDmg = hero.attackMin ?? 5;
+    const maxDmg = hero.attackMax ?? 10;
+    const speedMs = hero.attackSpeedMs ?? 15000;
     const damage = Math.floor(minDmg + Math.random() * (maxDmg - minDmg + 1));
 
     const aliveEnemies = updatedEnemies
@@ -44,11 +50,6 @@ export async function resolveHeroAttacks({
 
     const newNextAttackAt = now + speedMs;
     heroUpdates[hero.id] = newNextAttackAt;
-
-    // Update Firestore (batched later)
-    await hero.ref.update({
-      'combat.nextAttackAt': newNextAttackAt,
-    });
 
     console.log(`🗡️ Hero ${hero.id} hit enemy[${target.index}] for ${damage}`);
   }

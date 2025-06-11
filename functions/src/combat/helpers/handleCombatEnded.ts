@@ -3,9 +3,6 @@ import { maybeContinueGroupMovement } from '../../movement/maybeContinueGroupMov
 
 const db = admin.firestore();
 
-/**
- * Handles movement and cleanup after a PvE or PvP combat ends.
- */
 export async function handleCombatEnded(combat: any): Promise<void> {
   const groupId = combat.groupId;
   if (!groupId) {
@@ -22,39 +19,58 @@ export async function handleCombatEnded(combat: any): Promise<void> {
 
   const group = groupSnap.data()!;
   const movementQueue: any[] = group.movementQueue ?? [];
+  const heroIds: string[] = group.members ?? [];
 
-  const groupUpdates: Record<string, any> = {
-    state: 'arrived',
+  const combatHeroes: any[] = combat.heroes ?? [];
+
+  const heroSnaps = await db.getAll(...heroIds.map(id => db.doc(`heroes/${id}`)));
+  const batch = db.batch();
+
+  let aliveHeroIds: string[] = [];
+
+  for (const snap of heroSnaps) {
+    if (!snap.exists) continue;
+    const heroId = snap.id;
+
+    const heroRef = snap.ref;
+    const combatHero = combatHeroes.find(h => h.id === heroId);
+    const isDead = combatHero?.hp <= 0;
+
+    if (isDead) {
+      batch.update(heroRef, {
+        state: 'dead',
+        groupId: admin.firestore.FieldValue.delete(),
+      });
+
+      console.log(`☠️ Hero ${heroId} has died and will be removed from group ${groupId}`);
+    } else {
+      // Hero survived
+      batch.update(heroRef, {
+        state: 'idle',
+      });
+      aliveHeroIds.push(heroId);
+    }
+  }
+
+  // Update the group with remaining members
+  const groupUpdate: Record<string, any> = {
     activeCombatId: admin.firestore.FieldValue.delete(),
+    members: aliveHeroIds,
+    currentStep: admin.firestore.FieldValue.delete(),
+    arrivesAt: admin.firestore.FieldValue.delete(),
+    currentMovementTaskName: admin.firestore.FieldValue.delete(),
   };
 
-  await groupRef.update(groupUpdates);
-
-  console.log(`🧹 Cleared combat state for group ${groupId}.`);
-
+  // Set correct group state
   if (movementQueue.length > 0) {
-    console.log(`🏃 Resuming movement for group ${groupId}...`);
+    groupUpdate.state = 'arrived'; // cleanup done, but movement may resume
     await maybeContinueGroupMovement(groupId);
   } else {
-    console.log(`💤 Group ${groupId} has no more steps. Setting group and heroes to idle.`);
-
-    await groupRef.update({
-      state: 'idle',
-      currentStep: admin.firestore.FieldValue.delete(),
-      arrivesAt: admin.firestore.FieldValue.delete(),
-      currentMovementTaskName: admin.firestore.FieldValue.delete(),
-    });
-
-    const heroIds: string[] = group.members ?? [];
-    const heroSnaps = await db.getAll(...heroIds.map(id => db.doc(`heroes/${id}`)));
-    const batch = db.batch();
-
-    for (const snap of heroSnaps) {
-      if (snap.exists) {
-        batch.update(snap.ref, { state: 'idle' });
-      }
-    }
-
-    await batch.commit();
+    groupUpdate.state = aliveHeroIds.length === 0 ? 'dead' : 'idle';
   }
+
+  batch.update(groupRef, groupUpdate);
+
+  await batch.commit();
+  console.log(`✅ Post-combat cleanup completed for group ${groupId}`);
 }

@@ -1,44 +1,38 @@
 import * as admin from 'firebase-admin';
 
+const db = admin.firestore();
+
 export async function applyDamageAndUpdateHeroes({
   heroes,
   damageMap,
 }: {
-  heroes: Array<{ id: string; data: any; ref: FirebaseFirestore.DocumentReference }>;
+  heroes: Array<{ id: string; hp: number; mana?: number; [key: string]: any }>;
   damageMap: Record<string, number>;
-}): Promise<Array<{ id: string; data: any }>> {
-  const updatedHeroes: Array<{ id: string; data: any }> = [];
-  const batch = admin.firestore().batch();
-
-  for (const hero of heroes) {
-    const baseHp = hero.data.hp ?? 0;
+}): Promise<Array<{ id: string; hp: number } & Record<string, any>>> {
+  const updatedHeroes = heroes.map(hero => {
     const dmg = damageMap[hero.id] ?? 0;
-    const newHp = Math.max(0, baseHp - dmg);
+    const newHp = Math.max(0, hero.hp - dmg);
     const isDead = newHp <= 0;
 
-    hero.data.hp = newHp;
-    hero.data.state = isDead ? 'dead' : 'in_combat';
-
-    const update: Record<string, any> = {
+    return {
+      ...hero,
       hp: newHp,
-      state: hero.data.state,
+      state: isDead ? 'dead' : 'in_combat',
     };
+  });
 
-    if (isDead) {
-      update.movementQueue = [];
-      update.destinationX = admin.firestore.FieldValue.delete();
-      update.destinationY = admin.firestore.FieldValue.delete();
-      update.arrivesAt = admin.firestore.FieldValue.delete();
-      update.nextTileKey = admin.firestore.FieldValue.delete();
-      update.reservedDestination = admin.firestore.FieldValue.delete();
-    }
+  const batch = db.batch();
 
-    batch.update(hero.ref, update);
-    updatedHeroes.push({ id: hero.id, data: hero.data });
-
-    console.log(`${isDead ? '☠️' : '❤️'} Hero ${hero.id} is now ${hero.data.state} (HP: ${newHp})`);
+  for (const hero of updatedHeroes) {
+    const ref = db.doc(`heroes/${hero.id}`);
+    batch.update(ref, {
+      hp: hero.hp,
+      mana: hero.mana ?? 0,
+      state: hero.state,
+    });
   }
 
   await batch.commit();
+
   return updatedHeroes;
 }

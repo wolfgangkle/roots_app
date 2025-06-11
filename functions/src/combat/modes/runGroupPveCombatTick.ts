@@ -9,89 +9,99 @@ import { applyRegenAndCooldowns } from '../helpers/applyRegenAndCooldowns.js';
 
 const db = admin.firestore();
 
-type HeroData = {
-  name: string;
-  hp: number;
-  hpMax: number;
-  mana?: number;
-  manaMax?: number;
-  hpRegen?: number;
-  manaRegen?: number;
-  lastHpRegenAt?: number;
-  lastManaRegenAt?: number;
-};
-
 export async function runGroupPveCombatTick(combatId: string, combat: any) {
   console.log(`⚔️ Processing PvE tick for ${combatId}`);
 
+  const tick = (combat.tick ?? 0) + 1;
+  const lastTickAt = typeof combat.lastTickAt === 'number' ? combat.lastTickAt : Date.now();
   const groupId = combat.groupId;
+
   if (!groupId) {
     console.warn(`❌ Combat ${combatId} missing groupId`);
     return;
   }
 
-  const groupSnap = await db.collection('heroGroups').doc(groupId).get();
-  if (!groupSnap.exists) {
-    console.warn(`❌ Hero group ${groupId} not found for combat ${combatId}`);
+  const heroesRaw = combat.heroes ?? [];
+  const enemies = combat.enemies ?? [];
+
+  if (heroesRaw.length === 0 || enemies.length === 0) {
+    console.warn(`❌ Combat ${combatId} has no valid heroes or enemies`);
     return;
   }
 
-  const group = groupSnap.data()!;
-  const heroIds: string[] = group.members ?? [];
-  if (heroIds.length === 0) {
-    console.warn(`⚠️ No heroes found in group ${groupId}`);
-    return;
-  }
-
-  // 🔄 Load hero data
-  const heroSnaps = await db.getAll(...heroIds.map(id => db.doc(`heroes/${id}`)));
-
-  const heroes = heroSnaps
-    .map(snap => ({
-      id: snap.id,
-      ref: snap.ref,
-      data: snap.data(),
-    }))
-    .filter(h => h.data) as {
-      id: string;
-      ref: FirebaseFirestore.DocumentReference;
-      data: HeroData;
-    }[];
-
-  if (heroes.length === 0) {
-    console.warn(`⚠️ No valid hero docs for group ${groupId}`);
-    return;
-  }
-
-  // 🧪 Step 0: Apply regeneration and cooldown updates
-  const lastTickAt = typeof combat.lastTickAt === 'number' ? combat.lastTickAt : Date.now();
-  const { updatedHeroes: heroesWithRegen, newLastTickAt } = applyRegenAndCooldowns(
-    heroes,
-    lastTickAt
-  );
-
-  // 🗡️ Step 1: Heroes attack enemies
-  const { updatedEnemies: enemiesAfterHeroHits, heroLogs } = await resolveHeroAttacks({
-    heroes: heroesWithRegen,
-    enemies: combat.enemies ?? [],
+  // ✅ FLATTEN HEROES FIRST
+  const flatHeroes = heroesRaw.map((h: any) => {
+    const data = h.data ?? {};
+    return {
+      id: h.id,
+      hp: data.hp ?? 1,
+      mana: data.mana ?? 0,
+      attackMin: data.combat?.attackMin ?? 5,
+      attackMax: data.combat?.attackMax ?? 10,
+      attackSpeedMs: data.combat?.attackSpeedMs ?? 15000,
+      nextAttackAt: data.nextAttackAt ?? 0,
+      lastHpRegenAt: data.lastHpRegenAt,
+      lastManaRegenAt: data.lastManaRegenAt,
+    };
   });
+
+  // 🧪 Step 0: Regen + cooldowns
+  const {
+    updatedHeroes: heroesWithRegen,
+    newLastTickAt,
+  } = applyRegenAndCooldowns(flatHeroes, lastTickAt);
+
+  // 🗡️ Step 1: Hero attacks
+  const {
+    updatedEnemies: enemiesAfterHeroHits,
+    heroLogs,
+    heroUpdates,
+  } = await resolveHeroAttacks({
+    heroes: heroesWithRegen,
+    enemies,
+  });
+
+  // ✨ Step 1.5: Patch nextAttackAt
+  const heroesWithNextAttackAt = heroesWithRegen.map(h => ({
+    id: h.id,
+    hp: h.hp,
+    mana: h.mana,
+    attackMin: h.attackMin,
+    attackMax: h.attackMax,
+    attackSpeedMs: h.attackSpeedMs,
+    lastHpRegenAt: h.lastHpRegenAt,
+    lastManaRegenAt: h.lastManaRegenAt,
+    nextAttackAt: heroUpdates[h.id] ?? h.nextAttackAt,
+  }));
+
 
   // 💀 Step 2: Enemies attack heroes
-  const { updatedEnemies, damageMap, enemyLogs } = resolveEnemyAttacks({
+  const {
+    updatedEnemies,
+    damageMap,
+    enemyLogs: rawEnemyLogs,
+  } = resolveEnemyAttacks({
     enemies: enemiesAfterHeroHits,
-    heroes: heroesWithRegen,
+    heroes: heroesWithNextAttackAt.map(({ id, hp }) => ({ id, hp })),
   });
 
-  // 💥 Step 3: Apply enemy damage to heroes + update state
+  const enemyLogs = rawEnemyLogs.map((log, index) => ({
+    enemyIndex: index,
+    heroId: log.targetHeroId,
+    damage: log.damage,
+  }));
+
+  // 💥 Step 3: Apply damage to heroes
   const updatedHeroes = await applyDamageAndUpdateHeroes({
-    heroes: heroesWithRegen.map((h, i) => ({
-      ...h,
-      ref: heroes[i].ref,
+    heroes: heroesWithNextAttackAt.map(h => ({
+      id: h.id,
+      hp: h.hp,
+      mana: h.mana,
     })),
     damageMap,
   });
 
-  // 🧾 Step 4: Check for end of combat + award XP if needed
+  // 🧾 Step 4: Check win/loss
   const newState = await checkCombatOutcomeAndUpdate({
     combatId,
     combat,
@@ -99,8 +109,7 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     updatedEnemies,
   });
 
-  // 📝 Step 5: Log the tick
-  const tick = (combat.tick ?? 0) + 1;
+  // 📝 Step 5: Log
   await logCombatTick({
     combatId,
     tick,
@@ -110,17 +119,19 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     updatedEnemies,
   });
 
-  // ⏱️ Step 6: Schedule next tick
+  // 💾 Step 6: Persist tick
+  await db.collection('combats').doc(combatId).update({
+    tick,
+    lastTickAt: newLastTickAt,
+    heroes: updatedHeroes,
+    enemies: updatedEnemies,
+  });
+
+  // ⏱️ Step 7: Next tick?
   await scheduleNextCombatTick({
     combatId,
     newState,
   });
 
-  // 🕒 Optional: Persist new regen baseline
-  await db.collection('combats').doc(combatId).update({
-    lastTickAt: newLastTickAt,
-    tick,
-  });
-
-  console.log(`✅ PvE tick complete for ${combatId}`);
+  console.log(`✅ PvE tick ${tick} completed for ${combatId}`);
 }

@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/combat/views/combat_log_screen.dart';
+import 'package:roots_app/modules/combat/views/combat_log_view.dart' as logview;
 import 'package:roots_app/screens/helpers/layout_helper.dart';
+
 
 class ReportDetailScreen extends StatelessWidget {
   final String reportId;
+  final String type; // 👈 added
 
   const ReportDetailScreen({
     super.key,
     required this.reportId,
+    required this.type, // 👈 added
   });
 
   @override
   Widget build(BuildContext context) {
-    final screenSize =
-    LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+    final screenSize = LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
     final isMobile = screenSize == ScreenSizeCategory.small;
 
-    final reportRef =
-    FirebaseFirestore.instance.collection('peacefulReports').doc(reportId);
+    final collection = switch (type) {
+      'combat' => 'combats',
+      'peaceful' => 'peacefulReports',
+      _ => 'peacefulReports', // fallback default
+    };
+
+    final reportRef = FirebaseFirestore.instance.collection(collection).doc(reportId);
 
     return Scaffold(
       appBar: AppBar(
@@ -54,34 +62,35 @@ class ReportDetailScreen extends StatelessWidget {
             return const Center(child: Text("Report data is empty."));
           }
 
-          final type = data['type'] ?? 'unknown';
           final title = data['eventId'] ?? 'Unknown Event';
           final message = data['description'] ?? 'No description available.';
           final xp = data['xp'];
-          final combatIdValue = data['combatId'];
+          final combatIdValue = type == 'combat'
+              ? reportId // direct combat doc
+              : (data['combatId'] ?? null); // linked combat from peaceful report
 
-          if (type == 'combat') {
-            if (combatIdValue != null) {
-              return CombatLogScreen(combatId: combatIdValue);
-            } else {
-              return const Center(
-                  child: Text("⚠️ No combat ID found in report."));
-            }
-          }
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 12),
-                Text(message),
-                if (xp != null) ...[
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: 12),
-                  Text("⭐ Gained XP: $xp"),
+                  Text(message),
+                  if (xp != null) ...[
+                    const SizedBox(height: 12),
+                    Text("⭐ Gained XP: $xp"),
+                  ],
+                  const SizedBox(height: 24),
+                  if (combatIdValue != null) ...[
+                    const Divider(),
+                    const Text("⚔️ Combat Log", style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    logview.CombatLogView(combatId: combatIdValue),
+                  ],
                 ],
-              ],
+              ),
             ),
           );
         },

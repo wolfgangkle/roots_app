@@ -12,14 +12,14 @@ export async function logCombatTick({
   tick: number;
   heroLogs: Array<{ attackerId: string; targetIndex: number; damage: number }>;
   enemyLogs: Array<{ enemyIndex: number; heroId: string; damage: number }>;
-  updatedHeroes: Array<{ id: string; data: any }>;
-  updatedEnemies: any[];
+  updatedHeroes: Array<{ id: string; hp: number } & Record<string, any>>;
+  updatedEnemies: Array<{ hp: number } & Record<string, any>>;
 }): Promise<void> {
   const db = admin.firestore();
 
   const heroesHpAfter: Record<string, number> = {};
   for (const h of updatedHeroes) {
-    heroesHpAfter[h.id] = h.data.hp ?? 0;
+    heroesHpAfter[h.id] = h.hp ?? 0;
   }
 
   const enemiesHpAfter = updatedEnemies.map(e => e.hp ?? 0);

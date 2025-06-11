@@ -1,5 +1,7 @@
 import * as admin from 'firebase-admin';
-import { handleCombatEnded } from './handleCombatEnded.js'; // adjust path if needed
+import { handleCombatEnded } from './handleCombatEnded.js';
+
+const db = admin.firestore();
 
 export async function checkCombatOutcomeAndUpdate({
   combatId,
@@ -9,16 +11,15 @@ export async function checkCombatOutcomeAndUpdate({
 }: {
   combatId: string;
   combat: any;
-  updatedHeroes: Array<{ id: string; data: any }>;
+  updatedHeroes: Array<{ id: string; hp: number } & Record<string, any>>;
   updatedEnemies: any[];
 }): Promise<'ongoing' | 'ended'> {
-  const db = admin.firestore();
   const combatRef = db.collection('combats').doc(combatId);
-
   const tick = (combat.tick ?? 0) + 1;
+
   let newState: 'ongoing' | 'ended' = 'ongoing';
 
-  const livingHeroes = updatedHeroes.filter(h => h.data.hp > 0);
+  const livingHeroes = updatedHeroes.filter(h => h.hp > 0);
   const livingEnemies = updatedEnemies.filter(e => e.hp > 0);
 
   if (tick >= 500 || livingHeroes.length === 0 || livingEnemies.length === 0) {
@@ -35,7 +36,7 @@ export async function checkCombatOutcomeAndUpdate({
     updates.endedAt = admin.firestore.FieldValue.serverTimestamp();
   }
 
-  // 🎓 XP reward logic (only for PvE)
+  // 🎓 XP reward logic (PvE only)
   if (
     newState === 'ended' &&
     combat.eventId &&
@@ -45,8 +46,9 @@ export async function checkCombatOutcomeAndUpdate({
   ) {
     const survivors = livingHeroes;
     const xpPerHero = Math.floor(combat.enemyXpTotal / (survivors.length || 1));
+
     for (const hero of survivors) {
-      await admin.firestore().collection('heroes').doc(hero.id).update({
+      await db.collection('heroes').doc(hero.id).update({
         experience: admin.firestore.FieldValue.increment(xpPerHero),
       });
       console.log(`🎉 Hero ${hero.id} gains ${xpPerHero} XP`);
@@ -54,14 +56,14 @@ export async function checkCombatOutcomeAndUpdate({
 
     updates.xp = combat.enemyXpTotal;
     updates.message = `Defeated ${combat.enemyCount ?? '?'} ${combat.enemyName ?? 'enemies'} for ${combat.enemyXpTotal} XP.`;
-    updates.reward = ['gold']; // TODO: Expand loot system
+    updates.reward = ['gold']; // 💰 TODO: Expand loot system
   }
 
   await combatRef.update(updates);
   console.log(`🧾 Combat ${combatId} state: ${newState}`);
 
   if (newState === 'ended') {
-    await handleCombatEnded(combat); // 🧹 Resume movement or set to idle
+    await handleCombatEnded(combat); // 🧹 Resume movement or idle
   }
 
   return newState;
