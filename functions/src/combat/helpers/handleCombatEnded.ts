@@ -56,30 +56,21 @@ export async function handleCombatEnded(combat: any): Promise<void> {
   const groupUpdate: Record<string, any> = {
     activeCombatId: admin.firestore.FieldValue.delete(),
     members: aliveHeroIds,
+    currentStep: admin.firestore.FieldValue.delete(),
     arrivesAt: admin.firestore.FieldValue.delete(),
     currentMovementTaskName: admin.firestore.FieldValue.delete(),
   };
 
-  // Determine new group state
-  if (aliveHeroIds.length === 0) {
-    groupUpdate.state = 'dead';
-    groupUpdate.currentStep = admin.firestore.FieldValue.delete();
-    groupUpdate.movementQueue = [];
-  } else if (movementQueue.length === 0) {
-    groupUpdate.state = 'idle';
-    groupUpdate.currentStep = admin.firestore.FieldValue.delete();
+  // Set correct group state
+  if (movementQueue.length > 0) {
+    groupUpdate.state = 'arrived'; // cleanup done, but movement may resume
+    await maybeContinueGroupMovement(groupId);
   } else {
-    // There are remaining waypoints, resume after cleanup
-    groupUpdate.state = 'arrived';
+    groupUpdate.state = aliveHeroIds.length === 0 ? 'dead' : 'idle';
   }
 
   batch.update(groupRef, groupUpdate);
 
   await batch.commit();
   console.log(`✅ Post-combat cleanup completed for group ${groupId}`);
-
-  // Resume movement if waypoints remain and heroes survived
-  if (aliveHeroIds.length > 0 && movementQueue.length > 0) {
-    await maybeContinueGroupMovement(groupId);
-  }
 }
