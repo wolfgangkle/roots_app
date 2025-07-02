@@ -18,12 +18,26 @@ export async function handleTriggeredPveEvent(
   // 🛑 Cancel movement if necessary
   updates.state = result.type === 'combat' ? 'in_combat' : 'idle';
   updates.arrivesAt = admin.firestore.FieldValue.delete();
-  updates.currentStep = admin.firestore.FieldValue.delete();
   updates.currentMovementTaskName = admin.firestore.FieldValue.delete();
+
+  // Preserve the current movement queue and step so we can resume after combat
 
   if (result.type === 'combat') {
     updates.activeCombatId = result.combatId;
-    updates.movementQueue = [];
+
+    // Cancel any scheduled arrival task so the group stays put during combat
+    const previousTask = group.currentMovementTaskName;
+    if (previousTask) {
+      try {
+        const { getCloudTasksClient } = await import('../utils/cloudTasksClient.js');
+        const client = await getCloudTasksClient();
+        await client.deleteTask({ name: previousTask });
+        console.log(`🗑️ Deleted movement task ${previousTask} due to combat`);
+      } catch (err: any) {
+        console.warn(`⚠️ Failed to delete movement task ${previousTask}: ${err.message}`);
+      }
+    }
+
 
     console.log(`⚔️ Group ${group.groupId} entered combat: ${result.combatId}`);
 
