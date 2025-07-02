@@ -69,6 +69,19 @@ export async function maybeContinueGroupMovement(groupId: string): Promise<void>
     lastMovementStartedAt: admin.firestore.Timestamp.now(),
   });
 
+  // Update all surviving heroes to moving state
+  const heroIds: string[] = group.members ?? [];
+  if (heroIds.length > 0) {
+    const heroSnaps = await db.getAll(...heroIds.map(id => db.doc(`heroes/${id}`)));
+    const heroBatch = db.batch();
+    for (const snap of heroSnaps) {
+      if (snap.exists) {
+        heroBatch.update(snap.ref, { state: 'moving' });
+      }
+    }
+    await heroBatch.commit();
+  }
+
   await scheduleHeroGroupArrivalTask({
     groupId,
     delaySeconds: totalDelay,

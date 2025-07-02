@@ -218,6 +218,9 @@ export async function createPveEvent(
 
 
     const combatRef = db.collection('combats').doc();
+
+    const enemyXpTotal = enemies.reduce((sum, e) => sum + (e.xp ?? 0), 0);
+
     await combatRef.set({
       groupId,
       eventId,
@@ -230,6 +233,9 @@ export async function createPveEvent(
       type: 'pve',
       enemies,
       heroes, // 💾 Store combat-ready hero snapshots
+      enemyXpTotal,
+      enemyCount: enemies.length,
+      enemyName: eventData.name ?? enemies[0]?.name ?? 'Enemy',
       heroActions: [],
       enemyActions: [],
       combatLog: [],
