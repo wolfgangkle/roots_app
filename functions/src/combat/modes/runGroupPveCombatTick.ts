@@ -30,20 +30,18 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
   }
 
   // ✅ FLATTEN HEROES FIRST
-  const flatHeroes = heroesRaw.map((h: any) => {
-    const data = h.data ?? {};
-    return {
-      id: h.id,
-      hp: data.hp ?? 1,
-      mana: data.mana ?? 0,
-      attackMin: data.combat?.attackMin ?? 5,
-      attackMax: data.combat?.attackMax ?? 10,
-      attackSpeedMs: data.combat?.attackSpeedMs ?? 15000,
-      nextAttackAt: data.nextAttackAt ?? 0,
-      lastHpRegenAt: data.lastHpRegenAt,
-      lastManaRegenAt: data.lastManaRegenAt,
-    };
-  });
+  const flatHeroes = heroesRaw.map((h: any) => ({
+    id: h.id,
+    hp: h.hp ?? 1,
+    mana: h.mana ?? 0,
+    attackMin: h.attackMin ?? 5,
+    attackMax: h.attackMax ?? 10,
+    attackSpeedMs: h.attackSpeedMs ?? 15000,
+    nextAttackAt: h.nextAttackAt ?? 0,
+    lastHpRegenAt: h.lastHpRegenAt,
+    lastManaRegenAt: h.lastManaRegenAt,
+  }));
+
 
   // 🧪 Step 0: Regen + cooldowns
   const {
