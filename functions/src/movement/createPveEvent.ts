@@ -170,6 +170,13 @@ export async function createPveEvent(
       console.log(`🧙 Hero ${data.heroName ?? snap.id} has ${assignedSpells.length} assigned spells`);
 
       // First simulate regen
+      const lastRegenAt =
+        typeof data.lastRegenAt?.toMillis === 'function'
+          ? data.lastRegenAt.toMillis()
+          : typeof data.lastRegenAt === 'number'
+              ? data.lastRegenAt
+              : Date.now();
+
       const regen = simulateRegenForHero({
         hp: data.hp ?? 100,
         hpMax: data.hpMax ?? data.hp ?? 100,
@@ -177,7 +184,7 @@ export async function createPveEvent(
         manaMax: data.manaMax ?? 0,
         hpRegen: data.hpRegen ?? 0,
         manaRegen: data.manaRegen ?? 0,
-        lastRegenAt: data.lastRegenAt ?? Date.now(),
+        lastRegenAt,
       });
 
       return {

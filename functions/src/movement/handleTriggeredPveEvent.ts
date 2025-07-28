@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
-import { scheduleCombatTick } from '../combat/scheduleCombatTick.js'; // ✅ Correct relative import
+import { scheduleCombatTick } from '../combat/scheduleCombatTick.js';
+import { maybeContinueGroupMovement } from './maybeContinueGroupMovement.js';
 
 const db = admin.firestore();
 
@@ -15,15 +16,13 @@ export async function handleTriggeredPveEvent(
   const groupRef = db.collection('heroGroups').doc(group.groupId);
   const updates: Record<string, any> = {};
 
-  // 🛑 Cancel movement if necessary
-  updates.state = result.type === 'combat' ? 'in_combat' : 'idle';
+  // 🛑 Pause movement
+  updates.state = result.type === 'combat' ? 'in_combat' : 'arrived';
   updates.arrivesAt = admin.firestore.FieldValue.delete();
-  updates.currentStep = admin.firestore.FieldValue.delete();
   updates.currentMovementTaskName = admin.firestore.FieldValue.delete();
 
   if (result.type === 'combat') {
     updates.activeCombatId = result.combatId;
-    updates.movementQueue = [];
 
     console.log(`⚔️ Group ${group.groupId} entered combat: ${result.combatId}`);
 
@@ -51,12 +50,15 @@ export async function handleTriggeredPveEvent(
   }
 
   if (result.type === 'peaceful') {
-    updates.movementQueue = group.movementQueue?.slice(1) ?? [];
     console.log(`📜 Group ${group.groupId} completed a peaceful event: ${result.eventId}`);
   }
 
   // 📝 Save group state
   await groupRef.update(updates);
+
+  if (result.type === 'peaceful') {
+    await maybeContinueGroupMovement(group.groupId);
+  }
 
   console.log(`✅ PvE event '${result.eventId}' handled for group ${group.groupId}`);
 }
