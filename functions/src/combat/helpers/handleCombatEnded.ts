@@ -19,6 +19,7 @@ export async function handleCombatEnded(combat: any): Promise<void> {
 
   const group = groupSnap.data()!;
   const movementQueue: any[] = group.movementQueue ?? [];
+  const resumeMovement = movementQueue.length > 0;
   const heroIds: string[] = group.members ?? [];
 
   const combatHeroes: any[] = combat.heroes ?? [];
@@ -46,7 +47,8 @@ export async function handleCombatEnded(combat: any): Promise<void> {
     } else {
       // Hero survived
       batch.update(heroRef, {
-        state: 'idle',
+        state: resumeMovement ? 'moving' : 'idle',
+        activeCombatId: admin.firestore.FieldValue.delete(),
       });
       aliveHeroIds.push(heroId);
     }
@@ -56,15 +58,13 @@ export async function handleCombatEnded(combat: any): Promise<void> {
   const groupUpdate: Record<string, any> = {
     activeCombatId: admin.firestore.FieldValue.delete(),
     members: aliveHeroIds,
-    currentStep: admin.firestore.FieldValue.delete(),
     arrivesAt: admin.firestore.FieldValue.delete(),
     currentMovementTaskName: admin.firestore.FieldValue.delete(),
   };
 
   // Set correct group state
-  if (movementQueue.length > 0) {
+  if (resumeMovement) {
     groupUpdate.state = 'arrived'; // cleanup done, but movement may resume
-    await maybeContinueGroupMovement(groupId);
   } else {
     groupUpdate.state = aliveHeroIds.length === 0 ? 'dead' : 'idle';
   }
@@ -72,5 +72,10 @@ export async function handleCombatEnded(combat: any): Promise<void> {
   batch.update(groupRef, groupUpdate);
 
   await batch.commit();
+
+  if (resumeMovement) {
+    await maybeContinueGroupMovement(groupId);
+  }
+
   console.log(`✅ Post-combat cleanup completed for group ${groupId}`);
 }
