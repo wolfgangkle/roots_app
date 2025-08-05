@@ -91,11 +91,7 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
 
   // 💥 Step 3: Apply damage to heroes
   const updatedHeroes = await applyDamageAndUpdateHeroes({
-    heroes: heroesWithNextAttackAt.map(h => ({
-      id: h.id,
-      hp: h.hp,
-      mana: h.mana,
-    })),
+    heroes: heroesWithNextAttackAt,
     damageMap,
   });
 

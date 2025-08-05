@@ -24,6 +24,25 @@ export async function logCombatTick({
 
   const enemiesHpAfter = updatedEnemies.map(e => e.hp ?? 0);
 
+  const heroSnapshots = updatedHeroes.map(h => ({
+    id: h.id,
+    hp: h.hp ?? 0,
+    attackMin: h.attackMin ?? 0,
+    attackMax: h.attackMax ?? 0,
+    attackSpeedMs: h.attackSpeedMs ?? 0,
+    nextAttackAt: h.nextAttackAt ?? 0,
+    mana: h.mana ?? 0,
+  }));
+
+  const enemySnapshots = updatedEnemies.map(e => ({
+    hp: e.hp ?? 0,
+    attackMin: e.attackMin ?? 0,
+    attackMax: e.attackMax ?? 0,
+    attackSpeedMs: e.attackSpeedMs ?? 0,
+    nextAttackAt: e.nextAttackAt ?? 0,
+    instanceId: e.instanceId,
+  }));
+
   const logRef = db
     .collection('combats')
     .doc(combatId)
@@ -36,6 +55,8 @@ export async function logCombatTick({
     enemyAttacks: enemyLogs,
     heroesHpAfter,
     enemiesHpAfter,
+    heroes: heroSnapshots,
+    enemies: enemySnapshots,
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
   });
 
