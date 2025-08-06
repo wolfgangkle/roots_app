@@ -1,4 +1,3 @@
-
 export function resolveEnemyAttacks({
   enemies,
   heroes,
@@ -9,7 +8,7 @@ export function resolveEnemyAttacks({
     attackMin: number;
     attackMax: number;
     attackSpeedMs?: number;
-    nextAttackAt?: number;
+    nextAttackAt?: number | null; // ← add `null` here
     [key: string]: any;
   }>;
   heroes: Array<{
@@ -28,15 +27,29 @@ export function resolveEnemyAttacks({
   const enemyLogs: Array<{ attackerId: string; targetHeroId: string; damage: number }> = [];
 
   for (const enemy of updatedEnemies) {
-    if (enemy.hp <= 0) continue;
+    const enemyHp = typeof enemy.hp === 'number' ? enemy.hp : 0;
+
+    // 💀 Skip dead enemies and prevent future logic from using them
+    if (enemyHp <= 0) {
+      enemy.hp = 0;
+      enemy.nextAttackAt = null;
+      console.log(`☠️ Enemy ${enemy.instanceId} is dead and cannot attack.`);
+      continue;
+    }
 
     const nextAttackAt = enemy.nextAttackAt ?? 0;
     const speedMs = enemy.attackSpeedMs ?? 15000;
 
-    if (now < nextAttackAt) continue;
+    if (now < nextAttackAt) {
+      console.log(`⏳ Enemy ${enemy.instanceId} is cooling down (nextAttackAt: ${nextAttackAt})`);
+      continue;
+    }
 
     const aliveHeroes = heroes.filter(h => h.hp > 0);
-    if (aliveHeroes.length === 0) break;
+    if (aliveHeroes.length === 0) {
+      console.log(`⚠️ No alive heroes to attack.`);
+      break;
+    }
 
     const target = aliveHeroes[Math.floor(Math.random() * aliveHeroes.length)];
 

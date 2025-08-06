@@ -25,11 +25,18 @@ export async function applyDamageAndUpdateHeroes({
 
   for (const hero of updatedHeroes) {
     const ref = db.doc(`heroes/${hero.id}`);
-    batch.update(ref, {
+
+    // Update only what's actually changed in Firestore (not all combat metadata)
+    const updateData: any = {
       hp: hero.hp,
-      mana: hero.mana ?? 0,
       state: hero.state,
-    });
+    };
+
+    if ('mana' in hero) {
+      updateData.mana = hero.mana;
+    }
+
+    batch.update(ref, updateData);
   }
 
   await batch.commit();

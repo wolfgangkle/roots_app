@@ -80,7 +80,7 @@ export async function createPveEvent(
       throw new Error(`⚠️ No enemyTypes defined in event ${eventId}`);
     }
 
-    const scale = eventData.scale ?? { base: 1, scalePerLevel: 0.1, max: 5 };
+    const scale = eventData.scale ?? { base: 1, scalePerLevel: 0.1, max: 3 };
     const scaledCount = Math.min(scale.max ?? 5, Math.floor(scale.base + scale.scalePerLevel * level));
 
     const chosenIds = Array.from({ length: scaledCount }, () => {
@@ -119,29 +119,42 @@ export async function createPveEvent(
     });
 
     // 🦸 Fetch hero docs & snapshot stats
+    console.log(`🦸 Fetching hero snapshots for group ${groupId} → members: ${JSON.stringify(members)}`);
+
     const heroDocs = await db.getAll(...members.map(id => db.doc(`heroes/${id}`)));
     const heroes = await Promise.all(heroDocs.map(async snap => {
-      const d = snap.data() || {};
+      const data = snap.data() || {};
+      console.log(`📄 Loaded hero doc for ${snap.id}`);
 
       // Raw HP fields
-      const baseHp    = d.hp      ?? 100;
-      const baseHpMax = d.hpMax   ?? baseHp;
-      const regenRate = d.hpRegen ?? 0;
+      const baseHp    = data.hp      ?? 100;
+      const baseHpMax = data.hpMax   ?? baseHp;
+      const regenRate = data.hpRegen ?? 0;
 
-      const lastRegen = typeof d.lastRegenAt?.toMillis === 'function'
-        ? d.lastRegenAt.toMillis()
+      if (data.hp === undefined) console.warn(`⚠️ Hero ${snap.id} is missing 'hp', using fallback 100`);
+      if (data.hpMax === undefined) console.warn(`⚠️ Hero ${snap.id} is missing 'hpMax', using fallback = hp`);
+      if (data.hpRegen === undefined) console.warn(`⚠️ Hero ${snap.id} has no 'hpRegen', defaulting to 0`);
+
+      const lastRegen = typeof data.lastRegenAt?.toMillis === 'function'
+        ? data.lastRegenAt.toMillis()
         : Date.now();
+
+      // 🔍 Log BEFORE simulation
+      console.log(`📤 Simulating regen for hero ${snap.id}: hp=${baseHp}, hpMax=${baseHpMax}, regenRate=${regenRate}, lastRegenAt=${lastRegen}`);
 
       // Regen simulation
       const { hp, hpMax } = simulateRegenForHero({
         hp:          baseHp,
         hpMax:       baseHpMax,
         hpRegen:     regenRate,
-        mana:        d.mana        ?? 0,
-        manaMax:     d.manaMax     ?? 0,
-        manaRegen:   d.manaRegen   ?? 0,
+        mana:        data.mana        ?? 0,
+        manaMax:     data.manaMax     ?? 0,
+        manaRegen:   data.manaRegen   ?? 0,
         lastRegenAt: lastRegen,
       });
+
+
+      console.log(`💧 Regen applied for ${snap.id}: hp=${hp}/${hpMax} (base=${baseHp}/${baseHpMax})`);
 
       // Assigned spells
       const spellsSnap = await db.collection(`heroes/${snap.id}/assignedSpells`).get();
@@ -154,30 +167,34 @@ export async function createPveEvent(
         };
       });
 
-      return {
-        id:        snap.id,
-        name:      d.heroName ?? d.name ?? 'Unnamed Hero',
-        race:      d.race ?? 'unknown',
-        level:     d.level ?? 1,
-        xp:        d.xp    ?? 0,
+      console.log(`🪄 ${snap.id} assigned spells: ${assignedSpells.length}`);
 
-        // Combat snapshot
+      const heroSnapshot = {
+        id:            snap.id,
+        name:          data.heroName ?? data.name ?? 'Unnamed Hero',
+        race:          data.race ?? 'unknown',
+        level:         data.level ?? 1,
+        xp:            data.xp ?? 0,
+
         hp,
         hpMax,
-        hpRegen:   regenRate,
+        hpRegen:       regenRate,
 
-        // Other combat stats
-        attackMin:    d.combat?.attackMin     ?? 5,
-        attackMax:    d.combat?.attackMax     ?? 10,
-        attackSpeedMs:d.combat?.attackSpeedMs ?? 15000,
-        attackRating: d.combat?.at            ?? 0,
-        defense:      d.combat?.def           ?? d.combat?.defense ?? 0,
+        attackMin:     data.combat?.attackMin ?? 0,
+        attackMax:     data.combat?.attackMax ?? 0,
+        attackSpeedMs: data.combat?.attackSpeedMs ?? 15000,
+        attackRating:  data.combat?.at ?? 0,
+        defense:       data.combat?.def ?? data.combat?.defense ?? 0,
 
         assignedSpells,
       };
+
+      console.log(`📦 Hero snapshot for ${snap.id}:`, JSON.stringify(heroSnapshot, null, 2));
+      return heroSnapshot;
     }));
 
-    // 📝 Write combat doc
+    console.log(`📥 Preparing to write combat document with ${heroes.length} heroes and ${enemies.length} enemies.`);
+
     const combatRef = db.collection('combats').doc();
     await combatRef.set({
       groupId,
@@ -197,6 +214,8 @@ export async function createPveEvent(
       lastRegenAt: Date.now(),
     });
 
+    console.log(`✅ Combat document written: ${combatRef.id}`);
+
     return { type: 'combat', eventId, combatId: combatRef.id };
   } else {
     // 🌳 Peaceful encounter
@@ -214,6 +233,7 @@ export async function createPveEvent(
       source:      'pve',
       members,
     });
+
     return { type: 'peaceful', eventId, peacefulReportId: peacefulRef.id };
   }
 }

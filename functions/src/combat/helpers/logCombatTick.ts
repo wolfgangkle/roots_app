@@ -7,6 +7,7 @@ export async function logCombatTick({
   enemyLogs,
   updatedHeroes,
   updatedEnemies,
+  hpBeforeTick,
 }: {
   combatId: string;
   tick: number;
@@ -14,6 +15,7 @@ export async function logCombatTick({
   enemyLogs: Array<{ enemyIndex: number; heroId: string; damage: number }>;
   updatedHeroes: Array<{ id: string; hp: number } & Record<string, any>>;
   updatedEnemies: Array<{ hp: number } & Record<string, any>>;
+  hpBeforeTick?: Array<{ id: string; hp: number }>; // ✅ new optional field
 }): Promise<void> {
   const db = admin.firestore();
 
@@ -53,6 +55,7 @@ export async function logCombatTick({
     tick,
     heroAttacks: heroLogs,
     enemyAttacks: enemyLogs,
+    hpBeforeTick: hpBeforeTick ?? [], // ✅ new log entry
     heroesHpAfter,
     enemiesHpAfter,
     heroes: heroSnapshots,

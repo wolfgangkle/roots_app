@@ -1,48 +1,42 @@
-type FlatHero = {
-  id: string;
-  hp: number;
-  mana: number;
-  attackMin: number;
-  attackMax: number;
-  attackSpeedMs: number;
-  nextAttackAt: number;
-  lastHpRegenAt?: number;
-  lastManaRegenAt?: number;
-};
-
 export function applyRegenAndCooldowns(
-  heroes: FlatHero[],
+  heroes: any[], // Accept full hero objects
   lastTickAt: number
 ): {
-  updatedHeroes: FlatHero[];
+  updatedHeroes: any[];
   newLastTickAt: number;
 } {
   const now = Date.now();
 
   const updatedHeroes = heroes.map(hero => {
-    let hp = hero.hp;
-    let mana = hero.mana;
+    const hpRegenSec = hero.hpRegen ?? 0;
+    const manaRegenSec = hero.manaRegen ?? 0;
+
+    let hp = hero.hp ?? 0;
+    let mana = hero.mana ?? 0;
+    const hpMax = hero.hpMax ?? 9999;
+    const manaMax = hero.manaMax ?? 9999;
+
     let lastHpRegenAt = hero.lastHpRegenAt ?? now;
     let lastManaRegenAt = hero.lastManaRegenAt ?? now;
 
     // ♻️ HP Regen
-    if (hp < 9999 && hero.lastHpRegenAt != null) {
-      const intervalMs = 10000; // Fixed regen every 10s? Adjust per system.
+    if (hp < hpMax && hpRegenSec > 0) {
+      const intervalMs = hpRegenSec * 1000;
       const elapsedMs = now - lastHpRegenAt;
       const ticks = Math.floor(elapsedMs / intervalMs);
       if (ticks > 0) {
-        hp = hp + ticks; // No max cap applied here unless needed
+        hp = Math.min(hpMax, hp + ticks);
         lastHpRegenAt += ticks * intervalMs;
       }
     }
 
     // 💧 Mana Regen
-    if (mana < 9999 && hero.lastManaRegenAt != null) {
-      const intervalMs = 10000;
+    if (mana < manaMax && manaRegenSec > 0) {
+      const intervalMs = manaRegenSec * 1000;
       const elapsedMs = now - lastManaRegenAt;
       const ticks = Math.floor(elapsedMs / intervalMs);
       if (ticks > 0) {
-        mana = mana + ticks;
+        mana = Math.min(manaMax, mana + ticks);
         lastManaRegenAt += ticks * intervalMs;
       }
     }

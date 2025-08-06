@@ -29,25 +29,17 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     return;
   }
 
-  // ✅ FLATTEN HEROES FIRST
-  const flatHeroes = heroesRaw.map((h: any) => ({
+  // ✅ Save hp before tick
+  const hpBeforeTick = heroesRaw.map((h: any) => ({
     id: h.id,
-    hp: h.hp ?? 1,
-    mana: h.mana ?? 0,
-    attackMin: h.attackMin ?? 5,
-    attackMax: h.attackMax ?? 10,
-    attackSpeedMs: h.attackSpeedMs ?? 15000,
-    nextAttackAt: h.nextAttackAt ?? 0,
-    lastHpRegenAt: h.lastHpRegenAt,
-    lastManaRegenAt: h.lastManaRegenAt,
+    hp: h.hp,
   }));
 
-
-  // 🧪 Step 0: Regen + cooldowns
+  // 🧪 Step 0: Regen + cooldowns (keeps full hero object, patches only changing fields)
   const {
-    updatedHeroes: heroesWithRegen,
+    updatedHeroes: regenAppliedHeroes,
     newLastTickAt,
-  } = applyRegenAndCooldowns(flatHeroes, lastTickAt);
+  } = applyRegenAndCooldowns(heroesRaw, lastTickAt);
 
   // 🗡️ Step 1: Hero attacks
   const {
@@ -55,23 +47,15 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     heroLogs,
     heroUpdates,
   } = await resolveHeroAttacks({
-    heroes: heroesWithRegen,
+    heroes: regenAppliedHeroes,
     enemies,
   });
 
-  // ✨ Step 1.5: Patch nextAttackAt
-  const heroesWithNextAttackAt = heroesWithRegen.map(h => ({
-    id: h.id,
-    hp: h.hp,
-    mana: h.mana,
-    attackMin: h.attackMin,
-    attackMax: h.attackMax,
-    attackSpeedMs: h.attackSpeedMs,
-    lastHpRegenAt: h.lastHpRegenAt,
-    lastManaRegenAt: h.lastManaRegenAt,
+  // ✨ Step 1.5: Patch nextAttackAt but preserve all other fields
+  const heroesWithNextAttackAt = regenAppliedHeroes.map((h: any) => ({
+    ...h,
     nextAttackAt: heroUpdates[h.id] ?? h.nextAttackAt,
   }));
-
 
   // 💀 Step 2: Enemies attack heroes
   const {
@@ -111,9 +95,10 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     enemyLogs,
     updatedHeroes,
     updatedEnemies,
+    hpBeforeTick,
   });
 
-  // 💾 Step 6: Persist tick
+  // 💾 Step 6: Persist tick — full hero object stays intact!
   await db.collection('combats').doc(combatId).update({
     tick,
     lastTickAt: newLastTickAt,

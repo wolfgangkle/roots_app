@@ -34,36 +34,31 @@ export async function checkCombatOutcomeAndUpdate({
 
   if (newState === 'ended') {
     updates.endedAt = admin.firestore.FieldValue.serverTimestamp();
-  }
 
-  // 🎓 XP reward logic (PvE only)
-  if (
-    newState === 'ended' &&
-    combat.eventId &&
-    !combat.pvp &&
-    combat.enemyXpTotal &&
-    livingEnemies.length === 0
-  ) {
-    const survivors = livingHeroes;
-    const xpPerHero = Math.floor(combat.enemyXpTotal / (survivors.length || 1));
+    // 🎓 XP payout from dead enemies
+    const totalXp = updatedEnemies
+      .filter(e => (e.hp ?? 1) <= 0)
+      .reduce((sum, e) => sum + (e.xp ?? 0), 0);
 
-    for (const hero of survivors) {
+    const xpPerHero = Math.floor(totalXp / (livingHeroes.length || 1));
+
+    for (const hero of livingHeroes) {
       await db.collection('heroes').doc(hero.id).update({
         experience: admin.firestore.FieldValue.increment(xpPerHero),
       });
       console.log(`🎉 Hero ${hero.id} gains ${xpPerHero} XP`);
     }
 
-    updates.xp = combat.enemyXpTotal;
-    updates.message = `Defeated ${combat.enemyCount ?? '?'} ${combat.enemyName ?? 'enemies'} for ${combat.enemyXpTotal} XP.`;
-    updates.reward = ['gold']; // 💰 TODO: Expand loot system
+    updates.xp = totalXp;
+    updates.message = `Defeated ${combat.enemyCount ?? '?'} ${combat.enemyName ?? 'enemies'} for ${totalXp} XP.`;
+    updates.reward = ['gold']; // 💰 Placeholder for loot system
   }
 
   await combatRef.update(updates);
   console.log(`🧾 Combat ${combatId} state: ${newState}`);
 
   if (newState === 'ended') {
-    await handleCombatEnded(combat); // 🧹 Resume movement or idle
+    await handleCombatEnded(combat); // 🧹 Cleanup & resume movement
   }
 
   return newState;
