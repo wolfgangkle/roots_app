@@ -13,6 +13,16 @@ export async function handleCombatEnded(combat: any): Promise<void> {
     return;
   }
 
+  // Build authoritative sets from combat.heroes (final HP list)
+  const combatHeroes: Array<{ id: string; hp: number }> = Array.isArray(combat.heroes) ? combat.heroes : [];
+  const deadIds = new Set<string>(
+    combatHeroes.filter((h) => (h?.hp ?? 0) <= 0).map((h) => String(h.id))
+  );
+  const aliveIdsFromCombat = new Set<string>(
+    combatHeroes.filter((h) => (h?.hp ?? 0) > 0).map((h) => String(h.id))
+  );
+  console.log(`[handleCombatEnded] combat=${combatId} groupId=${groupId} combatHeroes=${combatHeroes.length} deadIds=[${[...deadIds].join(',')}] aliveIds=[${[...aliveIdsFromCombat].join(',')}]`);
+
   const groupRef = db.collection('heroGroups').doc(groupId);
   const groupSnap = await groupRef.get();
   if (!groupSnap.exists) {
@@ -27,9 +37,6 @@ export async function handleCombatEnded(combat: any): Promise<void> {
   // Your schema uses 'members'
   const heroIds: string[] = Array.isArray(group.members) ? group.members : [];
 
-  // Combat heroes array should include per-hero hp
-  const combatHeroes: any[] = Array.isArray(combat.heroes) ? combat.heroes : [];
-
   // Survivors get state update; dead heroes are finalized by finalizeHeroDeath()
   const heroSnaps = await db.getAll(...heroIds.map((id: string) => db.doc(`heroes/${id}`)));
   const batch = db.batch();
@@ -40,8 +47,10 @@ export async function handleCombatEnded(combat: any): Promise<void> {
   for (const snap of heroSnaps) {
     if (!snap.exists) continue;
     const heroId = snap.id;
-    const combatHero = combatHeroes.find((h) => h.id === heroId);
-    const isDead = (combatHero?.hp ?? 1) <= 0;
+
+    // If a hero appears in group but not in combat.heroes, treat as DEAD (fail-closed).
+    const appearsInCombat = aliveIdsFromCombat.has(heroId) || deadIds.has(heroId);
+    const isDead = appearsInCombat ? deadIds.has(heroId) : true;
 
     const heroRef = snap.ref;
 
@@ -52,7 +61,7 @@ export async function handleCombatEnded(combat: any): Promise<void> {
         // activeCombatId will be irrelevant after deletion; not necessary to clear here.
       });
       deadHeroIds.push(heroId);
-      console.log(`☠️ Hero ${heroId} flagged dead in combat ${combatId}`);
+      console.log(`☠️ Hero ${heroId} flagged dead in combat ${combatId} (appearsInCombat=${appearsInCombat})`);
     } else {
       // Survived → clear combat, set state according to queue
       batch.update(heroRef, {
@@ -72,9 +81,8 @@ export async function handleCombatEnded(combat: any): Promise<void> {
 
   // Group state is tentative; after finalizers run, the group might be deleted or have different members.
   if (resumeMovement) {
-    groupUpdate.state = 'arrived';
+    groupUpdate.state = 'arrived'; // cleanup done, movement may resume
   } else {
-    // If no queue, we’ll set idle for now; if all members die, finalizers may delete the group anyway.
     groupUpdate.state = aliveHeroIds.length === 0 ? 'dead' : 'idle';
   }
 
@@ -83,12 +91,12 @@ export async function handleCombatEnded(combat: any): Promise<void> {
 
   // Finalize deaths (copy → graveyard, copy learned_spells, update group membership/leader, slot usage, delete hero)
   if (deadHeroIds.length > 0) {
+    console.log(`[handleCombatEnded] finalizing deaths for: ${deadHeroIds.join(',')}`);
     // Pull tile from group (authoritative position for the group)
     const tileX: number = group.tileX ?? 0;
     const tileY: number = group.tileY ?? 0;
     const insideVillage: boolean = !!group.insideVillage;
 
-    // We need each hero's ownerId and type → read per hero doc (we already loaded in heroSnaps)
     const nowTs = admin.firestore.Timestamp.now();
 
     for (const snap of heroSnaps) {
@@ -120,6 +128,8 @@ export async function handleCombatEnded(combat: any): Promise<void> {
         console.error(`❌ finalizeHeroDeath failed for hero ${heroId} in combat ${combatId}:`, e);
       }
     }
+  } else {
+    console.log(`[handleCombatEnded] no dead heroes to finalize for combat ${combatId}`);
   }
 
   // After finalizers, the group may have been modified or deleted. Re-read to decide movement.
