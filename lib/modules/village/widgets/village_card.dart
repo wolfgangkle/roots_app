@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -8,8 +9,12 @@ import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dar
 import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.dart';
 import 'package:roots_app/modules/village/data/building_definitions.dart';
 import 'package:roots_app/modules/village/data/items.dart';
-import 'package:roots_app/widgets/mini_glass_card.dart'; // glass card
-import 'dart:ui' show FontFeature;
+import 'package:roots_app/widgets/mini_glass_card.dart';
+import 'package:roots_app/theme/tokens.dart'; // 👈 token import
+import 'package:roots_app/theme/app_style_manager.dart';
+
+final glass = kStyle.glass;
+final colors = kStyle.textOnGlass;
 
 
 class VillageCard extends StatefulWidget {
@@ -63,27 +68,28 @@ class VillageCardState extends State<VillageCard> {
     final crafting = widget.village.currentCraftingJob;
     final freeWorkers = widget.village.freeWorkers;
 
-    // Softer typography for dark glass
+    // 🟢 Use design tokens for text
+    final t = kStyle.textOnGlass;
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w700,
-      color: Colors.white.withOpacity(0.95),
+      color: t.primary.withOpacity(0.95),
     );
     final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color: Colors.white.withOpacity(0.75),
+      color: t.secondary.withOpacity(0.75),
     );
     final subtleStyle = bodyStyle?.copyWith(
-      color: Colors.white.withOpacity(0.64),
+      color: t.subtle.withOpacity(0.64),
     );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: MiniGlassCard(
         onTap: widget.onTap,
-        // Tweak these to taste:
-        opacity: 0.28,        // lower = more transparent
-        sigma: 10,            // blur strength
-        strokeOpacity: 0.16,  // open-border visibility
-        cornerGap: 16,        // larger = more "open" corners
+        // 🟢 Use tokens for styling (but allow later overrides)
+        opacity: kStyle.glass.opacity,
+        sigma: kStyle.glass.blurSigma,
+        strokeOpacity: 0.16,
+        cornerGap: kStyle.glass.cornerGap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -144,7 +150,7 @@ class VillageCardState extends State<VillageCard> {
                 'Upgrading: ${_getBuildingDisplayName(upgrade.buildingType)}',
                 style: bodyStyle?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: Colors.white.withOpacity(0.92),
+                  color: t.primary.withOpacity(0.92),
                 ),
               ),
               const SizedBox(height: 4),
@@ -162,7 +168,7 @@ class VillageCardState extends State<VillageCard> {
                 'Crafting: ${_getItemName(crafting['itemId'])}',
                 style: bodyStyle?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: Colors.white.withOpacity(0.92),
+                  color: t.primary.withOpacity(0.92),
                 ),
               ),
               const SizedBox(height: 4),
@@ -211,11 +217,10 @@ class VillageCardState extends State<VillageCard> {
       formatNumber(value),
       textAlign: TextAlign.right,
       style: (valueStyle ?? const TextStyle()).copyWith(
-        fontFeatures: const [FontFeature.tabularFigures()], // 👈 monospaced digits
+        fontFeatures: const [FontFeature.tabularFigures()],
         fontWeight: isFull ? FontWeight.bold : FontWeight.normal,
       ),
     );
-
 
     final workerText = isGold
         ? Text('-', textAlign: TextAlign.right, style: miscStyle)

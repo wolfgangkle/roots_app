@@ -9,11 +9,8 @@ import 'package:roots_app/screens/home/main_home_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/map/providers/terrain_provider.dart';
 import 'package:roots_app/modules/settings/models/user_settings_model.dart';
-import 'package:roots_app/widgets/global_background.dart'; // 🌄 Added import
-
-// 🌿 Accent colors
-const Color kAccentGreenLight = Color(0xFF3B5743); // earthy green
-const Color kAccentGreenDark = Color(0xFF5B7C68);  // muted moss green
+import 'package:roots_app/widgets/global_background.dart';
+import 'package:roots_app/theme/app_style_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,28 +30,21 @@ void main() async {
         ChangeNotifierProvider(create: (_) => MainContentController()),
         ChangeNotifierProvider(create: (_) => TerrainProvider()),
         ChangeNotifierProvider.value(value: userSettingsModel),
+        ChangeNotifierProvider(create: (_) => StyleManager()),
       ],
       child: const MyApp(),
     ),
   );
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<UserSettingsModel>();
 
-    debugPrint(
-        '🌙 BUILD → darkMode: ${settings.darkMode} | loaded: ${settings.isLoaded}');
-
-    // ⏳ While settings are loading → fallback loader
+    // ⏳ Wait for Firestore user settings to load
     if (!settings.isLoaded) {
       return const MaterialApp(
         home: Scaffold(
@@ -63,86 +53,13 @@ class _MyAppState extends State<MyApp> {
       );
     }
 
+    // 🌿 Currently, we don’t use Flutter’s native light/dark themes anymore,
+    // because our token-based styles handle all visual customization.
     return MaterialApp(
       title: 'Roots',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: const ColorScheme.light(
-          primary: kAccentGreenLight,
-          onPrimary: Colors.white,
-          secondary: Color(0xFF8D8D8D),
-          onSecondary: Colors.white,
-          surface: Colors.white,
-          onSurface: Colors.black87,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF8F8F8),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 1,
-        ),
-        cardTheme: const CardTheme(
-          color: Colors.white,
-          elevation: 2,
-          margin: EdgeInsets.all(8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kAccentGreenLight,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        textTheme: ThemeData.light().textTheme.apply(
-          bodyColor: Colors.black87,
-          displayColor: Colors.black87,
-        ),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: const ColorScheme.dark(
-          primary: kAccentGreenDark,
-          onPrimary: Colors.black,
-          secondary: Color(0xFF03DAC6),
-          onSecondary: Colors.black,
-          surface: Color(0xFF1E1E1E),
-          onSurface: Colors.white,
-        ),
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1E1E1E),
-          foregroundColor: Colors.white,
-          elevation: 1,
-        ),
-        cardTheme: const CardTheme(
-          color: Color(0xFF1E1E1E),
-          elevation: 2,
-          margin: EdgeInsets.all(8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kAccentGreenDark,
-            foregroundColor: Colors.black,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        textTheme: ThemeData.dark().textTheme.apply(
-          bodyColor: Colors.white,
-          displayColor: Colors.white,
-        ),
-      ),
-      themeMode: settings.darkMode ? ThemeMode.dark : ThemeMode.light,
 
-      // 🌄 Apply global background here
+      // 🌄 Apply global background via builder
       builder: (context, child) {
         return GlobalBackground(child: child ?? const SizedBox());
       },

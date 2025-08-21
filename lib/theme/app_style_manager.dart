@@ -1,0 +1,40 @@
+import 'package:flutter/material.dart';
+import 'tokens.dart';
+import 'dark_forge.dart';
+import 'silver_grove.dart';
+
+/// Enum for your selectable themes
+enum AppTheme {
+  darkForge,
+  silverGrove,
+}
+
+/// Global tokens reference for legacy callers.
+/// It stays in sync with StyleManager.
+AppStyleTokens kStyle = darkForge;
+
+class StyleManager extends ChangeNotifier {
+  AppTheme _current = AppTheme.darkForge;
+
+  static final Map<AppTheme, AppStyleTokens> _styles = {
+    AppTheme.darkForge: darkForge,
+    AppTheme.silverGrove: silverGrove,
+  };
+
+  /// Read the active tokens (for widgets using Provider)
+  AppStyleTokens get currentStyle => _styles[_current]!;
+
+  /// Read which enum is active (useful for radio buttons)
+  AppTheme get current => _current;
+
+  /// Change theme and notify listeners (also updates kStyle for legacy code)
+  void setTheme(AppTheme theme) {
+    if (_current == theme) return;
+    _current = theme;
+    kStyle = _styles[theme]!;
+    notifyListeners();
+  }
+
+  /// Optional helper if you ever need names in UI
+  String get currentName => _current.name;
+}

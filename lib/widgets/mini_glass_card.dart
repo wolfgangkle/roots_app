@@ -1,46 +1,60 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:roots_app/theme/tokens.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/theme/app_style_manager.dart';
 
 class MiniGlassCard extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
-  final EdgeInsetsGeometry padding;
-  final double radius;
-  final double sigma;            // backdrop blur
-  final double opacity;          // tint opacity (0..1)
-  final Color baseColor;         // tint color
 
-  // Border-related (now optional)
-  final bool showOpenBorder;     // ⬅️ OFF by default
-  final double strokeOpacity;    // used only if showOpenBorder = true
-  final double strokeWidth;      // used only if showOpenBorder = true
-  final double cornerGap;        // used only if showOpenBorder = true
+  // Optional overrides; if null we use tokens
+  final EdgeInsetsGeometry? padding;
+  final double? radius;
+  final double? sigma;        // blur
+  final double? opacity;      // tint alpha
+  final Color? baseColor;
 
-  // Optional film grain
+  // Optional extras
   final bool showGrain;
+
+  // Border is off by default; you can re-enable later if wanted
+  final bool showOpenBorder;
+  final double? strokeOpacity;
+  final double? strokeWidth;
+  final double? cornerGap;
 
   const MiniGlassCard({
     super.key,
     required this.child,
     this.onTap,
-    this.padding = const EdgeInsets.all(12),
-    this.radius = 14,
-    this.sigma = 12,
-    this.opacity = 0.26,
-    this.baseColor = const Color(0xFF1A1A1A),
-
-    // borders are now opt-in
-    this.showOpenBorder = false,
-    this.strokeOpacity = 0.16,
-    this.strokeWidth = 1.0,
-    this.cornerGap = 14.0,
-
+    this.padding,
+    this.radius,
+    this.sigma,
+    this.opacity,
+    this.baseColor,
     this.showGrain = false,
+    this.showOpenBorder = false,
+    this.strokeOpacity,
+    this.strokeWidth,
+    this.cornerGap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final r = Radius.circular(radius);
+    final g = context.watch<StyleManager>().currentStyle.glass;
+
+    final effectivePadding = padding ?? const EdgeInsets.all(12);
+    final effectiveRadius  = radius  ?? g.cornerGap; // reuse cornerGap as shape radius token
+    final r = Radius.circular(effectiveRadius);
+
+    final effectiveSigma   = sigma    ?? g.blurSigma;
+    final effectiveOpacity = opacity  ?? g.opacity;
+    final effectiveColor   = baseColor ?? g.baseColor;
+
+    final effectiveStrokeOpacity = strokeOpacity ?? 0.0;
+    final effectiveStrokeWidth   = strokeWidth   ?? 1.0;
+    final effectiveCornerGap     = cornerGap     ?? g.cornerGap;
 
     return ClipRRect(
       borderRadius: BorderRadius.all(r),
@@ -49,7 +63,7 @@ class MiniGlassCard extends StatelessWidget {
           // Frosted blur
           Positioned.fill(
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+              filter: ImageFilter.blur(sigmaX: effectiveSigma, sigmaY: effectiveSigma),
               child: const SizedBox.expand(),
             ),
           ),
@@ -58,7 +72,7 @@ class MiniGlassCard extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: baseColor.withOpacity(opacity),
+                color: effectiveColor.withOpacity(effectiveOpacity),
               ),
             ),
           ),
@@ -95,15 +109,14 @@ class MiniGlassCard extends StatelessWidget {
             ),
 
           // Optional open-border (off by default)
-          if (showOpenBorder && strokeOpacity > 0 && strokeWidth > 0)
+          if (showOpenBorder && effectiveStrokeOpacity > 0 && effectiveStrokeWidth > 0)
             Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(
                   painter: _OpenBorderPainter(
-                    strokeColor: Colors.white.withOpacity(strokeOpacity),
-                    strokeWidth: strokeWidth,
-                    radius: radius,
-                    cornerGap: cornerGap,
+                    strokeColor: Colors.white.withOpacity(effectiveStrokeOpacity),
+                    strokeWidth: effectiveStrokeWidth,
+                    cornerGap: effectiveCornerGap,
                   ),
                 ),
               ),
@@ -115,7 +128,7 @@ class MiniGlassCard extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.all(r),
               onTap: onTap,
-              child: Padding(padding: padding, child: child),
+              child: Padding(padding: effectivePadding, child: child),
             ),
           ),
         ],
@@ -127,13 +140,11 @@ class MiniGlassCard extends StatelessWidget {
 class _OpenBorderPainter extends CustomPainter {
   final Color strokeColor;
   final double strokeWidth;
-  final double radius;
   final double cornerGap;
 
   _OpenBorderPainter({
     required this.strokeColor,
     required this.strokeWidth,
-    required this.radius,
     required this.cornerGap,
   });
 
@@ -145,37 +156,16 @@ class _OpenBorderPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    // Top
-    canvas.drawLine(
-      Offset(cornerGap, 0),
-      Offset(size.width - cornerGap, 0),
-      paint,
-    );
-    // Bottom
-    canvas.drawLine(
-      Offset(cornerGap, size.height),
-      Offset(size.width - cornerGap, size.height),
-      paint,
-    );
-    // Left
-    canvas.drawLine(
-      Offset(0, cornerGap),
-      Offset(0, size.height - cornerGap),
-      paint,
-    );
-    // Right
-    canvas.drawLine(
-      Offset(size.width, cornerGap),
-      Offset(size.width, size.height - cornerGap),
-      paint,
-    );
+    // open edges (no corners)
+    canvas.drawLine(Offset(cornerGap, 0), Offset(size.width - cornerGap, 0), paint);
+    canvas.drawLine(Offset(cornerGap, size.height), Offset(size.width - cornerGap, size.height), paint);
+    canvas.drawLine(Offset(0, cornerGap), Offset(0, size.height - cornerGap), paint);
+    canvas.drawLine(Offset(size.width, cornerGap), Offset(size.width, size.height - cornerGap), paint);
   }
 
   @override
-  bool shouldRepaint(covariant _OpenBorderPainter oldDelegate) {
-    return strokeColor != oldDelegate.strokeColor ||
-        strokeWidth != oldDelegate.strokeWidth ||
-        radius != oldDelegate.radius ||
-        cornerGap != oldDelegate.cornerGap;
-  }
+  bool shouldRepaint(covariant _OpenBorderPainter old) =>
+      strokeColor != old.strokeColor ||
+          strokeWidth != old.strokeWidth ||
+          cornerGap != old.cornerGap;
 }

@@ -2,49 +2,49 @@ import 'package:flutter/material.dart';
 
 class GlassTokens {
   final Color baseColor;
-  final double opacity;      // 0..1
+  final double opacity;
   final double blurSigma;
-  final bool showBorder;     // we keep off by default
+  final bool showBorder;
   final double cornerGap;
 
   const GlassTokens({
-    this.baseColor = const Color(0xFF1A1A1A),
-    this.opacity = 0.28,
-    this.blurSigma = 10,
-    this.showBorder = false,
-    this.cornerGap = 16,
+    required this.baseColor,
+    required this.opacity,
+    required this.blurSigma,
+    required this.showBorder,
+    required this.cornerGap,
   });
 }
 
 class BackgroundTokens {
   final String assetPath;
   final double blurSigma;
-  final double darken;       // 0..1
-  final double lightenAdd;   // 0..1 (keep 0 to avoid milkiness)
+  final double darken;
+  final double lightenAdd;
 
   const BackgroundTokens({
-    this.assetPath = 'assets/images/backgrounds/roots_global_background.png',
-    this.blurSigma = 26,
-    this.darken = 0.36,
-    this.lightenAdd = 0.00,
+    required this.assetPath,
+    required this.blurSigma,
+    required this.darken,
+    required this.lightenAdd,
   });
 }
 
 class TextOnGlassTokens {
-  final Color primary;   // titles/numbers
-  final Color secondary; // body
-  final Color subtle;    // hints/brackets etc.
+  final Color primary;
+  final Color secondary;
+  final Color subtle;
 
   const TextOnGlassTokens({
-    this.primary = const Color(0xFFFFFFFF),            // we’ll apply opacity in code
-    this.secondary = const Color(0xFFFFFFFF),
-    this.subtle = const Color(0xFFFFFFFF),
+    required this.primary,
+    required this.secondary,
+    required this.subtle,
   });
 }
 
 class RadiusTokens {
   final double card;
-  const RadiusTokens({ this.card = 14 });
+  const RadiusTokens({required this.card});
 }
 
 class AppStyleTokens {
@@ -54,12 +54,9 @@ class AppStyleTokens {
   final RadiusTokens radius;
 
   const AppStyleTokens({
-    this.glass = const GlassTokens(),
-    this.background = const BackgroundTokens(),
-    this.textOnGlass = const TextOnGlassTokens(),
-    this.radius = const RadiusTokens(),
+    required this.glass,
+    required this.background,
+    required this.textOnGlass,
+    required this.radius,
   });
 }
-
-// Current default (your “Dark Forge” look)
-const kStyle = AppStyleTokens();
