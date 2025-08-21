@@ -25,10 +25,7 @@ export async function createCompanionLogic(request: any) {
   const companionName =
     typeof name === 'string' && name.trim().length > 0 ? name.trim() : 'Unnamed Companion';
 
-  const movementModifiers: Record<string, number> = {
-    human: 0,
-    dwarf: 400,
-  };
+  const movementModifiers: Record<string, number> = { human: 0, dwarf: 400 };
   const raceMovementOffset = movementModifiers[normalizedRace] ?? 0;
 
   const usedVillages = profileData.currentSlotUsage.villages ?? 0;
@@ -74,7 +71,8 @@ export async function createCompanionLogic(request: any) {
   const newHeroRef = db.collection('heroes').doc();
   const heroId = newHeroRef.id;
   const tileKey = `${tileX}_${tileY}`;
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const nowTs = admin.firestore.FieldValue.serverTimestamp();
+  const nowMs = Date.now(); // ✅ numeric ms for regen clocks
 
   const baseStats = {
     strength: 10,
@@ -98,6 +96,10 @@ export async function createCompanionLogic(request: any) {
 
   const baseMovementSpeed = Math.max(600, baseSpeedBeforeRace + raceMovementOffset);
 
+  // ✅ Defensive normalization for tick intervals (seconds PER +1 point)
+  const hpRegenTick = Math.max(1, Math.round(hpRegen ?? 0));      // e.g., 270 => +1 HP every 270s
+  const manaRegenTick = Math.max(1, Math.round(manaRegen ?? 0));  // e.g., 270 => +1 Mana every 270s
+
   await db.runTransaction(async (tx) => {
     const heroData = {
       ownerId: userId,
@@ -109,14 +111,26 @@ export async function createCompanionLogic(request: any) {
       groupId: heroId,
       groupLeaderId: null,
       stats: baseStats,
+
+      // Core vitals
       hp: hpMax,
       hpMax,
       mana: manaMax,
       manaMax,
+
+      // ✅ Regen config (TICK model: seconds PER +1 point)
+      hpRegen: hpRegenTick,
+      manaRegen: manaRegenTick,
+
+      // ✅ Initialize separate regen clocks (numbers, ms epoch)
+      lastHpRegenAt: nowMs,
+      lastManaRegenAt: nowMs,
+
+      // (Optional legacy single clock for any old readers)
+      lastRegenAt: nowMs,
+
       combatLevel,
       combat, // ✅ cleaned, no duplicate combatLevel
-      hpRegen,
-      manaRegen,
       foodDuration: 3600,
       baseMovementSpeed,
       movementSpeed: baseMovementSpeed,
@@ -124,7 +138,7 @@ export async function createCompanionLogic(request: any) {
       carryCapacity,
       currentWeight: 0,
       state: 'idle',
-      createdAt: now,
+      createdAt: nowTs,
     };
 
     const groupRef = db.collection('heroGroups').doc(heroId);
@@ -138,8 +152,8 @@ export async function createCompanionLogic(request: any) {
       baseMovementSpeed,
       movementSpeed: baseMovementSpeed,
       insideVillage: true,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: nowTs,
+      updatedAt: nowTs,
       combatLevel,
     };
 

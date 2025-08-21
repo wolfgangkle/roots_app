@@ -1,6 +1,5 @@
 import * as admin from 'firebase-admin';
 import { randomUUID } from 'crypto';
-import { simulateRegenForHero } from './simulateRegenForHero.js';
 
 const db = admin.firestore();
 
@@ -80,7 +79,7 @@ export async function createPveEvent(
       throw new Error(`⚠️ No enemyTypes defined in event ${eventId}`);
     }
 
-    const scale = eventData.scale ?? { base: 1, scalePerLevel: 0.1, max: 3 };
+    const scale = eventData.scale ?? { base: 1, scalePerLevel: 0.015, max: 3 };
     const scaledCount = Math.min(scale.max ?? 5, Math.floor(scale.base + scale.scalePerLevel * level));
 
     const chosenIds = Array.from({ length: scaledCount }, () => {
@@ -118,7 +117,7 @@ export async function createPveEvent(
       };
     });
 
-    // 🦸 Fetch hero docs & snapshot stats
+    // 🦸 Fetch hero docs & build snapshot **without** re-simulating regen
     console.log(`🦸 Fetching hero snapshots for group ${groupId} → members: ${JSON.stringify(members)}`);
 
     const heroDocs = await db.getAll(...members.map(id => db.doc(`heroes/${id}`)));
@@ -126,35 +125,12 @@ export async function createPveEvent(
       const data = snap.data() || {};
       console.log(`📄 Loaded hero doc for ${snap.id}`);
 
-      // Raw HP fields
-      const baseHp    = data.hp      ?? 100;
-      const baseHpMax = data.hpMax   ?? baseHp;
-      const regenRate = data.hpRegen ?? 0;
+      // Use DB values as-is (they were just updated on arrival)
+      const hp    = data.hp      ?? 100;
+      const hpMax = data.hpMax   ?? hp;
 
-      if (data.hp === undefined) console.warn(`⚠️ Hero ${snap.id} is missing 'hp', using fallback 100`);
-      if (data.hpMax === undefined) console.warn(`⚠️ Hero ${snap.id} is missing 'hpMax', using fallback = hp`);
-      if (data.hpRegen === undefined) console.warn(`⚠️ Hero ${snap.id} has no 'hpRegen', defaulting to 0`);
-
-      const lastRegen = typeof data.lastRegenAt?.toMillis === 'function'
-        ? data.lastRegenAt.toMillis()
-        : Date.now();
-
-      // 🔍 Log BEFORE simulation
-      console.log(`📤 Simulating regen for hero ${snap.id}: hp=${baseHp}, hpMax=${baseHpMax}, regenRate=${regenRate}, lastRegenAt=${lastRegen}`);
-
-      // Regen simulation
-      const { hp, hpMax } = simulateRegenForHero({
-        hp:          baseHp,
-        hpMax:       baseHpMax,
-        hpRegen:     regenRate,
-        mana:        data.mana        ?? 0,
-        manaMax:     data.manaMax     ?? 0,
-        manaRegen:   data.manaRegen   ?? 0,
-        lastRegenAt: lastRegen,
-      });
-
-
-      console.log(`💧 Regen applied for ${snap.id}: hp=${hp}/${hpMax} (base=${baseHp}/${baseHpMax})`);
+      if (data.hp === undefined)    console.warn(`⚠️ Hero ${snap.id} is missing 'hp', using fallback 100`);
+      if (data.hpMax === undefined)  console.warn(`⚠️ Hero ${snap.id} is missing 'hpMax', using fallback = hp`);
 
       // Assigned spells
       const spellsSnap = await db.collection(`heroes/${snap.id}/assignedSpells`).get();
@@ -176,9 +152,13 @@ export async function createPveEvent(
         level:         data.level ?? 1,
         xp:            data.xp ?? 0,
 
+        // ✅ No regen here — use current DB state
         hp,
         hpMax,
-        hpRegen:       regenRate,
+        hpRegen:       data.hpRegen ?? null,       // optional to keep for reference/UI
+        mana:          data.mana ?? undefined,
+        manaMax:       data.manaMax ?? undefined,
+        manaRegen:     data.manaRegen ?? null,     // optional to keep for reference/UI
 
         attackMin:     data.combat?.attackMin ?? 0,
         attackMax:     data.combat?.attackMax ?? 0,
@@ -211,7 +191,9 @@ export async function createPveEvent(
       heroActions: [],
       enemyActions: [],
       combatLog:   [],
-      lastRegenAt: Date.now(),
+      // Optionally keep a combat-local clock if needed by your tick engine:
+      // lastTickAt: admin.firestore.Timestamp.now(),
+      // settings: { disableCombatRegen: true }, // if you decide to gate it
     });
 
     console.log(`✅ Combat document written: ${combatRef.id}`);

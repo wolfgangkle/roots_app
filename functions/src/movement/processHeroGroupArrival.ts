@@ -5,8 +5,72 @@ import { maybeTriggerPveEvent } from './maybeTriggerPveEvent.js';
 import { createPveEvent } from './createPveEvent.js';
 import { handleTriggeredPveEvent } from './handleTriggeredPveEvent.js';
 import { HeroGroupData } from '../types/heroGroupData.js';
+import { simulateRegenForHero } from './simulateRegenForHero.js';
 
 const db = admin.firestore();
+
+/**
+ * Persist out-of-combat regen for all heroes in the group.
+ * ✅ Tick model: hpRegen / manaRegen = seconds PER +1 point.
+ * Uses separate clocks lastHpRegenAt / lastManaRegenAt (number ms or Firestore Timestamp).
+ * Writes numeric ms epoch back for both timestamps.
+ */
+async function persistOutOfCombatRegenForGroup(groupId: string, group: HeroGroupData) {
+  const nowMs = Date.now();
+  const heroIds: string[] = Array.isArray(group?.members) ? group.members : [];
+  if (!heroIds.length) return;
+
+  // Load heroes
+  const heroRefs = heroIds.map((id) => db.collection('heroes').doc(id));
+  const heroSnaps = await db.getAll(...heroRefs);
+
+  const batch = db.batch();
+  let updates = 0;
+
+  // Normalize potential Firestore Timestamps to ms numbers
+  const toMs = (v: any) => (typeof v === 'number' ? v : v?.toMillis?.() ?? undefined);
+
+  for (const snap of heroSnaps) {
+    if (!snap.exists) continue;
+    const h = snap.data() || {};
+
+    const sim = simulateRegenForHero(
+      {
+        hp: h.hp ?? 0,
+        hpMax: h.hpMax ?? 0,
+        mana: h.mana,
+        manaMax: h.manaMax,
+
+        // ⏱️ Seconds PER +1 point (tick model)
+        hpRegen: h.hpRegen,       // e.g., 270  => +1 HP every 270s
+        manaRegen: h.manaRegen,   // e.g., 270  => +1 Mana every 270s
+
+        // Separate clocks with legacy fallback
+        lastHpRegenAt: toMs(h.lastHpRegenAt) ?? toMs(h.lastRegenAt),
+        lastManaRegenAt: toMs(h.lastManaRegenAt) ?? toMs(h.lastRegenAt),
+        lastRegenAt: toMs(h.lastRegenAt),
+      },
+      nowMs
+    );
+
+    const update: Record<string, any> = {
+      hp: sim.hp,
+      lastHpRegenAt: sim.lastHpRegenAt,     // numeric ms (advanced by applied ticks only)
+      lastManaRegenAt: sim.lastManaRegenAt, // numeric ms (advanced by applied ticks only)
+    };
+    if (h.manaMax != null) update.mana = sim.mana;
+
+    batch.update(snap.ref, update);
+    updates++;
+  }
+
+  if (updates > 0) {
+    await batch.commit();
+    console.log(`💾 Regen persisted for ${updates} hero(es) in group ${groupId}.`);
+  } else {
+    console.log(`ℹ️ No hero updates necessary for regen in group ${groupId}.`);
+  }
+}
 
 export async function processHeroGroupArrival(groupId: string) {
   console.log(`📦 processHeroGroupArrival(${groupId}) started`);
@@ -20,7 +84,9 @@ export async function processHeroGroupArrival(groupId: string) {
   }
 
   const group = groupSnap.data()!;
-  console.log(`📄 Group data loaded. State: ${group.state}, Returning: ${group.returning}, Waypoints: ${group.waypoints?.length ?? 0}`);
+  console.log(
+    `📄 Group data loaded. State: ${group.state}, Returning: ${group.returning}, Waypoints: ${group.waypoints?.length ?? 0}`
+  );
 
   // 🏠 Handle returning logic
   if (group.returning) {
@@ -45,7 +111,9 @@ export async function processHeroGroupArrival(groupId: string) {
 
   // ⚠️ Only allow execution if in 'moving' or 'arrived' state
   if (group.state !== 'arrived' && group.state !== 'moving') {
-    console.log(`⏩ Group ${groupId} is not in 'moving' or 'arrived' state (${group.state}). Skipping.`);
+    console.log(
+      `⏩ Group ${groupId} is not in 'moving' or 'arrived' state (${group.state}). Skipping.`
+    );
     return;
   }
 
@@ -65,7 +133,17 @@ export async function processHeroGroupArrival(groupId: string) {
   // 🔍 Reload updated group
   const updatedSnap = await groupRef.get();
   const updatedGroup = updatedSnap.data() as HeroGroupData;
-  console.log(`🧠 Group ${groupId} is now at ${updatedGroup.tileX}_${updatedGroup.tileY} and ready for PvE roll.`);
+  console.log(
+    `🧠 Group ${groupId} is now at ${updatedGroup.tileX}_${updatedGroup.tileY} and ready for regen + PvE roll.`
+  );
+
+  // ✅ PERSIST OUT-OF-COMBAT REGEN BEFORE ANY EVENT ROLL
+  try {
+    await persistOutOfCombatRegenForGroup(groupId, updatedGroup);
+  } catch (err: any) {
+    console.error(`💥 Failed to persist regen before PvE roll: ${err.message}`);
+    // Proceed anyway; worst case heroes fight with slightly stale HP.
+  }
 
   // 🎲 Try triggering a PvE event
   const triggerInfo = await maybeTriggerPveEvent(updatedGroup);

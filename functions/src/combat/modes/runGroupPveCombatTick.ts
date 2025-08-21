@@ -29,17 +29,18 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     return;
   }
 
-  // ✅ Save hp before tick
+  // ✅ Save hp before tick (for logging / diff)
   const hpBeforeTick = heroesRaw.map((h: any) => ({
     id: h.id,
     hp: h.hp,
   }));
 
-  // 🧪 Step 0: Regen + cooldowns (keeps full hero object, patches only changing fields)
+  // 🧪 Step 0: Cooldowns (combat regen disabled by default)
+  // NOTE: We do not advance lastHpRegenAt/lastManaRegenAt here.
   const {
-    updatedHeroes: regenAppliedHeroes,
+    updatedHeroes: heroesAfterCooldowns,
     newLastTickAt,
-  } = applyRegenAndCooldowns(heroesRaw, lastTickAt);
+  } = applyRegenAndCooldowns(heroesRaw, lastTickAt /*, { enableCombatRegen: true }*/);
 
   // 🗡️ Step 1: Hero attacks
   const {
@@ -47,12 +48,12 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     heroLogs,
     heroUpdates,
   } = await resolveHeroAttacks({
-    heroes: regenAppliedHeroes,
+    heroes: heroesAfterCooldowns,
     enemies,
   });
 
   // ✨ Step 1.5: Patch nextAttackAt but preserve all other fields
-  const heroesWithNextAttackAt = regenAppliedHeroes.map((h: any) => ({
+  const heroesWithNextAttackAt = heroesAfterCooldowns.map((h: any) => ({
     ...h,
     nextAttackAt: heroUpdates[h.id] ?? h.nextAttackAt,
   }));
@@ -98,7 +99,7 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     hpBeforeTick,
   });
 
-  // 💾 Step 6: Persist tick — full hero object stays intact!
+  // 💾 Step 6: Persist tick
   await db.collection('combats').doc(combatId).update({
     tick,
     lastTickAt: newLastTickAt,

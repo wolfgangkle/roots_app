@@ -16,11 +16,7 @@ export async function createHeroLogic(request: any) {
   const profileSnap = await db.doc(`users/${userId}/profile/main`).get();
   const profileData = profileSnap.data();
 
-  if (
-    !profileData ||
-    typeof profileData.heroName !== 'string' ||
-    profileData.heroName.trim().length < 3
-  ) {
+  if (!profileData || typeof profileData.heroName !== 'string' || profileData.heroName.trim().length < 3) {
     throw new HttpsError('invalid-argument', 'Main hero name not set or invalid in user profile.');
   }
 
@@ -62,16 +58,18 @@ export async function createHeroLogic(request: any) {
     combat,
   } = heroStatFormulas(baseStats, {});
 
-  const raceMovementModifiers: Record<string, number> = {
-    human: 0,
-    dwarf: 400,
-  };
-
+  const raceMovementModifiers: Record<string, number> = { human: 0, dwarf: 400 };
   const raceOffset = raceMovementModifiers[normalizedRace] ?? 0;
   const baseMovementSpeed = Math.max(600, baseSpeedBeforeRace + raceOffset);
 
   const newHeroRef = db.collection('heroes').doc();
   const heroId = newHeroRef.id;
+
+  const nowMs = Date.now(); // numeric ms to avoid serverTimestamp read lag
+
+  // ✅ Defensive normalization for tick intervals (seconds per +1)
+  const hpRegenTick = Math.max(1, Math.round(hpRegen ?? 0));      // e.g., 270  => +1 HP every 270s
+  const manaRegenTick = Math.max(1, Math.round(manaRegen ?? 0));  // e.g., 270  => +1 Mana every 270s
 
   const heroData = {
     ownerId: userId,
@@ -83,16 +81,28 @@ export async function createHeroLogic(request: any) {
     groupId: heroId,
     groupLeaderId: null,
     stats: baseStats,
+
+    // Core vitals
     hp: hpMax,
     hpMax,
     mana: manaMax,
     manaMax,
-    combatLevel, // ✅ Only here
-    combat,      // ✅ Cleaned version (no combatLevel inside)
+
+    // ✅ Regen config (TICK model: seconds PER +1 point)
+    hpRegen: hpRegenTick,
+    manaRegen: manaRegenTick,
+
+    // ✅ Initialize separate regen clocks (numbers, ms epoch)
+    lastHpRegenAt: nowMs,
+    lastManaRegenAt: nowMs,
+
+    // (Optional legacy fallback if anything still reads it)
+    lastRegenAt: nowMs,
+
+    combatLevel,
+    combat,
     state: 'idle',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    hpRegen,
-    manaRegen,
     foodDuration: 3600,
     baseMovementSpeed,
     movementSpeed: baseMovementSpeed,
@@ -102,7 +112,7 @@ export async function createHeroLogic(request: any) {
   };
 
   const heroGroupRef = db.collection('heroGroups').doc(heroId);
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const nowTs = admin.firestore.FieldValue.serverTimestamp();
 
   const heroGroupData = {
     leaderHeroId: heroId,
@@ -114,9 +124,9 @@ export async function createHeroLogic(request: any) {
     baseMovementSpeed,
     movementSpeed: baseMovementSpeed,
     insideVillage: true,
-    createdAt: now,
-    updatedAt: now,
-    combatLevel, // ✅ Group-level reference
+    createdAt: nowTs,
+    updatedAt: nowTs,
+    combatLevel,
   };
 
   await Promise.all([newHeroRef.set(heroData), heroGroupRef.set(heroGroupData)]);
@@ -125,8 +135,5 @@ export async function createHeroLogic(request: any) {
     `🚀 Created main hero "${heroName}" with id ${heroId} for user ${userId}, race=${normalizedRace}, baseMove=${baseMovementSpeed}s`
   );
 
-  return {
-    heroId,
-    message: 'Hero created successfully.',
-  };
+  return { heroId, message: 'Hero created successfully.' };
 }
