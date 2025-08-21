@@ -8,6 +8,9 @@ import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dar
 import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.dart';
 import 'package:roots_app/modules/village/data/building_definitions.dart';
 import 'package:roots_app/modules/village/data/items.dart';
+import 'package:roots_app/widgets/mini_glass_card.dart'; // glass card
+import 'dart:ui' show FontFeature;
+
 
 class VillageCard extends StatefulWidget {
   final VillageModel village;
@@ -60,82 +63,118 @@ class VillageCardState extends State<VillageCard> {
     final crafting = widget.village.currentCraftingJob;
     final freeWorkers = widget.village.freeWorkers;
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: InkWell(
+    // Softer typography for dark glass
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: Colors.white.withOpacity(0.95),
+    );
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: Colors.white.withOpacity(0.75),
+    );
+    final subtleStyle = bodyStyle?.copyWith(
+      color: Colors.white.withOpacity(0.64),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: MiniGlassCard(
         onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 🏰 Name + Coordinates
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '🏰 ${widget.village.name}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  Text('📍 ${widget.village.tileX}, ${widget.village.tileY}'),
-                ],
-              ),
-              const SizedBox(height: 8),
+        // Tweak these to taste:
+        opacity: 0.28,        // lower = more transparent
+        sigma: 10,            // blur strength
+        strokeOpacity: 0.16,  // open-border visibility
+        cornerGap: 16,        // larger = more "open" corners
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🏰 Name + Coordinates
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('🏰 ${widget.village.name}', style: titleStyle),
+                Text('📍 ${widget.village.tileX}, ${widget.village.tileY}', style: bodyStyle),
+              ],
+            ),
+            const SizedBox(height: 8),
 
-              // 📊 Resource Table
-              Table(
-                columnWidths: const {
-                  0: FixedColumnWidth(28),
-                  1: FlexColumnWidth(),
-                  2: FixedColumnWidth(80),
-                  3: FixedColumnWidth(40),
-                  4: FixedColumnWidth(60),
-                },
-                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                children: [
-                  _buildRow("🌲", "Wood", "woodcutter", safeToInt(res["wood"]), safeToInt(cap["wood"]), safeToInt(secured["wood"]), freeWorkers),
-                  _buildRow("🪨", "Stone", "quarry", safeToInt(res["stone"]), safeToInt(cap["stone"]), safeToInt(secured["stone"]), freeWorkers),
-                  _buildRow("⛓️", "Iron", "iron_mine", safeToInt(res["iron"]), safeToInt(cap["iron"]), safeToInt(secured["iron"]), freeWorkers),
-                  _buildRow("🍞", "Food", "farm", safeToInt(res["food"]), safeToInt(cap["food"]), safeToInt(secured["food"]), freeWorkers),
-                  _buildRow("🪙", "Gold", "goldmine", safeToInt(res["gold"]), safeToInt(cap["gold"]), safeToInt(secured["gold"]), freeWorkers),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // ⏳ Upgrade progress
-              if (upgrade != null) ...[
-                Text(
-                  'Upgrading: ${_getBuildingDisplayName(upgrade.buildingType)}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+            // 📊 Resource Table
+            Table(
+              columnWidths: const {
+                0: FixedColumnWidth(28),
+                1: FlexColumnWidth(),
+                2: FixedColumnWidth(80),
+                3: FixedColumnWidth(40),
+                4: FixedColumnWidth(60),
+              },
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              children: [
+                _buildRow(
+                  "🌲", "Wood", "woodcutter",
+                  safeToInt(res["wood"]), safeToInt(cap["wood"]), safeToInt(secured["wood"]), freeWorkers,
+                  labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
                 ),
-                const SizedBox(height: 4),
-                UpgradeProgressIndicator(
-                  startedAt: upgrade.startedAt,
-                  endsAt: upgrade.startedAt.add(upgrade.duration),
-                  villageId: widget.village.id,
+                _buildRow(
+                  "🪨", "Stone", "quarry",
+                  safeToInt(res["stone"]), safeToInt(cap["stone"]), safeToInt(secured["stone"]), freeWorkers,
+                  labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
+                ),
+                _buildRow(
+                  "⛓️", "Iron", "iron_mine",
+                  safeToInt(res["iron"]), safeToInt(cap["iron"]), safeToInt(secured["iron"]), freeWorkers,
+                  labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
+                ),
+                _buildRow(
+                  "🍞", "Food", "farm",
+                  safeToInt(res["food"]), safeToInt(cap["food"]), safeToInt(secured["food"]), freeWorkers,
+                  labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
+                ),
+                _buildRow(
+                  "🪙", "Gold", "goldmine",
+                  safeToInt(res["gold"]), safeToInt(cap["gold"]), safeToInt(secured["gold"]), freeWorkers,
+                  labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
                 ),
               ],
+            ),
 
-              // 🛠️ Crafting progress
-              if (crafting != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Crafting: ${_getItemName(crafting['itemId'])}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+            const SizedBox(height: 8),
+
+            // ⏳ Upgrade progress
+            if (upgrade != null) ...[
+              Text(
+                'Upgrading: ${_getBuildingDisplayName(upgrade.buildingType)}',
+                style: bodyStyle?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withOpacity(0.92),
                 ),
-                const SizedBox(height: 4),
-                CraftingProgressIndicator(
-                  startedAt: (crafting['startedAt'] as Timestamp).toDate(),
-                  endsAt: (crafting['startedAt'] as Timestamp).toDate().add(
-                      Duration(seconds: crafting['durationSeconds'] ?? 0)),
-                  villageId: widget.village.id,
-                ),
-              ],
+              ),
+              const SizedBox(height: 4),
+              UpgradeProgressIndicator(
+                startedAt: upgrade.startedAt,
+                endsAt: upgrade.startedAt.add(upgrade.duration),
+                villageId: widget.village.id,
+              ),
             ],
-          ),
+
+            // 🛠️ Crafting progress
+            if (crafting != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Crafting: ${_getItemName(crafting['itemId'])}',
+                style: bodyStyle?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withOpacity(0.92),
+                ),
+              ),
+              const SizedBox(height: 4),
+              CraftingProgressIndicator(
+                startedAt: (crafting['startedAt'] as Timestamp).toDate(),
+                endsAt: (crafting['startedAt'] as Timestamp)
+                    .toDate()
+                    .add(Duration(seconds: crafting['durationSeconds'] ?? 0)),
+                villageId: widget.village.id,
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -148,8 +187,11 @@ class VillageCardState extends State<VillageCard> {
       int value,
       int capacity,
       int secured,
-      int freeWorkers,
-      ) {
+      int freeWorkers, {
+        TextStyle? labelStyle,
+        TextStyle? valueStyle,
+        TextStyle? miscStyle,
+      }) {
     final assigned = widget.village.buildings[buildingType]?.assignedWorkers ?? 0;
     final level = widget.village.buildings[buildingType]?.level ?? 0;
 
@@ -168,23 +210,33 @@ class VillageCardState extends State<VillageCard> {
     final resourceText = Text(
       formatNumber(value),
       textAlign: TextAlign.right,
-      style: TextStyle(fontWeight: isFull ? FontWeight.bold : FontWeight.normal),
+      style: (valueStyle ?? const TextStyle()).copyWith(
+        fontFeatures: const [FontFeature.tabularFigures()], // 👈 monospaced digits
+        fontWeight: isFull ? FontWeight.bold : FontWeight.normal,
+      ),
     );
 
+
     final workerText = isGold
-        ? const Text('-', textAlign: TextAlign.right)
+        ? Text('-', textAlign: TextAlign.right, style: miscStyle)
         : Text(
       '${assigned}w',
       textAlign: TextAlign.right,
-      style: TextStyle(fontWeight: canAssignMore ? FontWeight.bold : FontWeight.normal),
+      style: (valueStyle ?? const TextStyle()).copyWith(
+        fontWeight: canAssignMore ? FontWeight.bold : FontWeight.normal,
+      ),
     );
 
-    final securedText = Text('[$secured]', textAlign: TextAlign.right);
+    final securedText = Text(
+      '[$secured]',
+      textAlign: TextAlign.right,
+      style: miscStyle,
+    );
 
     return TableRow(
       children: [
-        Text(emoji),
-        Text(label),
+        Text(emoji, style: labelStyle),
+        Text(label, style: labelStyle),
         resourceText,
         workerText,
         securedText,

@@ -9,6 +9,7 @@ import 'package:roots_app/screens/home/main_home_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/modules/map/providers/terrain_provider.dart';
 import 'package:roots_app/modules/settings/models/user_settings_model.dart';
+import 'package:roots_app/widgets/global_background.dart'; // 🌄 Added import
 
 // 🌿 Accent colors
 const Color kAccentGreenLight = Color(0xFF3B5743); // earthy green
@@ -53,6 +54,7 @@ class _MyAppState extends State<MyApp> {
     debugPrint(
         '🌙 BUILD → darkMode: ${settings.darkMode} | loaded: ${settings.isLoaded}');
 
+    // ⏳ While settings are loading → fallback loader
     if (!settings.isLoaded) {
       return const MaterialApp(
         home: Scaffold(
@@ -139,6 +141,12 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       themeMode: settings.darkMode ? ThemeMode.dark : ThemeMode.light,
+
+      // 🌄 Apply global background here
+      builder: (context, child) {
+        return GlobalBackground(child: child ?? const SizedBox());
+      },
+
       routes: {
         '/village': (_) => const MainHomeScreen(),
       },
