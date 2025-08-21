@@ -24,12 +24,13 @@ type HeroDoc = FirebaseFirestore.DocumentData & {
 
 type GroupDoc = FirebaseFirestore.DocumentData & {
   leaderHeroId?: string;
-  // Your schema primarily uses 'members'
-  members?: string[];
-  // Legacy/fallback support
-  memberIds?: string[];
-  // Optional: deterministic reassignment helper
+  members?: string[];              // primary
+  memberIds?: string[];            // legacy/fallback (not used, but kept for safety)
   memberJoinedAt?: Record<string, FirebaseFirestore.Timestamp>;
+  connections?: Record<string, string>;
+  movementSpeed?: number;
+  combatLevel?: number;
+  insideVillage?: boolean;
 };
 
 function logPrefix(ctx: DeathContext) {
@@ -93,13 +94,9 @@ async function copyLearnedSpellsToGraveyard(ownerId: string, heroId: string, lp 
 
 /**
  * Remove hero from group, reassign leader, or delete group if empty.
- * If ctx.groupId provided, we use that; else we try to discover via array-contains.
- * Supports 'members' (primary) and keeps 'memberIds' in sync for compatibility.
- */
-/**
- * Remove hero from group, reassign leader, or delete group if empty.
  * Uses your schema: members[], connections{}, leaderHeroId (no memberIds).
  * Keeps the group doc id stable (even if leader changes).
+ * 🔧 NEW: Propagates groupLeaderId to all surviving heroes.
  */
 async function updateGroupOnDeath(ctx: DeathContext) {
   const lp = logPrefix(ctx) + '[group]';
@@ -136,7 +133,7 @@ async function updateGroupOnDeath(ctx: DeathContext) {
     return;
   }
 
-  // Remove dead hero from members
+  // Remove the dead hero
   const remaining = members.filter(id => id !== ctx.heroId);
 
   if (remaining.length === 0) {
@@ -145,7 +142,7 @@ async function updateGroupOnDeath(ctx: DeathContext) {
     return;
   }
 
-  // Reassign leader if needed (stable doc id; only the field changes)
+  // Reassign leader if needed
   const prevLeader = groupData.leaderHeroId;
   let leaderHeroId = prevLeader;
   if (!leaderHeroId || leaderHeroId === ctx.heroId) {
@@ -159,8 +156,7 @@ async function updateGroupOnDeath(ctx: DeathContext) {
     delete newConnections[ctx.heroId];
   }
 
-  // (Optional but recommended) Recompute movementSpeed & combatLevel from remaining heroes
-  // Comment this block out if you prefer to handle it elsewhere.
+  // (Optional) Recompute movementSpeed & combatLevel from remaining heroes
   let movementSpeed = groupData.movementSpeed;
   let combatLevel = groupData.combatLevel;
   try {
@@ -180,6 +176,7 @@ async function updateGroupOnDeath(ctx: DeathContext) {
     console.warn(`${lp} failed to recompute speed/CL; keeping previous values`, e);
   }
 
+  // Update group (doc id stays the same)
   await groupRef.update({
     members: remaining,
     connections: newConnections ?? admin.firestore.FieldValue.delete(),
@@ -188,9 +185,23 @@ async function updateGroupOnDeath(ctx: DeathContext) {
     combatLevel,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
-  console.log(`${lp} updated group ${groupRef.id}: removed=${ctx.heroId}, membersNow=${remaining.length}`);
-}
+  console.log(`${lp} updated group ${groupRef.id}: removed=${ctx.heroId}, membersNow=${remaining.length}, leader=${leaderHeroId}`);
 
+  // 🔧 IMPORTANT: propagate new leader to all surviving heroes (so UI doesn't point to a dead leader)
+  try {
+    const batch = db.batch();
+    for (const memberId of remaining) {
+      batch.update(db.collection('heroes').doc(memberId), {
+        groupLeaderId: leaderHeroId,
+        // keep groupId unchanged (stable = groupRef.id)
+      });
+    }
+    await batch.commit();
+    console.log(`${lp} propagated groupLeaderId=${leaderHeroId} to ${remaining.length} hero(es)`);
+  } catch (e) {
+    console.warn(`${lp} failed to propagate groupLeaderId to survivors`, e);
+  }
+}
 
 /**
  * Updates companion slot usage when a companion dies.
@@ -220,7 +231,6 @@ async function updateSlotUsageOnDeath(ownerId: string, heroType?: 'mage' | 'comp
     console.log(`${lp} companions slot usage: ${before} -> ${next} (owner=${ownerId})`);
   });
 }
-
 
 /**
  * Writes the graveyard doc with a full snapshot of the hero (top-level doc only) and metadata.
@@ -331,7 +341,7 @@ export async function finalizeHeroDeath(ctx: DeathContext): Promise<{ graveyardD
 
   console.log(`${lp} start: tile=(${ctx.tileX},${ctx.tileY}), cause=${ctx.cause}, diedAt=${ctx.diedAt.toDate?.() || ''}`);
 
-  const jobRef = db.doc(`jobs/deaths/${jobIdFor(ctx)}`);
+  const jobRef = db.collection('jobs_deaths').doc(jobIdFor(ctx));
   try {
     await markJobRunning(jobRef, ctx);
   } catch (e: any) {
@@ -368,7 +378,7 @@ export async function finalizeHeroDeath(ctx: DeathContext): Promise<{ graveyardD
   // 2) Copy learned_spells subcollection (idempotent overwrites)
   await copyLearnedSpellsToGraveyard(ctx.ownerId, ctx.heroId, lp);
 
-  // 3) Update group (remove hero; reassign leader or delete)
+  // 3) Update group (remove hero; reassign leader or delete) + propagate leader to survivors
   await updateGroupOnDeath(ctx);
 
   // 4) Update slot usage
