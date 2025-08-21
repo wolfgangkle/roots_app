@@ -1,3 +1,4 @@
+// combat/modes/runGroupPveCombatTick.ts
 import * as admin from 'firebase-admin';
 import { resolveHeroAttacks } from '../helpers/resolveHeroAttacks.js';
 import { resolveEnemyAttacks } from '../helpers/resolveEnemyAttacks.js';
@@ -6,6 +7,7 @@ import { checkCombatOutcomeAndUpdate } from '../helpers/checkCombatOutcomeAndUpd
 import { logCombatTick } from '../helpers/logCombatTick.js';
 import { scheduleNextCombatTick } from '../helpers/scheduleNextCombatTick.js';
 import { applyRegenAndCooldowns } from '../helpers/applyRegenAndCooldowns.js';
+import { handleCombatEnded } from '../helpers/handleCombatEnded.js';
 
 const db = admin.firestore();
 
@@ -15,7 +17,6 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
   const tick = (combat.tick ?? 0) + 1;
   const lastTickAt = typeof combat.lastTickAt === 'number' ? combat.lastTickAt : Date.now();
   const groupId = combat.groupId;
-
   if (!groupId) {
     console.warn(`❌ Combat ${combatId} missing groupId`);
     return;
@@ -23,42 +24,27 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
 
   const heroesRaw = combat.heroes ?? [];
   const enemies = combat.enemies ?? [];
-
   if (heroesRaw.length === 0 || enemies.length === 0) {
     console.warn(`❌ Combat ${combatId} has no valid heroes or enemies`);
     return;
   }
 
-  // ✅ Save hp before tick (for logging / diff)
-  const hpBeforeTick = heroesRaw.map((h: any) => ({
-    id: h.id,
-    hp: h.hp,
-  }));
+  const hpBeforeTick = heroesRaw.map((h: any) => ({ id: h.id, hp: h.hp }));
 
-  // 🧪 Step 0: Cooldowns (combat regen disabled by default)
-  // NOTE: We do not advance lastHpRegenAt/lastManaRegenAt here.
-  const {
-    updatedHeroes: heroesAfterCooldowns,
-    newLastTickAt,
-  } = applyRegenAndCooldowns(heroesRaw, lastTickAt /*, { enableCombatRegen: true }*/);
+  const { updatedHeroes: heroesAfterCooldowns, newLastTickAt } =
+    applyRegenAndCooldowns(heroesRaw, lastTickAt);
 
-  // 🗡️ Step 1: Hero attacks
   const {
     updatedEnemies: enemiesAfterHeroHits,
     heroLogs,
     heroUpdates,
-  } = await resolveHeroAttacks({
-    heroes: heroesAfterCooldowns,
-    enemies,
-  });
+  } = await resolveHeroAttacks({ heroes: heroesAfterCooldowns, enemies });
 
-  // ✨ Step 1.5: Patch nextAttackAt but preserve all other fields
   const heroesWithNextAttackAt = heroesAfterCooldowns.map((h: any) => ({
     ...h,
     nextAttackAt: heroUpdates[h.id] ?? h.nextAttackAt,
   }));
 
-  // 💀 Step 2: Enemies attack heroes
   const {
     updatedEnemies,
     damageMap,
@@ -74,21 +60,20 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     damage: log.damage,
   }));
 
-  // 💥 Step 3: Apply damage to heroes
   const updatedHeroes = await applyDamageAndUpdateHeroes({
     heroes: heroesWithNextAttackAt,
     damageMap,
   });
 
-  // 🧾 Step 4: Check win/loss
-  const newState = await checkCombatOutcomeAndUpdate({
+  // Compute outcome + XP metadata (no writes here)
+  const { newState, totalXp, xpPerHero, livingHeroIds } = await checkCombatOutcomeAndUpdate({
     combatId,
     combat,
     updatedHeroes,
     updatedEnemies,
   });
 
-  // 📝 Step 5: Log
+  // Log the tick
   await logCombatTick({
     combatId,
     tick,
@@ -99,19 +84,55 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     hpBeforeTick,
   });
 
-  // 💾 Step 6: Persist tick
-  await db.collection('combats').doc(combatId).update({
+  // Persist current tick state
+  const combatRef = db.collection('combats').doc(combatId);
+  await combatRef.update({
     tick,
     lastTickAt: newLastTickAt,
     heroes: updatedHeroes,
     enemies: updatedEnemies,
+    state: newState,
+    ...(newState === 'ended' && {
+      endedAt: admin.firestore.FieldValue.serverTimestamp(),
+      xp: totalXp,
+      xpPerHero,
+      xpRecipients: livingHeroIds,
+    }),
   });
 
-  // ⏱️ Step 7: Next tick?
-  await scheduleNextCombatTick({
-    combatId,
-    newState,
-  });
+  // If ended, pay XP and run post-combat pipeline
+  if (newState === 'ended') {
+    // XP payout with a batch
+    if (xpPerHero > 0 && livingHeroIds.length > 0) {
+      const batch = db.batch();
+      for (const heroId of livingHeroIds) {
+        batch.update(db.collection('heroes').doc(heroId), {
+          experience: admin.firestore.FieldValue.increment(xpPerHero),
+        });
+        console.log(`[XP] hero ${heroId} +${xpPerHero}`);
+      }
+      await batch.commit();
+      console.log(`[XP] committed payout: totalXp=${totalXp}, perHero=${xpPerHero}, recipients=${livingHeroIds.length}`);
+    } else {
+      console.log(`[XP] no payout (totalXp=${totalXp}, recipients=${livingHeroIds.length})`);
+    }
 
+    // Call post-combat cleanup with final arrays
+    const combatAfter = {
+      ...combat,
+      id: combatId,
+      state: 'ended',
+      heroes: updatedHeroes,
+      enemies: updatedEnemies,
+    };
+
+    console.log(`🪦 PvE combat ${combatId} ended → calling handleCombatEnded()`);
+    await handleCombatEnded(combatAfter);
+    console.log(`✅ Post-combat pipeline finished for ${combatId}`);
+    return;
+  }
+
+  // Otherwise schedule next tick
+  await scheduleNextCombatTick({ combatId, newState });
   console.log(`✅ PvE tick ${tick} completed for ${combatId}`);
 }

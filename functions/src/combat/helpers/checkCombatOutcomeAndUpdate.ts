@@ -1,8 +1,4 @@
-import * as admin from 'firebase-admin';
-import { handleCombatEnded } from './handleCombatEnded.js';
-
-const db = admin.firestore();
-
+// helpers/checkCombatOutcomeAndUpdate.ts
 export async function checkCombatOutcomeAndUpdate({
   combatId,
   combat,
@@ -12,54 +8,32 @@ export async function checkCombatOutcomeAndUpdate({
   combatId: string;
   combat: any;
   updatedHeroes: Array<{ id: string; hp: number } & Record<string, any>>;
-  updatedEnemies: any[];
-}): Promise<'ongoing' | 'ended'> {
-  const combatRef = db.collection('combats').doc(combatId);
+  updatedEnemies: Array<{ hp: number; xp?: number } & Record<string, any>>;
+}): Promise<{
+  newState: 'ongoing' | 'ended';
+  totalXp: number;
+  xpPerHero: number;
+  livingHeroIds: string[];
+}> {
   const tick = (combat.tick ?? 0) + 1;
 
-  let newState: 'ongoing' | 'ended' = 'ongoing';
+  const livingHeroes = updatedHeroes.filter((h) => (h.hp ?? 0) > 0);
+  const livingHeroIds = livingHeroes.map(h => h.id);
+  const livingEnemies = updatedEnemies.filter((e) => (e.hp ?? 0) > 0);
 
-  const livingHeroes = updatedHeroes.filter(h => h.hp > 0);
-  const livingEnemies = updatedEnemies.filter(e => e.hp > 0);
+  const ended = tick >= 500 || livingHeroes.length === 0 || livingEnemies.length === 0;
+  const newState: 'ongoing' | 'ended' = ended ? 'ended' : 'ongoing';
 
-  if (tick >= 500 || livingHeroes.length === 0 || livingEnemies.length === 0) {
-    newState = 'ended';
-  }
+  // Sum XP from enemies that are dead at end of combat
+  const totalXp = ended
+    ? updatedEnemies
+        .filter((e) => (e.hp ?? 1) <= 0)
+        .reduce((sum, e) => sum + (Number(e.xp) || 0), 0)
+    : 0;
 
-  const updates: Record<string, any> = {
-    tick,
-    state: newState,
-    enemies: updatedEnemies,
-  };
+  const xpPerHero = ended ? Math.floor(totalXp / Math.max(livingHeroes.length, 1)) : 0;
 
-  if (newState === 'ended') {
-    updates.endedAt = admin.firestore.FieldValue.serverTimestamp();
+  console.log(`[XP] eval combat ${combatId}: state=${newState}, totalXp=${totalXp}, recipients=${livingHeroIds.length}, xpPerHero=${xpPerHero}`);
 
-    // 🎓 XP payout from dead enemies
-    const totalXp = updatedEnemies
-      .filter(e => (e.hp ?? 1) <= 0)
-      .reduce((sum, e) => sum + (e.xp ?? 0), 0);
-
-    const xpPerHero = Math.floor(totalXp / (livingHeroes.length || 1));
-
-    for (const hero of livingHeroes) {
-      await db.collection('heroes').doc(hero.id).update({
-        experience: admin.firestore.FieldValue.increment(xpPerHero),
-      });
-      console.log(`🎉 Hero ${hero.id} gains ${xpPerHero} XP`);
-    }
-
-    updates.xp = totalXp;
-    updates.message = `Defeated ${combat.enemyCount ?? '?'} ${combat.enemyName ?? 'enemies'} for ${totalXp} XP.`;
-    updates.reward = ['gold']; // 💰 Placeholder for loot system
-  }
-
-  await combatRef.update(updates);
-  console.log(`🧾 Combat ${combatId} state: ${newState}`);
-
-  if (newState === 'ended') {
-    await handleCombatEnded(combat); // 🧹 Cleanup & resume movement
-  }
-
-  return newState;
+  return { newState, totalXp, xpPerHero, livingHeroIds };
 }
