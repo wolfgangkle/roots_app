@@ -40,6 +40,14 @@ class SettingsScreen extends StatelessWidget {
                   groupValue: styleMgr.current,
                   onChanged: (v) => context.read<StyleManager>().setTheme(v!),
                 ),
+                const Divider(height: 0),
+                RadioListTile<AppTheme>(
+                  title: const Text('Iron Keep (Solid)'),
+                  subtitle: const Text('Opaque, medieval, non-glass'),
+                  value: AppTheme.ironKeep, // 👈 new theme option
+                  groupValue: styleMgr.current,
+                  onChanged: (v) => context.read<StyleManager>().setTheme(v!),
+                ),
                 const SizedBox(height: 8),
               ],
             ),
@@ -51,7 +59,6 @@ class SettingsScreen extends StatelessWidget {
           Card(
             child: Column(
               children: [
-                // Old dark mode toggle removed 🚫
                 SwitchListTile(
                   title: const Text('💬 Show Global Chat Overlay'),
                   value: settings.showChatOverlay,

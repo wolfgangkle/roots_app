@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'tokens.dart';
 import 'dark_forge.dart';
 import 'silver_grove.dart';
+import 'iron_keep.dart'; // 👈 new solid medieval preset
 
 /// Enum for your selectable themes
 enum AppTheme {
   darkForge,
   silverGrove,
+  ironKeep, // 👈 add enum
 }
 
 /// Global tokens reference for legacy callers.
@@ -19,6 +21,7 @@ class StyleManager extends ChangeNotifier {
   static final Map<AppTheme, AppStyleTokens> _styles = {
     AppTheme.darkForge: darkForge,
     AppTheme.silverGrove: silverGrove,
+    AppTheme.ironKeep: ironKeep, // 👈 register the new theme
   };
 
   /// Read the active tokens (for widgets using Provider)
@@ -36,5 +39,14 @@ class StyleManager extends ChangeNotifier {
   }
 
   /// Optional helper if you ever need names in UI
-  String get currentName => _current.name;
+  String get currentName {
+    switch (_current) {
+      case AppTheme.darkForge:
+        return 'Dark Forge';
+      case AppTheme.silverGrove:
+        return 'Silver Grove';
+      case AppTheme.ironKeep:
+        return 'Iron Keep (Solid)';
+    }
+  }
 }

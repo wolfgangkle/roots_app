@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart'; // 👈 add this
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:roots_app/modules/reports/views/finished_jobs_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
+import 'package:roots_app/theme/tokens.dart';
+import 'package:roots_app/theme/app_style_manager.dart';
 
+TextOnGlassTokens get _text => kStyle.textOnGlass;
 
 class FinishedJobsTabTile extends StatelessWidget {
-
   final bool isMobile;
   final bool isInDrawer;
   final void Function({required String title, required Widget content})? onSelectDynamicTab;
 
-  const FinishedJobsTabTile({super.key, 
+  const FinishedJobsTabTile({
+    super.key,
     required this.isMobile,
     required this.isInDrawer,
     required this.onSelectDynamicTab,
@@ -21,6 +24,9 @@ class FinishedJobsTabTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 👇 Optional but recommended: rebuild this tile on theme change
+    context.watch<StyleManager>();
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
@@ -38,9 +44,7 @@ class FinishedJobsTabTile extends StatelessWidget {
               .snapshots(),
           builder: (context, snapshot) {
             final unreadCount = snapshot.data?.docs.length ?? 0;
-            final title = unreadCount > 0
-                ? 'Finished Jobs ($unreadCount)'
-                : 'Finished Jobs';
+            final title = unreadCount > 0 ? 'Finished Jobs ($unreadCount)' : 'Finished Jobs';
             return _buildTab(context, title);
           },
         );
@@ -49,13 +53,15 @@ class FinishedJobsTabTile extends StatelessWidget {
   }
 
   Widget _buildTab(BuildContext context, String title) {
+    final titleStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(color: _text.primary);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         dense: true,
         visualDensity: VisualDensity.compact,
-        leading: Icon(Icons.arrow_right, color: Theme.of(context).colorScheme.onSurface),
-        title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
+        leading: Icon(Icons.arrow_right, color: _text.secondary.withOpacity(0.9)),
+        title: Text(title, style: titleStyle),
         onTap: () {
           if (isInDrawer) Navigator.pop(context);
           if (isMobile && onSelectDynamicTab != null) {

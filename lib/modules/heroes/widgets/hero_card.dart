@@ -1,7 +1,16 @@
-import 'package:flutter/material.dart';
-import 'package:roots_app/modules/heroes/models/hero_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'dart:ui' show FontFeature;
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart'; // 👈 watch StyleManager
+import 'package:roots_app/modules/heroes/models/hero_model.dart';
+import 'package:roots_app/widgets/mini_glass_card.dart';
+import 'package:roots_app/theme/tokens.dart';
+import 'package:roots_app/theme/app_style_manager.dart';
+
+// Getters so tokens update live with theme
+GlassTokens get glass => kStyle.glass;
+TextOnGlassTokens get textOnGlass => kStyle.textOnGlass;
 
 class HeroCard extends StatelessWidget {
   final HeroModel hero;
@@ -11,10 +20,23 @@ class HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percentHp =
-        hero.hpMax > 0 ? (hero.hp / hero.hpMax).clamp(0.0, 1.0) : 0.0;
-    final groupRef =
-        FirebaseFirestore.instance.collection('heroGroups').doc(hero.groupId);
+    // 👇 Rebuild when StyleManager notifies (theme switch)
+    context.watch<StyleManager>();
+
+    final percentHp = hero.hpMax > 0 ? (hero.hp / hero.hpMax).clamp(0.0, 1.0) : 0.0;
+    final groupRef = FirebaseFirestore.instance.collection('heroGroups').doc(hero.groupId);
+
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: textOnGlass.primary.withOpacity(0.95),
+    );
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: textOnGlass.secondary.withOpacity(0.78),
+    );
+    final subtleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: textOnGlass.subtle.withOpacity(0.64),
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
     return FutureBuilder<DocumentSnapshot>(
       future: groupRef.get(),
@@ -24,92 +46,73 @@ class HeroCard extends StatelessWidget {
           final groupData = snapshot.data!.data() as Map<String, dynamic>;
           final tileX = groupData['tileX'];
           final tileY = groupData['tileY'];
-          if (tileX != null && tileY != null) {
-            positionText = "📍 $tileX / $tileY";
-          }
+          if (tileX != null && tileY != null) positionText = "📍 $tileX / $tileY";
         }
 
-        return Card(
-          elevation: 2,
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: MiniGlassCard(
             onTap: onTap,
+            opacity: glass.opacity,
+            sigma: glass.mode == SurfaceMode.glass ? glass.blurSigma : 0.0, // respect solid mode
+            cornerGap: glass.cornerGap,
+            strokeOpacity: glass.strokeOpacity,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// Header row: Name + State + Position
+                  // Header row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        hero.heroName,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
+                      Text(hero.heroName, style: titleStyle),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(
-                            _formatHeroState(hero.state),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: _stateColor(hero.state),
-                            ),
-                          ),
+                          _StatePill(state: hero.state),
                           if (positionText.isNotEmpty)
-                            Text(positionText,
-                                style: Theme.of(context).textTheme.bodySmall),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(positionText, style: subtleStyle),
+                            ),
                         ],
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 4),
-                  Text("Level ${hero.level} • ${hero.race}",
-                      style: Theme.of(context).textTheme.bodyMedium),
+                  Text("Level ${hero.level} • ${hero.race}", style: bodyStyle),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
 
-                  /// HP bar
-                  LinearProgressIndicator(
+                  // HP bar
+                  _TokenProgressBar(
                     value: percentHp,
-                    backgroundColor: Colors.grey.shade300,
-                    color: Theme.of(context).colorScheme.error,
-                    minHeight: 6,
+                    background: textOnGlass.subtle.withOpacity(0.18),
+                    barColor: Theme.of(context).colorScheme.error,
+                    height: 6,
                   ),
                   const SizedBox(height: 4),
-                  Text("HP: ${hero.hp} / ${hero.hpMax}",
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text("HP: ${hero.hp} / ${hero.hpMax}", style: subtleStyle),
 
-                  /// Mana bar
+                  // Mana bar
                   if (hero.type == 'mage') ...[
                     const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: hero.manaMax > 0
-                          ? (hero.mana / hero.manaMax).clamp(0.0, 1.0)
-                          : 0.0,
-                      backgroundColor: Colors.grey.shade300,
-                      color: Theme.of(context).colorScheme.primary,
-                      minHeight: 6,
+                    _TokenProgressBar(
+                      value: hero.manaMax > 0 ? (hero.mana / hero.manaMax).clamp(0.0, 1.0) : 0.0,
+                      background: textOnGlass.subtle.withOpacity(0.18),
+                      barColor: Theme.of(context).colorScheme.primary,
+                      height: 6,
                     ),
                     const SizedBox(height: 4),
-                    Text("Mana: ${hero.mana} / ${hero.manaMax}",
-                        style: Theme.of(context).textTheme.bodySmall),
+                    Text("Mana: ${hero.mana} / ${hero.manaMax}", style: subtleStyle),
                   ],
 
-                  /// Countdown
+                  // Countdown
                   if (hero.state == 'moving' && hero.arrivesAt != null)
                     Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: _LiveCountdown(arrivesAt: hero.arrivesAt!),
+                      padding: const EdgeInsets.only(top: 8),
+                      child: _LiveCountdown(arrivesAt: hero.arrivesAt!, textStyle: subtleStyle),
                     ),
                 ],
               ),
@@ -119,37 +122,82 @@ class HeroCard extends StatelessWidget {
       },
     );
   }
+}
 
-  String _formatHeroState(String state) {
-    switch (state) {
-      case 'idle':
-        return '🟢 idle';
-      case 'moving':
-        return '🟡 moving';
-      case 'in_combat':
-        return '🔴 in combat';
-      default:
-        return '❔ unknown';
-    }
+/// Small token-styled progress bar
+class _TokenProgressBar extends StatelessWidget {
+  final double value;
+  final double height;
+  final Color barColor;
+  final Color background;
+
+  const _TokenProgressBar({
+    required this.value,
+    required this.barColor,
+    required this.background,
+    this.height = 6,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(height),
+      child: Stack(
+        children: [
+          Container(height: height, width: double.infinity, color: background),
+          FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: value.isNaN ? 0.0 : value.clamp(0.0, 1.0),
+            child: Container(height: height, color: barColor.withOpacity(0.9)),
+          ),
+        ],
+      ),
+    );
   }
+}
 
-  Color _stateColor(String state) {
-    switch (state) {
-      case 'idle':
-        return Colors.green;
-      case 'moving':
-        return Colors.orange;
-      case 'in_combat':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
+/// Compact state pill using token text colors
+class _StatePill extends StatelessWidget {
+  final String state;
+  const _StatePill({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = textOnGlass;
+    final label = switch (state) {
+      'idle' => '🟢 idle',
+      'moving' => '🟡 moving',
+      'in_combat' => '🔴 in combat',
+      _ => '❔ unknown',
+    };
+
+    final Color fg = t.primary.withOpacity(0.92);
+    final Color bg = t.subtle.withOpacity(0.10);
+    final Color border = t.subtle.withOpacity(0.18);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: border, width: 1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: fg,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
   }
 }
 
 class _LiveCountdown extends StatefulWidget {
   final DateTime arrivesAt;
-  const _LiveCountdown({required this.arrivesAt});
+  final TextStyle? textStyle;
+  const _LiveCountdown({required this.arrivesAt, this.textStyle});
 
   @override
   State<_LiveCountdown> createState() => _LiveCountdownState();
@@ -163,8 +211,7 @@ class _LiveCountdownState extends State<_LiveCountdown> {
   void initState() {
     super.initState();
     _updateRemaining();
-    _timer =
-        Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateRemaining());
   }
 
   void _updateRemaining() {
@@ -185,10 +232,6 @@ class _LiveCountdownState extends State<_LiveCountdown> {
   Widget build(BuildContext context) {
     final mm = _remaining.inMinutes.remainder(60).toString().padLeft(2, '0');
     final ss = _remaining.inSeconds.remainder(60).toString().padLeft(2, '0');
-
-    return Text(
-      "🕒 $mm:$ss until arrival",
-      style: Theme.of(context).textTheme.bodySmall,
-    );
+    return Text("🕒 $mm:$ss until arrival", style: widget.textStyle);
   }
 }

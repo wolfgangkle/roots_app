@@ -3,6 +3,7 @@ import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart'; // 👈 listen for theme changes
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
@@ -10,12 +11,12 @@ import 'package:roots_app/modules/village/widgets/crafting_progress_indicator.da
 import 'package:roots_app/modules/village/data/building_definitions.dart';
 import 'package:roots_app/modules/village/data/items.dart';
 import 'package:roots_app/widgets/mini_glass_card.dart';
-import 'package:roots_app/theme/tokens.dart'; // 👈 token import
+import 'package:roots_app/theme/tokens.dart';
 import 'package:roots_app/theme/app_style_manager.dart';
 
-final glass = kStyle.glass;
-final colors = kStyle.textOnGlass;
-
+// 🔄 live tokens (no caching)
+GlassTokens get glass => kStyle.glass;
+TextOnGlassTokens get textOnGlass => kStyle.textOnGlass;
 
 class VillageCard extends StatefulWidget {
   final VillageModel village;
@@ -61,6 +62,9 @@ class VillageCardState extends State<VillageCard> {
 
   @override
   Widget build(BuildContext context) {
+    // 👇 also rebuild when the theme changes (besides the 1s timer)
+    context.watch<StyleManager>();
+
     final res = widget.village.simulatedResources;
     final cap = widget.village.storageCapacity;
     final secured = widget.village.securedResources;
@@ -69,7 +73,7 @@ class VillageCardState extends State<VillageCard> {
     final freeWorkers = widget.village.freeWorkers;
 
     // 🟢 Use design tokens for text
-    final t = kStyle.textOnGlass;
+    final t = textOnGlass;
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w700,
       color: t.primary.withOpacity(0.95),
@@ -85,11 +89,11 @@ class VillageCardState extends State<VillageCard> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: MiniGlassCard(
         onTap: widget.onTap,
-        // 🟢 Use tokens for styling (but allow later overrides)
-        opacity: kStyle.glass.opacity,
-        sigma: kStyle.glass.blurSigma,
-        strokeOpacity: 0.16,
-        cornerGap: kStyle.glass.cornerGap,
+        // 🟢 Use tokens for styling (now also respects solid mode & strokeOpacity)
+        opacity: glass.opacity,
+        sigma: glass.mode == SurfaceMode.glass ? glass.blurSigma : 0.0,
+        strokeOpacity: glass.strokeOpacity,
+        cornerGap: glass.cornerGap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -114,28 +118,23 @@ class VillageCardState extends State<VillageCard> {
               },
               defaultVerticalAlignment: TableCellVerticalAlignment.middle,
               children: [
-                _buildRow(
-                  "🌲", "Wood", "woodcutter",
+                _buildRow("🌲", "Wood", "woodcutter",
                   safeToInt(res["wood"]), safeToInt(cap["wood"]), safeToInt(secured["wood"]), freeWorkers,
                   labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
                 ),
-                _buildRow(
-                  "🪨", "Stone", "quarry",
+                _buildRow("🪨", "Stone", "quarry",
                   safeToInt(res["stone"]), safeToInt(cap["stone"]), safeToInt(secured["stone"]), freeWorkers,
                   labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
                 ),
-                _buildRow(
-                  "⛓️", "Iron", "iron_mine",
+                _buildRow("⛓️", "Iron", "iron_mine",
                   safeToInt(res["iron"]), safeToInt(cap["iron"]), safeToInt(secured["iron"]), freeWorkers,
                   labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
                 ),
-                _buildRow(
-                  "🍞", "Food", "farm",
+                _buildRow("🍞", "Food", "farm",
                   safeToInt(res["food"]), safeToInt(cap["food"]), safeToInt(secured["food"]), freeWorkers,
                   labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
                 ),
-                _buildRow(
-                  "🪙", "Gold", "goldmine",
+                _buildRow("🪙", "Gold", "goldmine",
                   safeToInt(res["gold"]), safeToInt(cap["gold"]), safeToInt(secured["gold"]), freeWorkers,
                   labelStyle: bodyStyle, valueStyle: titleStyle, miscStyle: subtleStyle,
                 ),
@@ -232,11 +231,7 @@ class VillageCardState extends State<VillageCard> {
       ),
     );
 
-    final securedText = Text(
-      '[$secured]',
-      textAlign: TextAlign.right,
-      style: miscStyle,
-    );
+    final securedText = Text('[$secured]', textAlign: TextAlign.right, style: miscStyle);
 
     return TableRow(
       children: [
@@ -253,7 +248,6 @@ class VillageCardState extends State<VillageCard> {
     final def = buildingDefinitions
         .cast<Map<String, dynamic>?>()
         .firstWhere((b) => b?['type'] == buildingType, orElse: () => null);
-
     return def?['displayName']?['default'] ?? buildingType;
   }
 
