@@ -119,7 +119,13 @@ class SettingsScreen extends StatelessWidget {
                   subtitle: null,
                   value: const Locale('en'),
                   groupValue: settings.locale,
-                  onChanged: (loc) => settings.setLocale(loc),
+                  onChanged: (loc) {
+                    settings.setLocale(loc);
+                    // Force immediate rebuild so new translations appear without hot reload
+                    Future.microtask(() {
+                      (context as Element).markNeedsBuild();
+                    });
+                  },
                 ),
                 _Divider(glass: glass, text: text),
                 _RadioTile<Locale?>(
@@ -129,7 +135,13 @@ class SettingsScreen extends StatelessWidget {
                   subtitle: null,
                   value: const Locale('de'),
                   groupValue: settings.locale,
-                  onChanged: (loc) => settings.setLocale(loc),
+                  onChanged: (loc) {
+                    settings.setLocale(loc);
+                    // Force immediate rebuild so new translations appear without hot reload
+                    Future.microtask(() {
+                      (context as Element).markNeedsBuild();
+                    });
+                  },
                 ),
               ],
             ),
