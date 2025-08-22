@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:roots_app/modules/combat/views/combat_log_screen.dart';
 import 'package:roots_app/modules/combat/views/combat_log_view.dart' as logview;
 import 'package:roots_app/screens/helpers/layout_helper.dart';
 
@@ -67,7 +66,7 @@ class ReportDetailScreen extends StatelessWidget {
           final xp = data['xp'];
           final combatIdValue = type == 'combat'
               ? reportId // direct combat doc
-              : (data['combatId'] ?? null); // linked combat from peaceful report
+              : (data['combatId']); // linked combat from peaceful report
 
           return SingleChildScrollView(
             child: Padding(

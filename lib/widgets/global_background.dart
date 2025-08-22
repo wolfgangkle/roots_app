@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:roots_app/theme/tokens.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/theme/app_style_manager.dart';
 

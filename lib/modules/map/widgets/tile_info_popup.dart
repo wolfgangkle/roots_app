@@ -123,13 +123,13 @@ class TileInfoPopup extends StatelessWidget {
               ),
             ],
 
-            if (tile.heroGroups != null && tile.heroGroups!.isNotEmpty) ...[
+            if (tile.heroGroups.isNotEmpty) ...[
               const Divider(height: 16),
               Row(
                 children: [
                   const Icon(Icons.group, size: 18),
                   const SizedBox(width: 6),
-                  Text('${tile.heroGroups!.length} hero group(s)'),
+                  Text('${tile.heroGroups.length} hero group(s)'),
                 ],
               ),
             ],

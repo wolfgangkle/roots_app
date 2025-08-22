@@ -1,3 +1,4 @@
+// lib/main.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,6 +12,10 @@ import 'package:roots_app/modules/map/providers/terrain_provider.dart';
 import 'package:roots_app/modules/settings/models/user_settings_model.dart';
 import 'package:roots_app/widgets/global_background.dart';
 import 'package:roots_app/theme/app_style_manager.dart';
+
+// 🔤 Localization imports (matches l10n.yaml output)
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:roots_app/l10n/gen/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +42,19 @@ void main() async {
   );
 }
 
+class LocaleGate extends StatelessWidget {
+  final Locale? locale;
+  final Widget child;
+  const LocaleGate({super.key, required this.locale, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    // Changing the key forces a rebuild of the subtree when locale flips
+    final key = ValueKey('gate-${locale?.toLanguageTag() ?? 'system'}');
+    return KeyedSubtree(key: key, child: child);
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -44,24 +62,32 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<UserSettingsModel>();
 
-    // ⏳ Wait for Firestore user settings to load
     if (!settings.isLoaded) {
       return const MaterialApp(
-        home: Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
 
-    // 🌿 Currently, we don’t use Flutter’s native light/dark themes anymore,
-    // because our token-based styles handle all visual customization.
     return MaterialApp(
+      // Recreate MaterialApp when locale changes (extra safety)
+      key: ValueKey('locale-${settings.locale?.toLanguageTag() ?? 'system'}'),
+
       title: 'Roots',
       debugShowCheckedModeBanner: false,
 
-      // 🌄 Apply global background via builder
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: settings.locale, // null -> follow system
+
       builder: (context, child) {
-        return GlobalBackground(child: child ?? const SizedBox());
+        // ✅ Force immediate rebuild of the visible subtree when locale changes
+        final wrapped = GlobalBackground(child: child ?? const SizedBox());
+        return LocaleGate(locale: settings.locale, child: wrapped);
       },
 
       routes: {

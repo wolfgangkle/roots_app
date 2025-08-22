@@ -1,9 +1,13 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:roots_app/modules/chat/chat_service.dart';
-import 'package:roots_app/modules/chat/chat_message_model.dart';
-import 'package:roots_app/modules/profile/models/user_profile_model.dart';
 import 'package:intl/intl.dart';
+
+import 'package:roots_app/modules/chat/chat_message_model.dart';
+import 'package:roots_app/modules/chat/chat_service.dart';
+import 'package:roots_app/modules/profile/models/user_profile_model.dart';
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 class ChatOverlay extends StatefulWidget {
   final bool usePositioned;
@@ -22,10 +26,11 @@ class _ChatOverlayState extends State<ChatOverlay> {
   double _height = 220;
   final double _width = 380;
 
+  void _toggleCollapsed() => setState(() => _isCollapsed = !_isCollapsed);
+
   void _sendMessage(String sender) {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-
     ChatService.sendMessage(sender, text);
     _controller.clear();
   }
@@ -44,169 +49,302 @@ class _ChatOverlayState extends State<ChatOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔐 Tokens
+    final style = context.watch<StyleManager>().currentStyle;
+    final glass = style.glass;
+    final text = style.textOnGlass;
+
     final heroName =
         Provider.of<UserProfileModel>(context, listen: false).heroName;
 
-    final chatContent = _isCollapsed
-        ? FloatingActionButton(
-      mini: true,
-      backgroundColor: Colors.black.withAlpha(217),
-      onPressed: () {
-        setState(() {
-          _isCollapsed = false;
-        });
-      },
-      child: const Icon(Icons.chat_bubble, color: Colors.white),
-    )
-        : GestureDetector(
-      onPanUpdate: (details) {
-        setState(() {
-          _height -= details.delta.dy;
-          _height = _height.clamp(120.0, 400.0);
-        });
-      },
-      child: Container(
-        width: _width,
-        height: _height,
-        decoration: BoxDecoration(
-          color: Colors.black.withAlpha(217),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text('💬 Global Chat',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold)),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.minimize,
-                      color: Colors.white, size: 16),
-                  onPressed: () {
-                    setState(() {
-                      _isCollapsed = true;
-                    });
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                )
-              ],
-            ),
-            const SizedBox(height: 4),
-            Expanded(
-              child: StreamBuilder<List<ChatMessage>>(
-                stream: ChatService.getMessageStream(limit: 20),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const SizedBox();
+    final chatPanel = _isCollapsed
+        ? _CollapsedFab(onTap: _toggleCollapsed, text: text)
+        : _ExpandedChat(
+      width: _width,
+      height: _height,
+      onCollapse: _toggleCollapsed,
+      controller: _controller,
+      scrollController: _scrollController,
+      onSend: () => _sendMessage(heroName ?? 'Unknown'),
+      onDrag: (dy) => setState(() {
+        _height = (_height + dy).clamp(140.0, 440.0);
+      }),
+      text: text,
+      glass: glass,
+    );
 
-                  final messages = snapshot.data!;
-                  _scrollToBottom();
+    final positionedContent = Positioned(
+      right: 12,
+      bottom: 12,
+      child: chatPanel,
+    );
 
-                  return ListView(
-                    controller: _scrollController,
-                    padding: EdgeInsets.zero,
-                    reverse: true,
-                    children:
-                    _buildGroupedMessages(messages).reversed.toList(),
-                  );
-                },
-              ),
+    return widget.usePositioned ? positionedContent : chatPanel;
+  }
+}
+
+/// Collapsed floating button (tokenized)
+class _CollapsedFab extends StatelessWidget {
+  final VoidCallback onTap;
+  final TextOnGlassTokens text;
+
+  const _CollapsedFab({required this.onTap, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton.small(
+      onPressed: onTap,
+      // No hard-coded color: let current theme decide contrast
+      child: Text('💬', style: TextStyle(color: text.primary)),
+    );
+  }
+}
+
+/// Expanded Chat with glass/solid aware container
+class _ExpandedChat extends StatelessWidget {
+  final double width;
+  final double height;
+  final VoidCallback onCollapse;
+  final TextEditingController controller;
+  final ScrollController scrollController;
+  final VoidCallback onSend;
+  final void Function(double dy) onDrag;
+  final TextOnGlassTokens text;
+  final GlassTokens glass;
+
+  const _ExpandedChat({
+    required this.width,
+    required this.height,
+    required this.onCollapse,
+    required this.controller,
+    required this.scrollController,
+    required this.onSend,
+    required this.onDrag,
+    required this.text,
+    required this.glass,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = glass.borderColor ??
+        text.subtle.withOpacity(glass.strokeOpacity);
+
+    final content = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        children: [
+          // Glassy blur if in glass mode
+          if (glass.mode == SurfaceMode.glass)
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: glass.blurSigma, sigmaY: glass.blurSigma),
+              child: const SizedBox.expand(),
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 13),
-                    decoration: const InputDecoration(
-                      hintText: 'Type message...',
-                      hintStyle: TextStyle(color: Colors.white54),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 6),
-                    ),
-                    onSubmitted: (_) => _sendMessage(heroName),
-                  ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: glass.baseColor.withOpacity(glass.mode == SurfaceMode.solid ? 1.0 : glass.opacity),
+              borderRadius: BorderRadius.circular(12),
+              border: glass.showBorder
+                  ? Border.all(color: borderColor)
+                  : null,
+              boxShadow: glass.mode == SurfaceMode.solid && glass.elevation > 0
+                  ? [
+                BoxShadow(
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 2),
+                  color: Colors.black.withOpacity(0.18),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Colors.white),
-                  onPressed: () => _sendMessage(heroName),
-                  padding: EdgeInsets.zero,
-                  iconSize: 20,
-                )
-              ],
-            )
-          ],
-        ),
+              ]
+                  : null,
+            ),
+            child: _PanelBody(
+              width: width,
+              height: height,
+              onCollapse: onCollapse,
+              controller: controller,
+              scrollController: scrollController,
+              onSend: onSend,
+              onDrag: onDrag,
+              text: text,
+              glass: glass,
+            ),
+          ),
+        ],
       ),
     );
 
-    // ➤ Wrap in a Stack+Positioned only if required
-    if (widget.usePositioned) {
-      return Stack(
-        children: [
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: chatContent,
-          ),
-        ],
-      );
-    } else {
-      return Padding(
-        padding: const EdgeInsets.only(right: 16, bottom: 16),
-        child: chatContent,
-      );
-    }
+    return SizedBox(width: width, height: height, child: content);
   }
+}
 
-  List<Widget> _buildGroupedMessages(List<ChatMessage> messages) {
-    final List<Widget> widgets = [];
-    String? lastDateLabel;
+class _PanelBody extends StatelessWidget {
+  final double width;
+  final double height;
+  final VoidCallback onCollapse;
+  final TextEditingController controller;
+  final ScrollController scrollController;
+  final VoidCallback onSend;
+  final void Function(double dy) onDrag;
+  final TextOnGlassTokens text;
+  final GlassTokens glass;
 
-    for (final msg in messages) {
-      final now = DateTime.now();
-      final isToday = msg.timestamp.year == now.year &&
-          msg.timestamp.month == now.month &&
-          msg.timestamp.day == now.day;
+  const _PanelBody({
+    required this.width,
+    required this.height,
+    required this.onCollapse,
+    required this.controller,
+    required this.scrollController,
+    required this.onSend,
+    required this.onDrag,
+    required this.text,
+    required this.glass,
+  });
 
-      final isYesterday = msg.timestamp.year == now.year &&
-          msg.timestamp.month == now.month &&
-          msg.timestamp.day == now.day - 1;
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '💬 Global Chat',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: text.primary,
+                  ),
+                ),
+              ),
+              _IconBtn(
+                onTap: onCollapse,
+                icon: Icons.close,
+                color: text.secondary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
 
-      final dateLabel = isToday
-          ? 'Today'
-          : isYesterday
-          ? 'Yesterday'
-          : DateFormat('dd.MM.yyyy').format(msg.timestamp);
-
-      if (dateLabel != lastDateLabel) {
-        widgets.add(Padding(
-          padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-          child: Text(
-            dateLabel,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+          // Messages
+          Expanded(
+            child: NotificationListener<ScrollUpdateNotification>(
+              onNotification: (_) => false,
+              child: _MessageList(
+                scrollController: scrollController,
+                text: text,
+              ),
             ),
           ),
-        ));
-        lastDateLabel = dateLabel;
-      }
+          const SizedBox(height: 8),
 
-      final time = DateFormat.Hm().format(msg.timestamp);
-      widgets.add(Text(
-        '[$time] ${msg.sender}: ${msg.content}',
-        style: const TextStyle(color: Colors.white, fontSize: 12),
-      ));
-    }
+          // Input row
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: glass.baseColor.withOpacity(
+                      glass.mode == SurfaceMode.solid ? 1.0 : (glass.opacity + 0.06).clamp(0.0, 1.0),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    border: glass.showBorder ? Border.all(color: (glass.borderColor ?? text.subtle.withOpacity(glass.strokeOpacity))) : null,
+                  ),
+                  child: TextField(
+                    controller: controller,
+                    onSubmitted: (_) => onSend(),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'Type a message…',
+                      hintStyle: TextStyle(color: text.subtle.withOpacity(0.8)),
+                      border: InputBorder.none,
+                    ),
+                    style: TextStyle(color: text.primary, fontSize: 13),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _IconBtn(
+                onTap: onSend,
+                icon: Icons.send,
+                color: text.primary,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    return widgets;
+class _MessageList extends StatelessWidget {
+  final ScrollController scrollController;
+  final TextOnGlassTokens text;
+  const _MessageList({required this.scrollController, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<ChatMessage>>(
+      stream: ChatService.getMessageStream(limit: 100),
+      builder: (context, snapshot) {
+        final messages = snapshot.data ?? const <ChatMessage>[];
+
+        // Group by day and render with date separators
+        final widgets = <Widget>[];
+        String? lastDateLabel;
+        for (final msg in messages.reversed) {
+          final dateLabel = DateFormat('dd.MM.yyyy').format(msg.timestamp);
+          if (dateLabel != lastDateLabel) {
+            widgets.add(Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Center(
+                child: Text(
+                  dateLabel,
+                  style: TextStyle(
+                    color: text.subtle,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ));
+            lastDateLabel = dateLabel;
+          }
+
+          final time = DateFormat.Hm().format(msg.timestamp);
+          widgets.add(Text(
+            '[$time] ${msg.sender}: ${msg.content}',
+            style: TextStyle(color: text.secondary, fontSize: 12),
+          ));
+        }
+
+        return ListView(
+          controller: scrollController,
+          reverse: true,
+          children: widgets,
+        );
+      },
+    );
+  }
+}
+
+class _IconBtn extends StatelessWidget {
+  final VoidCallback onTap;
+  final IconData icon;
+  final Color color;
+  const _IconBtn({required this.onTap, required this.icon, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, size: 18, color: color),
+      ),
+    );
   }
 }

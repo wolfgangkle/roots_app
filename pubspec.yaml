@@ -9,8 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
   provider: ^6.1.1
-  intl: ^0.18.1
+  intl: ^0.19.0
   cupertino_icons: ^1.0.6
   rxdart: ^0.28.0
 
@@ -21,10 +24,9 @@ dependencies:
   cloud_functions: ^4.7.6
   firebase_core_web: ^2.9.0
 
-  # ✅ Needed for firebase_auth_web
   js: ^0.7.2
-
   vector_math: any
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -35,10 +37,13 @@ flutter:
   assets:
     - assets/images/backgrounds/roots_global_background.png
 
-
   fonts:
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter_18pt-Regular.ttf
         - asset: assets/fonts/Inter_18pt-Bold.ttf
           weight: 700
+
+  generate: true
+
+

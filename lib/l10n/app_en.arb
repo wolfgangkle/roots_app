@@ -1,0 +1,18 @@
+{
+  "@@locale": "en",
+  "settings_title": "Settings",
+  "settings_appStyle": "App Style",
+  "settings_appStyle_sub": "Choose your UI theme",
+  "theme_darkForge": "Dark Forge",
+  "theme_darkForge_sub": "Dark, moody, glassy",
+  "theme_silverGrove": "Silver Grove",
+  "theme_silverGrove_sub": "Bright, frosted, bluish accent",
+  "theme_ironKeep": "Iron Keep (Solid)",
+  "theme_ironKeep_sub": "Opaque, medieval, non-glass",
+  "toggle_chatOverlay": "Show Global Chat Overlay",
+  "settings_language": "Language",
+  "settings_language_sub": "Choose your language",
+  "lang_system": "Use system language",
+  "lang_english": "English",
+  "lang_german": "Deutsch"
+}

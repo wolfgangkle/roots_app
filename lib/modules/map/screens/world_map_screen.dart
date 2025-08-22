@@ -3,14 +3,10 @@ import 'package:flutter/gestures.dart';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roots_app/modules/map/constants/tier1_map.dart';
-import 'package:roots_app/modules/map/constants/terrain_definitions.dart';
 import 'package:roots_app/modules/map/services/map_data_loader.dart';
 import 'package:roots_app/modules/map/models/enriched_tile_data.dart';
 import 'package:roots_app/modules/map/widgets/map_painter.dart';
 import 'package:roots_app/modules/map/widgets/tile_info_popup.dart';
-import 'package:roots_app/modules/profile/views/player_profile_screen.dart';
-import 'package:roots_app/modules/profile/views/guild_profile_screen.dart';
-import 'package:roots_app/modules/profile/views/alliance_profile_screen.dart';
 
 class WorldMapScreen extends StatefulWidget {
   const WorldMapScreen({super.key});

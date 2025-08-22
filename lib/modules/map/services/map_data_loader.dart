@@ -65,7 +65,7 @@ class MapDataLoader {
       final x = data['tileX'];
       final y = data['tileY'];
       if (x is int && y is int) {
-        final key = '${x}_${y}';
+        final key = '${x}_$y';
         heroGroupsByTile.putIfAbsent(key, () => []).add(data);
       }
     }

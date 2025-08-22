@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../services/auth_service.dart';
 import '../auth/check_user_profile.dart';
