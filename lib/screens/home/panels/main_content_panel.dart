@@ -26,8 +26,8 @@ class MainContentPanel extends StatelessWidget {
 
     // Token-based surface
     final sigma = _glass.mode == SurfaceMode.glass ? _glass.blurSigma : 0.0;
-    final bg = _glass.baseColor.withOpacity(_glass.opacity);
-    final borderColor = _glass.borderColor ?? _text.subtle.withOpacity(_glass.strokeOpacity);
+    final bg = _glass.baseColor.withValues(alpha: _glass.opacity);
+    final borderColor = _glass.borderColor ?? _text.subtle.withValues(alpha: _glass.strokeOpacity);
 
     return ClipRRect(
       borderRadius: BorderRadius.zero,

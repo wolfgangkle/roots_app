@@ -38,7 +38,9 @@ class GlobalBackground extends StatelessWidget {
             assetPath,
             fit: BoxFit.cover,
             filterQuality: FilterQuality.low,
-            color: effectiveLightAdd > 0 ? Colors.white.withOpacity(effectiveLightAdd) : null,
+            color: effectiveLightAdd > 0
+                ? Colors.white.withValues(alpha: effectiveLightAdd)
+                : null,
             colorBlendMode: effectiveLightAdd > 0 ? BlendMode.plus : null,
           ),
         ),
@@ -62,8 +64,8 @@ class GlobalBackground extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(effectiveDarken + 0.10),
-                    Colors.black.withOpacity(effectiveDarken),
+                    Colors.black.withValues(alpha: effectiveDarken + 0.10),
+                    Colors.black.withValues(alpha: effectiveDarken),
                   ],
                 ),
               ),

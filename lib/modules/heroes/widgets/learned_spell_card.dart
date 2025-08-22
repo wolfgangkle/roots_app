@@ -68,15 +68,6 @@ class LearnedSpellCard extends StatelessWidget {
     final baseEffect = (spell['baseEffect'] ?? {}) as Map<String, dynamic>;
     final spellId = spell['id'] ?? spell['name']; // fallback if id is missing
 
-    final conditionLabels = {
-      'manaPercentageAbove': 'Mana > X%',
-      'manaAbove': 'Mana > X',
-      'enemiesInCombatMin': 'If enemy count ≥ X',
-      'onlyIfEnemyHeroPresent': 'Only if enemy hero is present',
-      'maxCastsPerFight': 'Only X casts per combat',
-      'allyHpBelowPercentage': 'If ally HP < X%',
-    };
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       padding: const EdgeInsets.all(12),

@@ -177,7 +177,7 @@ class TokenPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor =
-        glass.borderColor ?? text.subtle.withOpacity(glass.strokeOpacity);
+        glass.borderColor ?? text.subtle.withValues(alpha: glass.strokeOpacity);
 
     // Never fully invisible in glass mode
     final double fillOpacity = glass.mode == SurfaceMode.solid
@@ -206,7 +206,7 @@ class TokenPanel extends StatelessWidget {
               ),
             DecoratedBox(
               decoration: BoxDecoration(
-                color: glass.baseColor.withOpacity(fillOpacity),
+                color: glass.baseColor.withValues(alpha: fillOpacity),
                 borderRadius: BorderRadius.circular(16),
                 border: glass.showBorder ? Border.all(color: borderColor) : null,
                 boxShadow: glass.mode == SurfaceMode.solid && glass.elevation > 0
@@ -214,7 +214,7 @@ class TokenPanel extends StatelessWidget {
                   BoxShadow(
                     blurRadius: 12,
                     offset: const Offset(0, 3),
-                    color: Colors.black.withOpacity(0.18),
+                    color: Colors.black.withValues(alpha: 0.18),
                   ),
                 ]
                     : null,
@@ -269,7 +269,7 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = (glass.borderColor ?? text.subtle.withOpacity(glass.strokeOpacity)).withOpacity(0.6);
+    final c = (glass.borderColor ?? text.subtle.withValues(alpha: glass.strokeOpacity)).withValues(alpha: 0.6);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Divider(height: 1, thickness: 1, color: c),
@@ -313,7 +313,7 @@ class _RadioTile<T> extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: text.secondary.withOpacity(0.9), width: 2),
+                    color: text.secondary.withValues(alpha: 0.9), width: 2),
               ),
               alignment: Alignment.center,
               child: AnimatedContainer(
@@ -385,7 +385,7 @@ class _SwitchTile extends StatelessWidget {
               switchTheme: SwitchThemeData(
                 trackColor: WidgetStateProperty.resolveWith((states) {
                   final on = states.contains(WidgetState.selected);
-                  return (on ? text.primary : text.subtle).withOpacity(0.25);
+                  return (on ? text.primary : text.subtle).withValues(alpha: 0.25);
                 }),
                 thumbColor: WidgetStateProperty.resolveWith((states) {
                   final on = states.contains(WidgetState.selected);

@@ -60,7 +60,7 @@ class _MapToolsSectionState extends State<MapToolsSection> {
                     border: const OutlineInputBorder(),
                     isDense: true,
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.05),
+                    fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.05),
                   ),
                   style: const TextStyle(fontFamily: 'monospace'),
                 ),
@@ -72,9 +72,11 @@ class _MapToolsSectionState extends State<MapToolsSection> {
   }
 
   Future<void> _exportTier2MapToDart() async {
+    final messenger = ScaffoldMessenger.of(context); // capture before awaits
+
     final snapshot = await FirebaseFirestore.instance.collection('mapTiles').get();
-    final buffer = StringBuffer();
-    buffer.writeln("const Map<String, String> tier2Map = {");
+    final buffer = StringBuffer()
+      ..writeln("const Map<String, String> tier2Map = {");
 
     for (var doc in snapshot.docs) {
       final id = doc.id;
@@ -84,18 +86,19 @@ class _MapToolsSectionState extends State<MapToolsSection> {
 
     buffer.writeln("};");
 
+    if (!mounted) return; // guard before setState/SnackBar
+
     setState(() {
       exportController.text = buffer.toString();
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(content: Text("✅ Tier 2 map exported to Dart format")),
     );
   }
 
-
   Future<void> _generateTier2Map(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = ScaffoldMessenger.of(context); // capture before awaits
     final mapRef = FirebaseFirestore.instance.collection('mapTiles');
 
     const radius = 50;
@@ -157,14 +160,16 @@ class _MapToolsSectionState extends State<MapToolsSection> {
     }
 
     await batch.commit();
+
+    if (!mounted) return;
+
     messenger.showSnackBar(
       const SnackBar(content: Text("🏝️ Biome island generated!")),
     );
   }
 
-
   Future<void> _cleanMapTiles(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = ScaffoldMessenger.of(context); // capture before awaits
 
     final tilesRef = FirebaseFirestore.instance.collection('mapTiles');
     final snapshot = await tilesRef.get();
@@ -184,6 +189,8 @@ class _MapToolsSectionState extends State<MapToolsSection> {
         cleaned++;
       }
     }
+
+    if (!mounted) return;
 
     messenger.showSnackBar(
       SnackBar(content: Text("🧹 Cleaned $cleaned mapTiles")),

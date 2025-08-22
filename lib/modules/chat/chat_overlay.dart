@@ -35,18 +35,6 @@ class _ChatOverlayState extends State<ChatOverlay> {
     _controller.clear();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          0.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // 🔐 Tokens
@@ -65,7 +53,7 @@ class _ChatOverlayState extends State<ChatOverlay> {
       onCollapse: _toggleCollapsed,
       controller: _controller,
       scrollController: _scrollController,
-      onSend: () => _sendMessage(heroName ?? 'Unknown'),
+      onSend: () => _sendMessage(heroName), // removed ?? 'Unknown'
       onDrag: (dy) => setState(() {
         _height = (_height + dy).clamp(140.0, 440.0);
       }),
@@ -126,8 +114,8 @@ class _ExpandedChat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = glass.borderColor ??
-        text.subtle.withOpacity(glass.strokeOpacity);
+    final borderColor =
+        glass.borderColor ?? text.subtle.withValues(alpha: glass.strokeOpacity);
 
     final content = ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -136,23 +124,24 @@ class _ExpandedChat extends StatelessWidget {
           // Glassy blur if in glass mode
           if (glass.mode == SurfaceMode.glass)
             BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: glass.blurSigma, sigmaY: glass.blurSigma),
+              filter:
+              ImageFilter.blur(sigmaX: glass.blurSigma, sigmaY: glass.blurSigma),
               child: const SizedBox.expand(),
             ),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: glass.baseColor.withOpacity(glass.mode == SurfaceMode.solid ? 1.0 : glass.opacity),
+              color: glass.baseColor.withValues(
+                alpha: glass.mode == SurfaceMode.solid ? 1.0 : glass.opacity,
+              ),
               borderRadius: BorderRadius.circular(12),
-              border: glass.showBorder
-                  ? Border.all(color: borderColor)
-                  : null,
+              border: glass.showBorder ? Border.all(color: borderColor) : null,
               boxShadow: glass.mode == SurfaceMode.solid && glass.elevation > 0
                   ? [
                 BoxShadow(
                   blurRadius: 10,
                   spreadRadius: 0,
                   offset: const Offset(0, 2),
-                  color: Colors.black.withOpacity(0.18),
+                  color: Colors.black.withValues(alpha: 0.18),
                 ),
               ]
                   : null,
@@ -245,13 +234,22 @@ class _PanelBody extends StatelessWidget {
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: glass.baseColor.withOpacity(
-                      glass.mode == SurfaceMode.solid ? 1.0 : (glass.opacity + 0.06).clamp(0.0, 1.0),
+                    color: glass.baseColor.withValues(
+                      alpha: glass.mode == SurfaceMode.solid
+                          ? 1.0
+                          : (glass.opacity + 0.06).clamp(0.0, 1.0),
                     ),
                     borderRadius: BorderRadius.circular(8),
-                    border: glass.showBorder ? Border.all(color: (glass.borderColor ?? text.subtle.withOpacity(glass.strokeOpacity))) : null,
+                    border: glass.showBorder
+                        ? Border.all(
+                      color: (glass.borderColor ??
+                          text.subtle.withValues(
+                              alpha: glass.strokeOpacity)),
+                    )
+                        : null,
                   ),
                   child: TextField(
                     controller: controller,
@@ -259,7 +257,8 @@ class _PanelBody extends StatelessWidget {
                     decoration: InputDecoration(
                       isDense: true,
                       hintText: 'Type a message…',
-                      hintStyle: TextStyle(color: text.subtle.withOpacity(0.8)),
+                      hintStyle:
+                      TextStyle(color: text.subtle.withValues(alpha: 0.8)),
                       border: InputBorder.none,
                     ),
                     style: TextStyle(color: text.primary, fontSize: 13),
@@ -335,7 +334,8 @@ class _IconBtn extends StatelessWidget {
   final VoidCallback onTap;
   final IconData icon;
   final Color color;
-  const _IconBtn({required this.onTap, required this.icon, required this.color});
+  const _IconBtn(
+      {required this.onTap, required this.icon, required this.color});
   @override
   Widget build(BuildContext context) {
     return InkWell(

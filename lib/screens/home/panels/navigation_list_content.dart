@@ -59,7 +59,7 @@ class NavigationListContent extends StatelessWidget {
     // 🌟 Token-based section headers
     final sectionHeaderStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w700,
-      color: _text.primary.withOpacity(0.92),
+      color: _text.primary.withValues(alpha: 0.92),
     );
 
     // Standardize tile title style once
@@ -136,14 +136,14 @@ class NavigationListContent extends StatelessWidget {
     return Theme(
       data: Theme.of(context).copyWith(
         dividerTheme: DividerThemeData(
-          color: _text.subtle.withOpacity(0.20),
+          color: _text.subtle.withValues(alpha: 0.20),
           thickness: 1,
           space: 12,
         ),
       ),
       child: ListTileTheme(
         textColor: _text.primary,
-        iconColor: _text.secondary.withOpacity(0.9),
+        iconColor: _text.secondary.withValues(alpha: 0.9),
         child: DefaultTextStyle(
           style: tileTitleStyle ?? const TextStyle(),
           child: ListView(

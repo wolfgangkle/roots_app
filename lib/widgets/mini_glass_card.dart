@@ -71,7 +71,7 @@ class MiniGlassCard extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: effectiveColor.withOpacity(effectiveOpacity),
+                color: effectiveColor.withValues(alpha: effectiveOpacity),
               ),
             ),
           ),
@@ -85,7 +85,7 @@ class MiniGlassCard extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.center,
                     colors: [
-                      Colors.white.withOpacity(0.06),
+                      Colors.white.withValues(alpha: 0.06),
                       Colors.transparent,
                     ],
                   ),
@@ -113,7 +113,7 @@ class MiniGlassCard extends StatelessWidget {
               child: IgnorePointer(
                 child: CustomPaint(
                   painter: _OpenBorderPainter(
-                    strokeColor: Colors.white.withOpacity(effectiveStrokeOpacity),
+                    strokeColor: Colors.white.withValues(alpha: effectiveStrokeOpacity),
                     strokeWidth: effectiveStrokeWidth,
                     cornerGap: effectiveCornerGap,
                   ),

@@ -20,10 +20,8 @@ class _AllianceLeaderboardScreenState extends State<AllianceLeaderboardScreen> {
         .collection('alliances')
         .orderBy('points', descending: true)
         .limit(1)
-        .get()
-        .catchError((error) {
+        .get().then((_) {}, onError: (error) {
       debugPrint('[Index Trigger] Alliance leaderboard: $error');
-
       if (error is FirebaseException) {
         debugPrint('[Missing Index] ➜ ${error.message}');
       }

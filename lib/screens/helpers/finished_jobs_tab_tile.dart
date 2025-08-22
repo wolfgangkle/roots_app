@@ -60,7 +60,7 @@ class FinishedJobsTabTile extends StatelessWidget {
       child: ListTile(
         dense: true,
         visualDensity: VisualDensity.compact,
-        leading: Icon(Icons.arrow_right, color: _text.secondary.withOpacity(0.9)),
+        leading: Icon(Icons.arrow_right, color: _text.secondary.withValues(alpha: 0.9)),
         title: Text(title, style: titleStyle),
         onTap: () {
           if (isInDrawer) Navigator.pop(context);

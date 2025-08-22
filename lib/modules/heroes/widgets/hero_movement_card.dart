@@ -81,7 +81,6 @@ class _HeroMovementCardState extends State<HeroMovementCard> {
     final isMobile = widget.isMobile;
     final now = DateTime.now();
 
-    final isMoving = hero.state == 'moving' && hero.arrivesAt != null;
     final waypoints = group?.movementQueue ?? [];
 
     return Card(

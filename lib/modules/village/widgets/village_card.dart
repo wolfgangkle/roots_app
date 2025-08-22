@@ -75,13 +75,13 @@ class VillageCardState extends State<VillageCard> {
     final t = textOnGlass;
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w700,
-      color: t.primary.withOpacity(0.95),
+      color: t.primary.withValues(alpha: 0.95),
     );
     final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color: t.secondary.withOpacity(0.75),
+      color: t.secondary.withValues(alpha: 0.75),
     );
     final subtleStyle = bodyStyle?.copyWith(
-      color: t.subtle.withOpacity(0.64),
+      color: t.subtle.withValues(alpha: 0.64),
     );
 
     return Padding(
@@ -148,7 +148,7 @@ class VillageCardState extends State<VillageCard> {
                 'Upgrading: ${_getBuildingDisplayName(upgrade.buildingType)}',
                 style: bodyStyle?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: t.primary.withOpacity(0.92),
+                  color: t.primary.withValues(alpha: 0.92),
                 ),
               ),
               const SizedBox(height: 4),
@@ -166,7 +166,7 @@ class VillageCardState extends State<VillageCard> {
                 'Crafting: ${_getItemName(crafting['itemId'])}',
                 style: bodyStyle?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: t.primary.withOpacity(0.92),
+                  color: t.primary.withValues(alpha: 0.92),
                 ),
               ),
               const SizedBox(height: 4),

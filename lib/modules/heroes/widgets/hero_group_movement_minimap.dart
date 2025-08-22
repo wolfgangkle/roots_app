@@ -160,7 +160,7 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
                       final isHero = (x == widget.group.tileX && y == widget.group.tileY);
                       final isNewWaypoint = widget.waypoints
                           .any((wp) => wp['x'] == x && wp['y'] == y);
-                      final isSavedWaypoint = (widget.group.movementQueue ?? [])
+                      final isSavedWaypoint = (widget.group.movementQueue)
                           .any((wp) => wp['x'] == x && wp['y'] == y);
                       final hasVillage = villageTiles.contains(tileKey);
 

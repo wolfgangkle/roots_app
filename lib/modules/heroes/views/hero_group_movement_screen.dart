@@ -40,12 +40,12 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
   void initState() {
     super.initState();
 
-    _waypoints.addAll(widget.group.movementQueue ?? []);
+    _waypoints.addAll(widget.group.movementQueue);
 
     if (_waypoints.isNotEmpty) {
-      final last = _waypoints.last;
-      _gridCenterX = last['x'] ?? widget.group.tileX;
-      _gridCenterY = last['y'] ?? widget.group.tileY;
+      final Map<String, dynamic> last = _waypoints.last;
+      _gridCenterX = (last['x'] as int?) ?? widget.group.tileX;
+      _gridCenterY = (last['y'] as int?) ?? widget.group.tileY;
     } else {
       _gridCenterX = widget.group.tileX;
       _gridCenterY = widget.group.tileY;
@@ -59,6 +59,8 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         .collection('mapTiles')
         .where('villageId', isGreaterThan: '')
         .get();
+
+    if (!mounted) return; // ✅ safety before setState after await
 
     setState(() {
       _villageTiles = snapshot.docs.map((doc) => doc.id).toSet();
@@ -81,15 +83,15 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
 
   void _clearWaypoints() {
     if (_waypoints.isNotEmpty) {
-      final currentStep = _waypoints.first;
+      final Map<String, dynamic> currentStep = _waypoints.first;
 
       setState(() {
         _waypoints
           ..clear()
           ..add(currentStep);
 
-        _gridCenterX = currentStep['x'] ?? widget.group.tileX;
-        _gridCenterY = currentStep['y'] ?? widget.group.tileY;
+        _gridCenterX = (currentStep['x'] as int?) ?? widget.group.tileX;
+        _gridCenterY = (currentStep['y'] as int?) ?? widget.group.tileY;
       });
 
       _minimapKey.currentState?.centerOnTile(_gridCenterX, _gridCenterY);
@@ -119,9 +121,9 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         'movementQueue': _waypoints,
       });
 
-      final success = result.data['success'] == true;
+      if (!mounted) return; // ✅ after await, before using context
 
-      if (!mounted) return;
+      final success = result.data['success'] == true;
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -135,10 +137,15 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         );
 
         final updatedDoc = await widget.hero.ref.get();
+
+        if (!mounted) return; // ✅ after await, before using context
+
         final updatedHero = HeroModel.fromFirestore(
           updatedDoc.id,
           updatedDoc.data()! as Map<String, dynamic>,
         );
+
+        if (!mounted) return; // extra safety
 
         if (isMobile(context)) {
           Navigator.of(context).pushReplacement(
@@ -158,6 +165,7 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
       }
     } catch (e) {
       debugPrint('🧨 Error updating group movement: $e');
+      if (!mounted) return; // ✅ guard before using context in catch
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🔥 Error: $e')),
       );
@@ -178,19 +186,24 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         'groupId': widget.group.id,
       });
 
-      final arrivesBackAt = result.data['arrivesBackAt'];
+      if (!mounted) return; // ✅ after await, before using context
 
-      if (!mounted) return;
+      final arrivesBackAt = result.data['arrivesBackAt'];
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('↩️ Returning to origin (ETA: $arrivesBackAt)')),
       );
 
       final updatedDoc = await widget.hero.ref.get();
+
+      if (!mounted) return; // ✅ after await, before using context
+
       final updatedHero = HeroModel.fromFirestore(
         updatedDoc.id,
         updatedDoc.data()! as Map<String, dynamic>,
       );
+
+      if (!mounted) return; // extra safety
 
       if (isMobile(context)) {
         Navigator.of(context).pushReplacement(
@@ -205,6 +218,7 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
       }
     } catch (e) {
       debugPrint('🧨 Error canceling movement: $e');
+      if (!mounted) return; // ✅ guard before using context in catch
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🔥 Error: $e')),
       );
@@ -240,9 +254,8 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
             HeroGroupMovementControls(
               onClear: _clearWaypoints,
               onSend: _sendMovement,
-              onCancelMovement: widget.group.arrivesAt != null
-                  ? _cancelMovement
-                  : null,
+              onCancelMovement:
+              widget.group.arrivesAt != null ? _cancelMovement : null,
               isSending: _isSending,
               waypointCount: _waypoints.length,
             ),

@@ -74,12 +74,11 @@ class _CombatLogViewState extends State<CombatLogView> {
               if (eventSnapshot.hasError) {
                 return Text('Error: \${eventSnapshot.error}');
               }
-              final eventDoc = eventSnapshot.data;
-              String? description;
-              if (eventDoc != null && eventDoc.exists) {
-                final eventData = eventDoc.data() as Map<String, dynamic>?;
-                description = eventData?['description'] as String?;
+              final eventData = eventSnapshot.data!.data() as Map<String, dynamic>?;
+              if (eventData == null) {
+                return const Text("💥 Encounter event not found.");
               }
+
               return Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Text("📋 Combat view content would go here\n(description: \$description)\nTODO: port logic from CombatLogScreen"),

@@ -39,10 +39,11 @@ class _CombatLogViewState extends State<CombatLogView> {
 
         final eventId = combatData['eventId'] as String?;
 
+        if (eventId == null) {
+          return _buildCombatLogUI(heroNameMap, null);
+        }
         return FutureBuilder<DocumentSnapshot>(
-          future: eventId != null
-              ? FirebaseFirestore.instance.collection('encounterEvents').doc(eventId).get()
-              : Future.value(null),
+          future: FirebaseFirestore.instance.collection('encounterEvents').doc(eventId).get(),
           builder: (context, eventSnapshot) {
             if (eventSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

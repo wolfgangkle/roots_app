@@ -27,13 +27,13 @@ class HeroCard extends StatelessWidget {
 
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w700,
-      color: textOnGlass.primary.withOpacity(0.95),
+      color: textOnGlass.primary.withValues(alpha: 0.95),
     );
     final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color: textOnGlass.secondary.withOpacity(0.78),
+      color: textOnGlass.secondary.withValues(alpha: 0.78),
     );
     final subtleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: textOnGlass.subtle.withOpacity(0.64),
+      color: textOnGlass.subtle.withValues(alpha: 0.64),
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
@@ -87,7 +87,7 @@ class HeroCard extends StatelessWidget {
                   // HP bar
                   _TokenProgressBar(
                     value: percentHp,
-                    background: textOnGlass.subtle.withOpacity(0.18),
+                    background: textOnGlass.subtle.withValues(alpha: 0.18),
                     barColor: Theme.of(context).colorScheme.error,
                     height: 6,
                   ),
@@ -99,7 +99,7 @@ class HeroCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     _TokenProgressBar(
                       value: hero.manaMax > 0 ? (hero.mana / hero.manaMax).clamp(0.0, 1.0) : 0.0,
-                      background: textOnGlass.subtle.withOpacity(0.18),
+                      background: textOnGlass.subtle.withValues(alpha: 0.18),
                       barColor: Theme.of(context).colorScheme.primary,
                       height: 6,
                     ),
@@ -147,7 +147,7 @@ class _TokenProgressBar extends StatelessWidget {
           FractionallySizedBox(
             alignment: Alignment.centerLeft,
             widthFactor: value.isNaN ? 0.0 : value.clamp(0.0, 1.0),
-            child: Container(height: height, color: barColor.withOpacity(0.9)),
+            child: Container(height: height, color: barColor.withValues(alpha: 0.9)),
           ),
         ],
       ),
@@ -170,9 +170,9 @@ class _StatePill extends StatelessWidget {
       _ => '❔ unknown',
     };
 
-    final Color fg = t.primary.withOpacity(0.92);
-    final Color bg = t.subtle.withOpacity(0.10);
-    final Color border = t.subtle.withOpacity(0.18);
+    final Color fg = t.primary.withValues(alpha: 0.92);
+    final Color bg = t.subtle.withValues(alpha: 0.10);
+    final Color border = t.subtle.withValues(alpha: 0.18);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

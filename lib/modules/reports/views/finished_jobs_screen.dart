@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:roots_app/screens/helpers/layout_helper.dart';
 import 'package:rxdart/rxdart.dart';
 
 class FinishedJobsScreen extends StatelessWidget {
@@ -14,9 +13,6 @@ class FinishedJobsScreen extends StatelessWidget {
     if (user == null) {
       return const Center(child: Text("Not logged in."));
     }
-
-    final screenSize = LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
-    final isMobile = screenSize == ScreenSizeCategory.small;
 
     final villagesRef = FirebaseFirestore.instance
         .collection('users')

@@ -148,7 +148,7 @@ Future<void> seedTerrainTypes(BuildContext context) async {
       'name': terrain.name,
       'walkable': terrain.walkable,
       'movementCost': terrain.movementCost,
-      'color': terrain.color.value, // store color as int
+      'color': terrain.color.toARGB32(), // store color as int
       'icon': terrain.icon?.codePoint, // optional for UI use
       'source': 'manual',
       'updatedAt': FieldValue.serverTimestamp(),

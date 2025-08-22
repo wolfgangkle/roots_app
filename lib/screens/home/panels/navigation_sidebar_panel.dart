@@ -18,8 +18,8 @@ class NavigationSidebarPanel extends StatelessWidget {
     // 👇 Rebuild when StyleManager changes (theme switch)
     context.watch<StyleManager>();
 
-    final bg = _glass.baseColor.withOpacity(_glass.opacity);
-    final borderColor = _glass.borderColor ?? _text.subtle.withOpacity(_glass.strokeOpacity);
+    final bg = _glass.baseColor.withValues(alpha: _glass.opacity);
+    final borderColor = _glass.borderColor ?? _text.subtle.withValues(alpha: _glass.strokeOpacity);
     final sigma = _glass.mode == SurfaceMode.glass ? _glass.blurSigma : 0.0;
 
     return SizedBox(
