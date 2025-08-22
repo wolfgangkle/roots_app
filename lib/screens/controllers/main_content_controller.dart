@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../modules/village/models/village_model.dart';
 import '../../modules/village/views/village_center_screen.dart';
 import '../../modules/profile/views/player_profile_screen.dart';
+import '../../screens/home/welcome_screen.dart'; // 👈 add this
+
 
 enum MainContentType {
   village,
@@ -29,6 +31,12 @@ class MainContentController extends ChangeNotifier {
 
   void setPlayerProfileScreen(String userId) {
     _currentContent = PlayerProfileScreen(userId: userId);
+    _currentType = MainContentType.custom;
+    notifyListeners();
+  }
+
+  void showWelcomeScreen() {
+    _currentContent = const WelcomeScreen();
     _currentType = MainContentType.custom;
     notifyListeners();
   }

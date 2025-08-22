@@ -17,10 +17,21 @@ const ironKeep = AppStyleTokens(
   ),
 
   background: BackgroundTokens(
-    assetPath: 'assets/images/backgrounds/roots_global_background.png',
+    assetPath: 'assets/images/backgrounds/bg_iron_keep.png',
     blurSigma: 0,
     darken: 0.18,
     lightenAdd: 0.06,
+  ),
+
+  banner: BannerTokens(
+    assetPath: 'assets/images/backgrounds/banner_iron_keep.png',
+    height: 80,
+    blurSigma: 0, // very light blur, mostly solid
+    darken: 0,
+    lightenAdd: 0,
+    fit: BoxFit.cover,
+    alignment: Alignment.center,
+    padding: EdgeInsets.symmetric(horizontal: 16),
   ),
 
   // “Brown ink” text on parchment

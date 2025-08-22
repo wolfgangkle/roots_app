@@ -13,9 +13,9 @@ class ButtonTokens {
   final Color dangerBg;
   final Color dangerFg;
 
-  final double fontSize;      // NEW → text size per theme
-  final EdgeInsets padding;   // NEW → button padding per theme
-  final double borderRadius;  // NEW → corner radius per theme
+  final double fontSize;      // text size per theme
+  final EdgeInsets padding;   // button padding per theme
+  final double borderRadius;  // corner radius per theme
 
   const ButtonTokens({
     required this.primaryBg,
@@ -29,8 +29,6 @@ class ButtonTokens {
     this.borderRadius = 12.0,
   });
 }
-
-
 
 class GlassTokens {
   // Existing
@@ -86,6 +84,44 @@ class BackgroundTokens {
   });
 }
 
+/// NEW: Top banner / app bar visual config (theme-driven)
+class BannerTokens {
+  /// Optional banner image. If null, shows glass/solid surface only.
+  final String? assetPath;
+
+  /// Total bar height (content area, SafeArea inset is added by the widget).
+  final double height;
+
+  /// Extra blur to apply in the bar (independent of global background).
+  final double blurSigma;
+
+  /// Darken overlay (0–1) for contrast.
+  final double darken;
+
+  /// Lighten pre-overlay (0–1) for a subtle lift.
+  final double lightenAdd;
+
+  /// How to draw the banner asset.
+  final BoxFit fit;
+
+  /// Asset alignment in the bar.
+  final Alignment alignment;
+
+  /// Default padding for title/actions inside the bar.
+  final EdgeInsets padding;
+
+  const BannerTokens({
+    this.assetPath,
+    this.height = kToolbarHeight,
+    this.blurSigma = 14,
+    this.darken = 0.18,
+    this.lightenAdd = 0.0,
+    this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
+    this.padding = const EdgeInsets.symmetric(horizontal: 12),
+  });
+}
+
 class TextOnGlassTokens {
   final Color primary;
   final Color secondary;
@@ -121,16 +157,18 @@ class RadiusTokens {
 class AppStyleTokens {
   final GlassTokens glass;
   final BackgroundTokens background;
+  final BannerTokens banner;            // 👈 NEW: per-theme top bar/banner
   final TextOnGlassTokens textOnGlass;
   final RadiusTokens radius;
   final ButtonTokens buttons;
 
-  // NEW (optional bundle-level component defaults)
+  // Optional bundle-level component defaults
   final CardTokens card;
 
   const AppStyleTokens({
     required this.glass,
     required this.background,
+    required this.banner,       // 👈 NEW: required in constructor
     required this.textOnGlass,
     required this.radius,
     required this.buttons,

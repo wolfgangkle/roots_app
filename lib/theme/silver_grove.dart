@@ -11,10 +11,21 @@ const silverGrove = AppStyleTokens(
   ),
 
   background: BackgroundTokens(
-    assetPath: 'assets/images/backgrounds/roots_global_background.png',
+    assetPath: 'assets/images/backgrounds/bg_silver_grove.png',
     blurSigma: 24,
     darken: 0.12,
     lightenAdd: 0.1,
+  ),
+
+  banner: BannerTokens(
+    assetPath: 'assets/images/backgrounds/banner_silver_grove.png',
+    height: 80,
+    blurSigma: 0, // strong airy blur
+    darken: 0,  // very subtle dark overlay
+    lightenAdd: 0, // keep it bright
+    fit: BoxFit.cover,
+    alignment: Alignment.center,
+    padding: EdgeInsets.symmetric(horizontal: 16),
   ),
 
   // Full-contrast text for better readability on glass
