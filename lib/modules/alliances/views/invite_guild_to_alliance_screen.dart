@@ -3,6 +3,12 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:provider/provider.dart';
+import 'package:roots_app/theme/tokens.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
+
 class InviteGuildToAllianceScreen extends StatefulWidget {
   const InviteGuildToAllianceScreen({super.key});
 
@@ -46,7 +52,7 @@ class _InviteGuildToAllianceScreenState
 
       if (guildId != null) {
         final guildDoc =
-            await FirebaseFirestore.instance.doc('guilds/$guildId').get();
+        await FirebaseFirestore.instance.doc('guilds/$guildId').get();
         allianceId = guildDoc.data()?['allianceId'];
       }
     }
@@ -60,18 +66,16 @@ class _InviteGuildToAllianceScreenState
       bool hasPendingInvite = false;
 
       try {
-        // Count members
         final membersQuery = await FirebaseFirestore.instance
             .collectionGroup('profile')
             .where('guildId', isEqualTo: guildId)
             .get();
         memberCount = membersQuery.size;
 
-        // Find leader
         QueryDocumentSnapshot<Map<String, dynamic>>? leaderDoc;
         try {
           leaderDoc = membersQuery.docs.firstWhere(
-            (doc) => doc.data()['guildRole'] == 'leader',
+                (d) => d.data()['guildRole'] == 'leader',
           );
         } catch (_) {
           leaderDoc = null;
@@ -81,7 +85,6 @@ class _InviteGuildToAllianceScreenState
           leaderName = leaderDoc.data()['heroName'] ?? 'Unknown';
         }
 
-        // Check for pending invite
         if (allianceId != null) {
           final inviteDoc = await FirebaseFirestore.instance
               .doc('guilds/$guildId/allianceInvites/$allianceId')
@@ -110,25 +113,35 @@ class _InviteGuildToAllianceScreenState
   }
 
   Future<void> _sendInvite(String guildId, String guildName) async {
+    final style = context.read<StyleManager>().currentStyle;
+    final glass = style.glass;
+    final text = style.textOnGlass;
+
     setState(() => _inviteInProgress = true);
 
     try {
       final callable =
-          FirebaseFunctions.instance.httpsCallable('sendAllianceInvite');
+      FirebaseFunctions.instance.httpsCallable('sendAllianceInvite');
       await callable.call({'targetGuildId': guildId});
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Invite sent to "$guildName"!')),
+          buildTokenSnackBar(
+            message: '✅ Invite sent to "$guildName"!',
+            glass: glass,
+            text: text,
+          ),
         );
-
-        // Refresh list to reflect updated status
         _search();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send invite: $e')),
+          buildTokenSnackBar(
+            message: 'Failed to send invite: $e',
+            glass: glass,
+            text: text,
+          ),
         );
       }
     } finally {
@@ -138,62 +151,150 @@ class _InviteGuildToAllianceScreenState
 
   @override
   Widget build(BuildContext context) {
+    final style   = context.watch<StyleManager>().currentStyle;
+    final glass   = style.glass;
+    final text    = style.textOnGlass;
+    final buttons = style.buttons;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Invite Guild to Alliance')),
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text('Invite Guild to Alliance', style: TextStyle(color: text.primary)),
+        iconTheme: IconThemeData(color: text.primary),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(16, kToolbarHeight + 16, 16, 16),
         child: Column(
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Search Guild by Name',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: () {
-                    setState(() {
-                      _searchQuery = _searchController.text.trim();
-                    });
-                    _search();
-                  },
+            // Search panel
+            TokenPanel(
+              glass: glass,
+              text: text,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: TextStyle(color: text.primary),
+                        decoration: _inputDecoration(
+                          context,
+                          hint: 'Search guild by name',
+                          glass: glass,
+                          text: text,
+                        ).copyWith(
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.search, color: text.primary),
+                            onPressed: () {
+                              setState(() => _searchQuery = _searchController.text.trim());
+                              _search();
+                            },
+                          ),
+                        ),
+                        onSubmitted: (_) {
+                          setState(() => _searchQuery = _searchController.text.trim());
+                          _search();
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              onSubmitted: (_) => _search(),
             ),
-            const SizedBox(height: 16),
-            if (_isLoading) const LinearProgressIndicator(),
+
+            const SizedBox(height: 12),
+
+            if (_isLoading)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: LinearProgressIndicator(
+                  minHeight: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(text.primary),
+                  backgroundColor: glass.baseColor.withValues(alpha: 0.25),
+                ),
+              ),
+
+            const SizedBox(height: 12),
+
+            // Results list
             Expanded(
               child: ListView.builder(
                 itemCount: _guildInfos.length,
                 itemBuilder: (context, index) {
                   final info = _guildInfos[index];
 
-                  return ListTile(
-                    title: Text('[${info['tag']}] ${info['name']}'),
-                    subtitle: Text(
-                      info['hasAlliance']
-                          ? 'Already in an alliance'
-                          : 'Leader: ${info['leaderName']} • Members: ${info['memberCount']}',
-                    ),
-                    trailing: info['hasAlliance']
-                        ? null
-                        : info['hasPendingInvite']
-                            ? const Text('Pending',
-                                style: TextStyle(color: Colors.grey))
-                            : ElevatedButton(
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: TokenPanel(
+                      glass: glass,
+                      text: text,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.shield),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '[${info['tag']}] ${info['name']}',
+                                    style: TextStyle(
+                                      color: text.primary,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    info['hasAlliance']
+                                        ? 'Already in an alliance'
+                                        : 'Leader: ${info['leaderName']} • Members: ${info['memberCount']}',
+                                    style: TextStyle(
+                                      color: text.subtle,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Right: actions
+                            if (info['hasAlliance'])
+                              Text('In alliance', style: TextStyle(color: text.subtle, fontSize: 12))
+                            else if (info['hasPendingInvite'])
+                              Text('Pending', style: TextStyle(color: text.subtle, fontSize: 12))
+                            else
+                              TokenButton(
+                                variant: TokenButtonVariant.primary,
+                                glass: glass,
+                                text: text,
+                                buttons: buttons, // theme-dependent size/colors/radius
                                 onPressed: _inviteInProgress
                                     ? null
-                                    : () =>
-                                        _sendInvite(info['id'], info['name']),
+                                    : () => _sendInvite(info['id'], info['name']),
                                 child: _inviteInProgress
-                                    ? const SizedBox(
-                                        height: 16,
-                                        width: 16,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      )
+                                    ? SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(text.primary),
+                                  ),
+                                )
                                     : const Text('Invite'),
                               ),
+                          ],
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),
@@ -203,4 +304,38 @@ class _InviteGuildToAllianceScreenState
       ),
     );
   }
+}
+
+/// Tokenized input decoration (local helper).
+InputDecoration _inputDecoration(
+    BuildContext context, {
+      required String hint,
+      required GlassTokens glass,
+      required TextOnGlassTokens text,
+    }) {
+  final fillAlpha = glass.mode == SurfaceMode.solid
+      ? 1.0
+      : (glass.opacity <= 0.02 ? 0.06 : glass.opacity * 0.5);
+
+  final baseBorderColor =
+      glass.borderColor ?? text.subtle.withValues(alpha: glass.strokeOpacity);
+
+  OutlineInputBorder border([double width = 1.0]) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(12),
+    borderSide: BorderSide(color: baseBorderColor, width: width),
+  );
+
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(color: text.subtle),
+    counterStyle: TextStyle(color: text.subtle),
+    filled: true,
+    fillColor: glass.baseColor.withValues(alpha: fillAlpha),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    enabledBorder: border(),
+    focusedBorder: border(1.2),
+    disabledBorder: border(),
+    errorBorder: border(1.0),
+    focusedErrorBorder: border(1.2),
+  );
 }

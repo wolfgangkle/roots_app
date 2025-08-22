@@ -18,7 +18,18 @@ const darkForge = AppStyleTokens(
   textOnGlass: TextOnGlassTokens(
     primary: Colors.white,
     secondary: Colors.white,
-    subtle: Colors.white,
+    subtle: Colors.white70,
   ),
   radius: RadiusTokens(card: 14),
+  buttons: ButtonTokens(
+    primaryBg: Color(0xFF1B4332),
+    primaryFg: Colors.white,
+    subduedBg: Color(0xFF333333),
+    subduedFg: Colors.white,
+    dangerBg: Color(0xFFD1495B),
+    dangerFg: Colors.white,
+    fontSize: 16.0,                      // slightly larger text in this theme
+    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14), // bigger buttons
+    borderRadius: 20.0,                  // more rounded corners for this theme
+  ),
 );

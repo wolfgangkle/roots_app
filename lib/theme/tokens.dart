@@ -5,6 +5,33 @@ import 'package:flutter/material.dart';
 /// - solid: flat/opaque (no blur, full opacity)
 enum SurfaceMode { glass, solid }
 
+class ButtonTokens {
+  final Color primaryBg;
+  final Color primaryFg;
+  final Color subduedBg;
+  final Color subduedFg;
+  final Color dangerBg;
+  final Color dangerFg;
+
+  final double fontSize;      // NEW → text size per theme
+  final EdgeInsets padding;   // NEW → button padding per theme
+  final double borderRadius;  // NEW → corner radius per theme
+
+  const ButtonTokens({
+    required this.primaryBg,
+    required this.primaryFg,
+    required this.subduedBg,
+    required this.subduedFg,
+    required this.dangerBg,
+    required this.dangerFg,
+    this.fontSize = 14.0,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    this.borderRadius = 12.0,
+  });
+}
+
+
+
 class GlassTokens {
   // Existing
   final Color baseColor;
@@ -96,6 +123,7 @@ class AppStyleTokens {
   final BackgroundTokens background;
   final TextOnGlassTokens textOnGlass;
   final RadiusTokens radius;
+  final ButtonTokens buttons;
 
   // NEW (optional bundle-level component defaults)
   final CardTokens card;
@@ -105,6 +133,7 @@ class AppStyleTokens {
     required this.background,
     required this.textOnGlass,
     required this.radius,
+    required this.buttons,
     this.card = const CardTokens(),
   });
 }
