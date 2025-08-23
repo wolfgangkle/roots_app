@@ -45,12 +45,31 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
     nextAttackAt: heroUpdates[h.id] ?? h.nextAttackAt,
   }));
 
+  // 🔒 Belt-and-suspenders: sanitize enemies before enemy phase
+  const enemiesForEnemyPhase = enemiesAfterHeroHits.map((e: any) => {
+    const hp = Number(e?.hp) || 0;
+    if (hp > 0) return e;
+    // forcefully disarm any dead enemy
+    return { ...e, hp: 0, nextAttackAt: null, state: e?.state ?? 'dead' };
+  });
+
+  // Optional diagnostic: detect "dead but armed" just in case
+  const zombies = enemiesAfterHeroHits.filter(
+    (e: any) => (Number(e?.hp) || 0) <= 0 && e?.nextAttackAt
+  );
+  if (zombies.length) {
+    console.warn(
+      `🧟 Found ${zombies.length} dead enemies with timers before enemy phase:`,
+      zombies.map((z: any) => ({ id: z.instanceId, hp: z.hp, nextAttackAt: z.nextAttackAt }))
+    );
+  }
+
   const {
     updatedEnemies,
     damageMap,
     enemyLogs: rawEnemyLogs,
   } = resolveEnemyAttacks({
-    enemies: enemiesAfterHeroHits,
+    enemies: enemiesForEnemyPhase, // ← use sanitized list
     heroes: heroesWithNextAttackAt.map(({ id, hp }) => ({ id, hp })),
   });
 
@@ -112,7 +131,9 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
         console.log(`[XP] hero ${heroId} +${xpPerHero}`);
       }
       await batch.commit();
-      console.log(`[XP] committed payout: totalXp=${totalXp}, perHero=${xpPerHero}, recipients=${livingHeroIds.length}`);
+      console.log(
+        `[XP] committed payout: totalXp=${totalXp}, perHero=${xpPerHero}, recipients=${livingHeroIds.length}`
+      );
     } else {
       console.log(`[XP] no payout (totalXp=${totalXp}, recipients=${livingHeroIds.length})`);
     }
