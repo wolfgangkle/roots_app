@@ -77,10 +77,13 @@ export async function createHeroLogic(request: any) {
     type: 'mage',
     race: normalizedRace,
     level: 1,
-    experience: 0,
+    xp: 0,
     groupId: heroId,
     groupLeaderId: null,
     stats: baseStats,
+
+    // Attribute points to spend
+    unspentAttributePoints: 0,
 
     // Core vitals
     hp: hpMax,

@@ -34,24 +34,49 @@ class _CombatLogViewState extends State<CombatLogView> {
           return const Center(child: Text("Combat not found."));
         }
 
-        // Build a resilient name map that supports both `<id>` and `heroes/<id>`
+        // ---------- Build hero name map (supports id, heroes/<id>, refPath) ----------
         final List<dynamic> heroList = combatData['heroes'] ?? [];
         final Map<String, String> heroNameMap = {};
         for (final hero in heroList) {
           if (hero is Map) {
-            final refPath = hero['refPath']?.toString();
             final name = (hero['name'] ?? 'Hero').toString();
-            if (refPath != null) {
-              final id = _lastSegment(refPath);
-              heroNameMap[id] = name;        // key by id
-              heroNameMap[refPath] = name;    // key by full path
+
+            // Prefer explicit id if present
+            final idField = hero['id']?.toString();
+            if (idField != null && idField.isNotEmpty) {
+              heroNameMap[idField] = name;
+              heroNameMap['heroes/$idField'] = name; // safety for path-style keys
+            }
+
+            // Also support refPath if present
+            final refPath = hero['refPath']?.toString();
+            if (refPath != null && refPath.isNotEmpty) {
+              final idFromPath = _lastSegment(refPath);
+              heroNameMap[idFromPath] = name;
+              heroNameMap[refPath] = name;
             }
           }
         }
 
+        // ---------- Build enemy labels from combat.enemies[*].name (fallbacks included) ----------
+        final List<dynamic> enemies = combatData['enemies'] ?? [];
+        final List<String> enemyLabels = List.generate(enemies.length, (i) {
+          final e = enemies[i];
+          if (e is Map) {
+            final displayName = (e['name'] ??
+                e['enemyType'] ??
+                e['type'] ??
+                'Enemy')
+                .toString();
+            final pretty = _titleCase(displayName);
+            return "$pretty #$i";
+          }
+          return "Enemy #$i";
+        });
+
         final String? eventId = combatData['eventId'] as String?;
         if (eventId == null) {
-          return _buildCombatLogUI(context, heroNameMap, null);
+          return _buildCombatLogUI(context, heroNameMap, enemyLabels, null);
         }
 
         return FutureBuilder<DocumentSnapshot>(
@@ -67,12 +92,16 @@ class _CombatLogViewState extends State<CombatLogView> {
             final eventDoc = eventSnapshot.data;
             String? description;
             if (eventDoc != null && eventDoc.exists) {
-              final eventData =
-              eventDoc.data() as Map<String, dynamic>?;
+              final eventData = eventDoc.data() as Map<String, dynamic>?;
               description = eventData?['description'] as String?;
             }
 
-            return _buildCombatLogUI(context, heroNameMap, description);
+            return _buildCombatLogUI(
+              context,
+              heroNameMap,
+              enemyLabels,
+              description,
+            );
           },
         );
       },
@@ -82,6 +111,7 @@ class _CombatLogViewState extends State<CombatLogView> {
   Widget _buildCombatLogUI(
       BuildContext context,
       Map<String, String> heroNameMap,
+      List<String> enemyLabels,
       String? description,
       ) {
     final style = context.watch<StyleManager>().currentStyle;
@@ -116,8 +146,7 @@ class _CombatLogViewState extends State<CombatLogView> {
             child: TokenPanel(
               glass: style.glass,
               text: text,
-              padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               borderRadius: style.radius.card.toDouble(),
               child: Text(
                 description,
@@ -160,14 +189,13 @@ class _CombatLogViewState extends State<CombatLogView> {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
-                  final data =
-                  docs[index].data() as Map<String, dynamic>;
+                  final data = docs[index].data() as Map<String, dynamic>;
 
                   final time = (data['timestamp'] as Timestamp?)?.toDate();
-                  final heroAttacks = List<Map<String, dynamic>>.from(
-                      data['heroAttacks'] ?? []);
-                  final enemyAttacks = List<Map<String, dynamic>>.from(
-                      data['enemyAttacks'] ?? []);
+                  final heroAttacks =
+                  List<Map<String, dynamic>>.from(data['heroAttacks'] ?? []);
+                  final enemyAttacks =
+                  List<Map<String, dynamic>>.from(data['enemyAttacks'] ?? []);
                   final enemiesHp =
                   List<int>.from(data['enemiesHpAfter'] ?? []);
 
@@ -197,20 +225,26 @@ class _CombatLogViewState extends State<CombatLogView> {
                   for (final attack in heroAttacks) {
                     final rawAttacker = attack['attackerId'];
                     final attackerKey = _normalizeHeroKey(rawAttacker);
-                    final attackerName =
-                        heroNameMap[attackerKey] ??
-                            heroNameMap['heroes/$attackerKey'] ?? // safety
-                            attackerKey;
+                    final attackerName = heroNameMap[attackerKey] ??
+                        heroNameMap['heroes/$attackerKey'] ?? // safety
+                        attackerKey;
 
                     final targetIndex = attack['targetIndex'];
                     final damage = attack['damage'];
+
                     final hpLeft = (targetIndex is int &&
                         targetIndex < enemiesHp.length)
                         ? enemiesHp[targetIndex]
                         : '?';
 
+                    final enemyLabel = (targetIndex is int &&
+                        targetIndex >= 0 &&
+                        targetIndex < enemyLabels.length)
+                        ? enemyLabels[targetIndex]
+                        : 'Enemy #$targetIndex';
+
                     lines.add(
-                      "🧙 $attackerName hits 👹 Enemy #$targetIndex for $damage dmg → $hpLeft HP left",
+                      "🧙 $attackerName hits 👹 $enemyLabel for $damage dmg → $hpLeft HP left",
                     );
                   }
 
@@ -218,19 +252,23 @@ class _CombatLogViewState extends State<CombatLogView> {
                   for (final e in enemyAttacks) {
                     final rawHeroId = e['heroId'];
                     final heroKey = _normalizeHeroKey(rawHeroId);
-                    final heroNm =
-                        heroNameMap[heroKey] ??
-                            heroNameMap['heroes/$heroKey'] ?? // safety
-                            heroKey;
+                    final heroNm = heroNameMap[heroKey] ??
+                        heroNameMap['heroes/$heroKey'] ?? // safety
+                        heroKey;
 
                     final enemyIndex = e['enemyIndex'];
                     final damage = e['damage'];
-                    final hpLeft = heroesHp[heroKey] ??
-                        heroesHp['heroes/$heroKey'] ??
-                        '?';
+                    final hpLeft =
+                        heroesHp[heroKey] ?? heroesHp['heroes/$heroKey'] ?? '?';
+
+                    final enemyLabel = (enemyIndex is int &&
+                        enemyIndex >= 0 &&
+                        enemyIndex < enemyLabels.length)
+                        ? enemyLabels[enemyIndex]
+                        : 'Enemy #$enemyIndex';
 
                     lines.add(
-                      "👹 Enemy #$enemyIndex hits 🧙 $heroNm for $damage dmg → $hpLeft HP left",
+                      "👹 $enemyLabel hits 🧙 $heroNm for $damage dmg → $hpLeft HP left",
                     );
                   }
 
@@ -275,5 +313,14 @@ class _CombatLogViewState extends State<CombatLogView> {
   String _lastSegment(String s) {
     final i = s.lastIndexOf('/');
     return i >= 0 ? s.substring(i + 1) : s;
+  }
+
+  static String _titleCase(String s) {
+    if (s.isEmpty) return s;
+    final parts = s.replaceAll(RegExp(r'[_\-]+'), ' ').split(' ');
+    return parts
+        .where((p) => p.isNotEmpty)
+        .map((p) => p[0].toUpperCase() + p.substring(1).toLowerCase())
+        .join(' ');
   }
 }

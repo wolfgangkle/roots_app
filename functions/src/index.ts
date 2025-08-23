@@ -79,6 +79,12 @@ export const createHero = onCall(async (request) => {
   return createHeroLogic(request);
 });
 
+export { acknowledgeLevelUp } from './heroes/acknowledgeLevelUp.js';
+
+export { spendAttributePoints } from './heroes/spendAttributePoints.js';
+
+
+
 export const createCompanion = onCall(async (request) => {
   const { createCompanionLogic } = await import('./heroes/createCompanion.js');
   return createCompanionLogic(request);

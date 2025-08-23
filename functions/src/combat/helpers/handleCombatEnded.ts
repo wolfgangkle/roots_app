@@ -1,6 +1,8 @@
 import * as admin from 'firebase-admin';
 import { maybeContinueGroupMovement } from '../../movement/maybeContinueGroupMovement.js';
 import { finalizeHeroDeath } from '../../deaths/finalizeHeroDeath.js';
+import { grantXpForCombatOutcome } from './grantXpForCombatOutcome.js';
+
 
 const db = admin.firestore();
 
@@ -88,6 +90,37 @@ export async function handleCombatEnded(combat: any): Promise<void> {
 
   batch.update(groupRef, groupUpdate);
   await batch.commit();
+
+  // ✅ IDP XP AWARD (safe to run before/after death finalization; marker prevents double-grant)
+  try {
+    // Prefer the combat.enemies array (final snapshot at end of combat)
+    const enemies: Array<{ hp?: number; xp?: number }> = Array.isArray(combat.enemies) ? combat.enemies : [];
+    if (enemies.length === 0) {
+      console.log(`[handleCombatEnded] No enemies on combat ${combatId}; skipping XP award.`);
+    } else {
+      const totalXp = enemies
+        .filter((e) => (e.hp ?? 1) <= 0)
+        .reduce((sum, e) => sum + (Number(e.xp) || 0), 0);
+
+      const recipients = aliveHeroIds.slice();
+      const xpPerHero = recipients.length > 0 ? Math.floor(totalXp / recipients.length) : 0;
+
+      console.log(`[handleCombatEnded] XP award eval: totalXp=${totalXp}, recipients=${recipients.length}, xpPerHero=${xpPerHero}`);
+
+      if (xpPerHero > 0 && recipients.length > 0) {
+        await grantXpForCombatOutcome({
+          combatId,
+          recipientHeroIds: recipients,
+          xpPerHero,
+        });
+      } else {
+        console.log(`[handleCombatEnded] Skipping XP grant (xpPerHero=${xpPerHero}, recipients=${recipients.length}).`);
+      }
+    }
+  } catch (e) {
+    console.error(`❌ XP grant failed for combat ${combatId}:`, e);
+    // Non-fatal: continue with death finalization & movement resume.
+  }
 
   // Finalize deaths (copy → graveyard, copy learned_spells, update group membership/leader, slot usage, delete hero)
   if (deadHeroIds.length > 0) {

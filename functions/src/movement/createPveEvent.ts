@@ -1,3 +1,4 @@
+// functions/src/movement/createPveEvent.ts
 import * as admin from 'firebase-admin';
 import { randomUUID } from 'crypto';
 
@@ -80,7 +81,7 @@ export async function createPveEvent(
     }
 
     const scale = eventData.scale ?? { base: 1, scalePerLevel: 0.015, max: 3 };
-    const scaledCount = Math.min(scale.max ?? 5, Math.floor(scale.base + scale.scalePerLevel * level));
+    const scaledCount = Math.min(scale.max ?? 5, Math.floor((scale.base ?? 1) + (scale.scalePerLevel ?? 0.015) * level));
 
     const chosenIds = Array.from({ length: scaledCount }, () => {
       const i = Math.floor(Math.random() * enemyTypeIds.length);
@@ -129,7 +130,7 @@ export async function createPveEvent(
       const hp    = data.hp      ?? 100;
       const hpMax = data.hpMax   ?? hp;
 
-      if (data.hp === undefined)    console.warn(`⚠️ Hero ${snap.id} is missing 'hp', using fallback 100`);
+      if (data.hp === undefined)     console.warn(`⚠️ Hero ${snap.id} is missing 'hp', using fallback 100`);
       if (data.hpMax === undefined)  console.warn(`⚠️ Hero ${snap.id} is missing 'hpMax', using fallback = hp`);
 
       // Assigned spells
@@ -155,10 +156,10 @@ export async function createPveEvent(
         // ✅ No regen here — use current DB state
         hp,
         hpMax,
-        hpRegen:       data.hpRegen ?? null,       // optional to keep for reference/UI
+        hpRegen:       data.hpRegen ?? null,
         mana:          data.mana ?? undefined,
         manaMax:       data.manaMax ?? undefined,
-        manaRegen:     data.manaRegen ?? null,     // optional to keep for reference/UI
+        manaRegen:     data.manaRegen ?? null,
 
         attackMin:     data.combat?.attackMin ?? 0,
         attackMax:     data.combat?.attackMax ?? 0,
@@ -173,6 +174,15 @@ export async function createPveEvent(
       return heroSnapshot;
     }));
 
+    // 👥 Denormalize participant owner ids (resilient reports list)
+    const participantOwnerIds = Array.from(new Set(
+      heroDocs
+        .map(snap => (snap.data()?.ownerId as string | undefined) || null)
+        .filter((v): v is string => !!v)
+    ));
+    const participantHeroIds = members.slice(); // optional, but useful
+
+    console.log(`👥 participantOwnerIds = ${JSON.stringify(participantOwnerIds)}`);
     console.log(`📥 Preparing to write combat document with ${heroes.length} heroes and ${enemies.length} enemies.`);
 
     const combatRef = db.collection('combats').doc();
@@ -191,9 +201,10 @@ export async function createPveEvent(
       heroActions: [],
       enemyActions: [],
       combatLog:   [],
-      // Optionally keep a combat-local clock if needed by your tick engine:
+      // 🔗 New denormalized fields
+      participantOwnerIds, // ✅ query by player
+      participantHeroIds,  // optional helper for hero-scoped UIs
       // lastTickAt: admin.firestore.Timestamp.now(),
-      // settings: { disableCombatRegen: true }, // if you decide to gate it
     });
 
     console.log(`✅ Combat document written: ${combatRef.id}`);
@@ -201,6 +212,20 @@ export async function createPveEvent(
     return { type: 'combat', eventId, combatId: combatRef.id };
   } else {
     // 🌳 Peaceful encounter
+    // We still want resilience if heroes/groups disappear later.
+    // Fetch minimal hero docs to collect ownerIds (if any members present).
+    let participantOwnerIds: string[] = [];
+    if (members.length) {
+      const heroDocs = await db.getAll(...members.map(id => db.doc(`heroes/${id}`)));
+      participantOwnerIds = Array.from(new Set(
+        heroDocs
+          .map(snap => (snap.data()?.ownerId as string | undefined) || null)
+          .filter((v): v is string => !!v)
+      ));
+      console.log(`👥 (peaceful) participantOwnerIds = ${JSON.stringify(participantOwnerIds)}`);
+    }
+    const participantHeroIds = members.slice(); // optional
+
     const peacefulRef = db.collection('peacefulReports').doc();
     await peacefulRef.set({
       groupId,
@@ -209,13 +234,17 @@ export async function createPveEvent(
       tileY,
       tileKey,
       createdAt:   now,
-      reward:      eventData.reward     ?? {},
-      title:       eventData.title      ?? 'Peaceful Encounter',
-      description: eventData.description?? 'You experienced a peaceful moment.',
+      reward:      eventData.reward       ?? {},
+      title:       eventData.title        ?? 'Peaceful Encounter',
+      description: eventData.description  ?? 'You experienced a peaceful moment.',
       source:      'pve',
       members,
+      // 🔗 New denormalized fields for resilient listing
+      participantOwnerIds,
+      participantHeroIds,
     });
 
+    console.log(`✅ Peaceful report written: ${peacefulRef.id}`);
     return { type: 'peaceful', eventId, peacefulReportId: peacefulRef.id };
   }
 }
