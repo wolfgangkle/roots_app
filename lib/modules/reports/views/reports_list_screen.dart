@@ -10,111 +10,129 @@ import 'package:roots_app/screens/helpers/layout_helper.dart';
 import 'package:roots_app/theme/app_style_manager.dart';
 import 'package:roots_app/theme/widgets/token_panels.dart';
 
-class ReportsListScreen extends StatelessWidget {
+class ReportsListScreen extends StatefulWidget {
   const ReportsListScreen({super.key});
+
+  @override
+  State<ReportsListScreen> createState() => _ReportsListScreenState();
+}
+
+class _ReportsListScreenState extends State<ReportsListScreen> {
+  Future<void>? _preflight;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      // 👉 Preflight .get() calls to force Firestore to emit the index link if missing
+      _preflight = _runPreflight(uid);
+    }
+  }
+
+  Future<void> _runPreflight(String uid) async {
+    final combatsQuery = FirebaseFirestore.instance
+        .collection('combats')
+        .where('participantOwnerIds', arrayContains: uid)
+        .orderBy('createdAt', descending: true)
+        .limit(1);
+
+    final peacefulQuery = FirebaseFirestore.instance
+        .collection('peacefulReports')
+        .where('participantOwnerIds', arrayContains: uid)
+        .orderBy('createdAt', descending: true)
+        .limit(1);
+
+    try {
+      await Future.wait([combatsQuery.get(), peacefulQuery.get()]);
+    } catch (e, st) {
+      // This prints the “Create index” URL in debug logs.
+      debugPrint('🔥 Firestore index error (preflight): $e');
+      debugPrintStack(stackTrace: st);
+      // Let UI continue; StreamBuilders below will also surface errors.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Center(child: Text("Not logged in."));
-    }
+    if (user == null) return const Center(child: Text("Not logged in."));
 
     final style = context.watch<StyleManager>().currentStyle;
     final text = style.textOnGlass;
 
-    final screenSize = LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
+    final screenSize =
+    LayoutHelper.getSizeCategory(MediaQuery.of(context).size.width);
     final isMobile = screenSize == ScreenSizeCategory.small;
 
-    return FutureBuilder<QuerySnapshot>(
-      future: FirebaseFirestore.instance
-          .collection('heroes')
-          .where('ownerId', isEqualTo: user.uid)
-          .get(),
-      builder: (context, heroSnapshot) {
-        if (!heroSnapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final combatsStream = FirebaseFirestore.instance
+        .collection('combats')
+        .where('participantOwnerIds', arrayContains: user.uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
 
-        final heroDocs = heroSnapshot.data!.docs;
-        if (heroDocs.isEmpty) {
-          return const Center(child: Text("No heroes found."));
-        }
+    final peacefulStream = FirebaseFirestore.instance
+        .collection('peacefulReports')
+        .where('participantOwnerIds', arrayContains: user.uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
 
-        final groupIds = <String>{};
-        final heroNamesByGroup = <String, List<String>>{};
-        final futures = <Future<DocumentSnapshot>>[];
-
-        for (final doc in heroDocs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final groupId = data['groupId'];
-          if (groupId is String) {
-            groupIds.add(groupId);
-            futures.add(FirebaseFirestore.instance.collection('heroGroups').doc(groupId).get());
-          }
-        }
-
-        return FutureBuilder<List<DocumentSnapshot>>(
-          future: Future.wait(futures),
-          builder: (context, groupSnapshot) {
-            if (!groupSnapshot.hasData) {
+    return FutureBuilder<void>(
+      future: _preflight, // ensures preflight runs once; UI renders regardless
+      builder: (_, __) {
+        return StreamBuilder<QuerySnapshot>(
+          stream: combatsStream,
+          builder: (context, combatSnap) {
+            if (combatSnap.hasError) {
+              return _ErrorPanel(
+                textColor: text,
+                message:
+                'Combats query error:\n${combatSnap.error}\n\nCheck console for a “Create index” link.',
+              );
+            }
+            if (combatSnap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            for (final groupDoc in groupSnapshot.data!) {
-              final groupData = groupDoc.data() as Map<String, dynamic>? ?? {};
-              final memberIds = List<String>.from(groupData['members'] ?? []);
-              for (final id in memberIds) {
-                final matchingHeroes = heroDocs.where((doc) => doc.id == id);
-                if (matchingHeroes.isNotEmpty) {
-                  final hero = matchingHeroes.first;
-                  heroNamesByGroup.putIfAbsent(groupDoc.id, () => []);
-                  heroNamesByGroup[groupDoc.id]!
-                      .add((hero.data() as Map<String, dynamic>)['name'] ?? 'Unknown');
+            return StreamBuilder<QuerySnapshot>(
+              stream: peacefulStream,
+              builder: (context, peaceSnap) {
+                if (peaceSnap.hasError) {
+                  return _ErrorPanel(
+                    textColor: text,
+                    message:
+                    'Peaceful reports query error:\n${peaceSnap.error}\n\nCheck console for a “Create index” link.',
+                  );
                 }
-              }
-            }
-
-            final ids = groupIds.toList();
-
-            final peacefulQuery = FirebaseFirestore.instance
-                .collection('peacefulReports')
-                .where('groupId', whereIn: ids)
-                .get();
-
-            final combatQuery = FirebaseFirestore.instance
-                .collection('combats')
-                .where('groupId', whereIn: ids)
-                .get();
-
-            return FutureBuilder<List<QuerySnapshot>>(
-              future: Future.wait([peacefulQuery, combatQuery]),
-              builder: (context, combinedSnapshot) {
-                if (!combinedSnapshot.hasData) {
+                if (peaceSnap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 final combinedDocs = <Map<String, dynamic>>[];
 
-                for (final doc in combinedSnapshot.data![0].docs) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  data['id'] = doc.id;
-                  data['type'] = 'peaceful';
-                  combinedDocs.add(data);
+                if (peaceSnap.hasData) {
+                  for (final doc in peaceSnap.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    data['id'] = doc.id;
+                    data['type'] = 'peaceful';
+                    combinedDocs.add(data);
+                  }
                 }
 
-                for (final doc in combinedSnapshot.data![1].docs) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  data['id'] = doc.id;
-                  data['type'] = 'combat';
-                  combinedDocs.add(data);
+                if (combatSnap.hasData) {
+                  for (final doc in combatSnap.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    data['id'] = doc.id;
+                    data['type'] = 'combat';
+                    combinedDocs.add(data);
+                  }
                 }
 
                 combinedDocs.sort((a, b) {
                   final aTime =
-                      (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+                      (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(1970);
                   final bTime =
-                      (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+                      (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(1970);
                   return bTime.compareTo(aTime);
                 });
 
@@ -127,19 +145,40 @@ class ReportsListScreen extends StatelessWidget {
                   itemCount: combinedDocs.length,
                   itemBuilder: (context, index) {
                     final data = combinedDocs[index];
-                    final groupId = data['groupId'] ?? 'unknown';
-                    final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+                    final createdAt =
+                    (data['createdAt'] as Timestamp?)?.toDate();
                     final formattedTime =
                     createdAt != null ? _formatDate(createdAt) : 'No date';
-                    final heroNames =
-                        heroNamesByGroup[groupId]?.join(', ') ?? 'Unknown';
-                    final type = data['type'] ?? 'unknown';
+
+                    final type = (data['type'] as String?) ?? 'unknown';
                     final icon = type == 'combat' ? Icons.gavel : Icons.spa;
+
+                    final title = (data['title'] as String?) ??
+                        (type == 'combat'
+                            ? 'Combat Encounter'
+                            : 'Peaceful Encounter');
+
+                    String subtitle;
+                    if (type == 'combat') {
+                      final heroes = (data['heroes'] as List?) ?? const [];
+                      final names = heroes
+                          .whereType<Map>()
+                          .map((h) => (h['name'] ?? 'Hero').toString())
+                          .toList();
+                      subtitle = names.isNotEmpty
+                          ? '$formattedTime • ${names.join(', ')}'
+                          : '$formattedTime • ${heroes.length} hero(s)';
+                    } else {
+                      final members = (data['members'] as List?) ?? const [];
+                      subtitle = '$formattedTime • ${members.length} hero(s)';
+                    }
+
+                    final id = data['id'] as String;
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: InkWell(
-                        onTap: () => _openDetail(context, isMobile, data['id'], type),
+                        onTap: () => _openDetail(context, isMobile, id, type),
                         borderRadius: BorderRadius.circular(12),
                         child: TokenPanel(
                           glass: style.glass,
@@ -157,7 +196,7 @@ class ReportsListScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      data['eventId'] ?? 'Unknown Event ID',
+                                      title,
                                       style: TextStyle(
                                         color: text.primary,
                                         fontWeight: FontWeight.w700,
@@ -165,7 +204,7 @@ class ReportsListScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '$formattedTime • Group: $heroNames',
+                                      subtitle,
                                       style: TextStyle(
                                         color: text.subtle,
                                         fontSize: 13,
@@ -207,5 +246,28 @@ class ReportsListScreen extends StatelessWidget {
 
   String _formatDate(DateTime dt) {
     return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} – ${dt.day}.${dt.month}.${dt.year}";
+  }
+}
+
+class _ErrorPanel extends StatelessWidget {
+  final dynamic textColor;
+  final String message;
+  const _ErrorPanel({required this.textColor, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: TokenPanel(
+        glass: context.read<StyleManager>().currentStyle.glass,
+        text: context.read<StyleManager>().currentStyle.textOnGlass,
+        padding: const EdgeInsets.all(12),
+        borderRadius: context.read<StyleManager>().currentStyle.radius.card.toDouble(),
+        child: Text(
+          message,
+          style: TextStyle(color: textColor.secondary),
+        ),
+      ),
+    );
   }
 }
