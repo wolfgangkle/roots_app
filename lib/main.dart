@@ -13,12 +13,21 @@ import 'package:roots_app/modules/settings/models/user_settings_model.dart';
 import 'package:roots_app/widgets/global_background.dart';
 import 'package:roots_app/theme/app_style_manager.dart';
 
+// 🧭 Analytics
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_analytics/observer.dart';
+
 // 🔤 Localization imports (matches l10n.yaml output)
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:roots_app/l10n/gen/app_localizations.dart';
 
-void main() async {
+// 🧭 Analytics singletons
+late final FirebaseAnalytics analytics;
+late final FirebaseAnalyticsObserver analyticsObserver;
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -26,6 +35,16 @@ void main() async {
   if (kDebugMode) {
     debugPrint('✅ Firebase initialized successfully');
   }
+
+  // 🧭 Analytics init
+  analytics = FirebaseAnalytics.instance;
+  analyticsObserver = FirebaseAnalyticsObserver(analytics: analytics);
+
+  // If you gate via consent, toggle this accordingly at runtime.
+  await analytics.setAnalyticsCollectionEnabled(true);
+
+  // Optional: quick “app opened” ping to see DebugView events immediately.
+  await analytics.logAppOpen();
 
   final userSettingsModel = UserSettingsModel();
 
@@ -89,6 +108,9 @@ class MyApp extends StatelessWidget {
         final wrapped = GlobalBackground(child: child ?? const SizedBox());
         return LocaleGate(locale: settings.locale, child: wrapped);
       },
+
+      // 🧭 Hook Analytics screen tracking
+      navigatorObservers: [analyticsObserver],
 
       routes: {
         '/village': (_) => const MainHomeScreen(),
