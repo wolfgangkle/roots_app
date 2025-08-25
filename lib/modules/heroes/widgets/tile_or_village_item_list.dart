@@ -161,6 +161,9 @@ class _TileOrVillageItemListState extends State<TileOrVillageItemList> {
                           onPressed: isActive
                               ? null
                               : () async {
+                            // ✅ Capture messenger BEFORE any await
+                            final messenger = ScaffoldMessenger.of(context);
+
                             setState(() {
                               _isLoading = true;
                               _activeDocId = doc.id;
@@ -177,20 +180,18 @@ class _TileOrVillageItemListState extends State<TileOrVillageItemList> {
                               });
 
                               final stats = result.data['updatedStats'];
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              // ✅ Safe: using captured messenger (no context access after await)
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Text(
                                     stats != null
-                                        ? '✅ Equipped to $slotName (Atk: ${stats['attackMin']}–'
-                                        '${stats['attackMax']}, Def: ${stats['defense']})'
+                                        ? '✅ Equipped to $slotName (Atk: ${stats['attackMin']}–${stats['attackMax']}, Def: ${stats['defense']})'
                                         : '✅ Equipped to $slotName',
                                   ),
                                 ),
                               );
                             } catch (e) {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text('⚠️ Failed to equip: $e')),
                               );
                             } finally {
@@ -222,6 +223,9 @@ class _TileOrVillageItemListState extends State<TileOrVillageItemList> {
                           onPressed: isActive
                               ? null
                               : () async {
+                            // ✅ Capture messenger BEFORE any await
+                            final messenger = ScaffoldMessenger.of(context);
+
                             setState(() {
                               _isLoading = true;
                               _activeDocId = doc.id;
@@ -236,13 +240,11 @@ class _TileOrVillageItemListState extends State<TileOrVillageItemList> {
                                 if (!widget.insideVillage) 'tileKey': tileKey,
                               });
 
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 const SnackBar(content: Text("🎒 Moved to backpack")),
                               );
                             } catch (e) {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text('❌ Failed to store: $e')),
                               );
                             } finally {

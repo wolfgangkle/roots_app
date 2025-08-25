@@ -73,7 +73,7 @@ class HeroWeightBar extends StatelessWidget {
           Text(
             "Over capacity! Drop items before moving.",
             style: TextStyle(
-              color: Colors.red.withOpacity(0.9),
+              color: Colors.red.withValues(alpha: 0.9),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),

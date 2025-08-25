@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 // 🔷 Tokens
 import 'package:roots_app/theme/app_style_manager.dart';
 import 'package:roots_app/theme/widgets/token_panels.dart';
-import 'package:roots_app/theme/tokens.dart';
 
 class HeroSettingsTab extends StatelessWidget {
   const HeroSettingsTab({super.key});

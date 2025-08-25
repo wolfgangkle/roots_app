@@ -6,7 +6,6 @@ import 'package:roots_app/modules/heroes/widgets/learn_spell_button.dart';
 // 🔷 Tokens
 import 'package:roots_app/theme/app_style_manager.dart';
 import 'package:roots_app/theme/widgets/token_panels.dart';
-import 'package:roots_app/theme/tokens.dart';
 
 class AvailableSpellCard extends StatelessWidget {
   final Map<String, dynamic> spell;

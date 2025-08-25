@@ -10,8 +10,6 @@ import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:roots_app/theme/app_style_manager.dart';
 import 'package:roots_app/theme/widgets/token_panels.dart';
-import 'package:roots_app/theme/widgets/token_buttons.dart';
-import 'package:roots_app/theme/tokens.dart';
 
 class HeroEquipmentTab extends StatelessWidget {
   final String heroId;

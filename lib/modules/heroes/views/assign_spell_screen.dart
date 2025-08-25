@@ -40,7 +40,6 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
     context.read<StyleManager>();
     final glass = kStyle.glass;
     final text = kStyle.textOnGlass;
-    final buttons = kStyle.buttons;
     final pad = kStyle.card.padding;
 
     String? selectedKey;
