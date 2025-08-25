@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:roots_app/modules/spells/data/spell_data.dart';
 import 'package:roots_app/modules/heroes/widgets/available_spell_card.dart';
 import 'package:roots_app/modules/heroes/widgets/learned_spell_card.dart';
+
+// 🔷 Tokens
+import 'package:provider/provider.dart';
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 class HeroSpellbookTab extends StatelessWidget {
   final String heroId;
@@ -22,6 +29,12 @@ class HeroSpellbookTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🔁 Tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final pad = kStyle.card.padding;
+
     final heroRef = FirebaseFirestore.instance.doc('heroes/$heroId');
 
     return FutureBuilder<DocumentSnapshot>(
@@ -38,13 +51,17 @@ class HeroSpellbookTab extends StatelessWidget {
 
         if (!insideVillage) {
           return _buildSpellSections(
-            allSpells,
-            learnedSpells,
-            {},
-            heroRace,
+            context: context,
+            spellList: allSpells,
+            learnedSpellIds: learnedSpells,
+            unlockedSpells: const {},
+            heroRace: heroRace,
             insideVillage: false,
             heroId: heroId,
             userId: userId,
+            glass: glass,
+            text: text,
+            pad: pad,
           );
         }
 
@@ -64,21 +81,26 @@ class HeroSpellbookTab extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final villageDoc = villageSnap.data!.docs.firstOrNull;
-            final villageData = villageDoc?.data() as Map<String, dynamic>?;
+            final villageDoc = villageSnap.data!.docs.first;
+            final villageData = villageDoc.data() as Map<String, dynamic>?;
 
             final rawUnlockedMap = (villageData?['spellsUnlocked'] as Map?) ?? {};
-            final unlockedSpells = rawUnlockedMap.map((k, v) => MapEntry(k.toString(), v == true));
-
+            final unlockedSpells = rawUnlockedMap.map(
+                  (k, v) => MapEntry(k.toString(), v == true),
+            );
 
             return _buildSpellSections(
-              allSpells,
-              learnedSpells,
-              unlockedSpells,
-              heroRace,
+              context: context,
+              spellList: allSpells,
+              learnedSpellIds: learnedSpells,
+              unlockedSpells: unlockedSpells,
+              heroRace: heroRace,
               insideVillage: true,
               heroId: heroId,
               userId: userId,
+              glass: glass,
+              text: text,
+              pad: pad,
             );
           },
         );
@@ -86,95 +108,139 @@ class HeroSpellbookTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSpellSections(
-      List<Map<String, dynamic>> spellList,
-      List<String> learnedSpellIds,
-      Map<String, bool> unlockedSpells,
-      String heroRace, {
-        required bool insideVillage,
-        required String heroId,
-        required String userId,
-      }) {
+  Widget _buildSpellSections({
+    required BuildContext context,
+    required List<Map<String, dynamic>> spellList,
+    required List<String> learnedSpellIds,
+    required Map<String, bool> unlockedSpells,
+    required String heroRace,
+    required bool insideVillage,
+    required String heroId,
+    required String userId,
+    required GlassTokens glass,
+    required TextOnGlassTokens text,
+    required EdgeInsets pad,
+  }) {
     final filteredSpells = spellList.where((data) {
       final availableToAll = data['availableToAllRaces'] == true;
       final allowedRaces = List<String>.from(data['availableToRaces'] ?? []);
       return availableToAll || allowedRaces.contains(heroRace);
     }).toList();
 
-    final learned = filteredSpells.where((s) => learnedSpellIds.contains(s['id'])).toList();
-    final available = filteredSpells.where((s) => !learnedSpellIds.contains(s['id'])).toList();
+    final learned =
+    filteredSpells.where((s) => learnedSpellIds.contains(s['id'])).toList();
+    final available =
+    filteredSpells.where((s) => !learnedSpellIds.contains(s['id'])).toList();
 
-    final infoWidget = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+    final infoText = insideVillage
+        ? (unlockedSpells.isEmpty
+        ? 'Build the Academy of Arts to unlock spells.'
+        : 'Unlocked spells can be learned here.')
+        : 'Visit a village to learn unlocked spells.';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(pad.left, pad.top, pad.right, pad.bottom),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.info_outline, color: Colors.grey),
-          const SizedBox(width: 8),
+          // ℹ️ Context panel
+          TokenPanel(
+            glass: glass,
+            text: text,
+            padding: EdgeInsets.fromLTRB(pad.left, 12, pad.right, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, color: text.secondary, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    infoText,
+                    style: TextStyle(color: text.secondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Scrollable content
           Expanded(
-            child: Text(
-              insideVillage
-                  ? (unlockedSpells.isEmpty
-                  ? 'Build the Academy of Arts to unlock spells.'
-                  : 'Unlocked spells can be learned here.')
-                  : 'Visit a village to learn unlocked spells.',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              children: [
+                // 📖 Learned
+                TokenPanel(
+                  glass: glass,
+                  text: text,
+                  padding: EdgeInsets.fromLTRB(pad.left, 14, pad.right, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '📖 Learned Spells',
+                        style: TextStyle(
+                          color: text.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (learned.isEmpty)
+                        Text(
+                          'No spells learned yet. Visit a village to learn your first spell.',
+                          style: TextStyle(color: text.secondary),
+                        )
+                      else
+                        ...learned.map(
+                              (spell) => LearnedSpellCard(
+                            spell: spell,
+                            heroId: heroId,
+                            userId: userId,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ✨ Available
+                TokenPanel(
+                  glass: glass,
+                  text: text,
+                  padding: EdgeInsets.fromLTRB(pad.left, 14, pad.right, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '✨ Available Spells',
+                        style: TextStyle(
+                          color: text.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...available.map((spell) {
+                        final id = spell['id'];
+                        return AvailableSpellCard(
+                          spell: spell,
+                          isUnlocked: unlockedSpells[id] == true,
+                          isLearned: false,
+                          heroId: heroId,
+                          userId: userId,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
-
-    return Column(
-      children: [
-        infoWidget,
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Text(
-                  '📖 Learned Spells',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-              if (learned.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'No spells learned yet. Visit a village to learn your first spell.',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-              else
-                ...learned.map((spell) => LearnedSpellCard(
-                  spell: spell,
-                  heroId: heroId,
-                  userId: userId,
-                )),
-
-
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Text(
-                  '✨ Available Spells',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-              ...available.map((spell) {
-                final id = spell['id'];
-                return AvailableSpellCard(
-                  spell: spell,
-                  isUnlocked: unlockedSpells[id] == true,
-                  isLearned: false,
-                  heroId: heroId,
-                  userId: userId,
-                );
-              }),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:roots_app/modules/heroes/widgets/learn_spell_button.dart';
+
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 class AvailableSpellCard extends StatelessWidget {
   final Map<String, dynamic> spell;
@@ -64,6 +71,12 @@ class AvailableSpellCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🔁 Tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final pad = kStyle.card.padding;
+
     final name = spell['name'] ?? 'Unknown';
     final description = spell['description'] ?? '';
     final type = spell['type'] ?? 'unknown';
@@ -72,66 +85,81 @@ class AvailableSpellCard extends StatelessWidget {
 
     final canLearn = isUnlocked && !isLearned && heroId != null && userId != null;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 🔮 Title
-          Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+      child: TokenPanel(
+        glass: glass,
+        text: text,
+        padding: EdgeInsets.fromLTRB(pad.left, 12, pad.right, 12),
+        child: Opacity(
+          opacity: isUnlocked ? 1.0 : 0.66,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                isUnlocked ? Icons.lock_open : Icons.lock,
-                color: isUnlocked ? Colors.orange : Colors.grey,
+              // 🔮 Title row
+              Row(
+                children: [
+                  Icon(
+                    isUnlocked ? Icons.lock_open : Icons.lock,
+                    size: 18,
+                    color: isUnlocked ? text.primary : text.subtle,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        color: text.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                name,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: 8),
+
+              // 📜 Description & meta
+              if (description.toString().trim().isNotEmpty) ...[
+                Text(
+                  description,
+                  style: TextStyle(color: text.secondary),
                 ),
+                const SizedBox(height: 8),
+              ],
+              Text(
+                getTypeDescription(type),
+                style: TextStyle(fontSize: 13, color: text.secondary),
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Mana Cost: $manaCost',
+                style: TextStyle(fontSize: 13, color: text.secondary),
+              ),
+              const SizedBox(height: 4),
+              if (baseEffect.isNotEmpty)
+                Text(
+                  getBaseEffectDescription(baseEffect),
+                  style: TextStyle(fontSize: 13, color: text.secondary),
+                ),
+
+              // 🎯 Learn button (kept as your existing widget)
+              if (canLearn) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: LearnSpellButton(
+                    spellId: spell['id'],
+                    heroId: heroId!,
+                    userId: userId!,
+                    isEnabled: canLearn,
+                  ),
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 8),
-
-          // 📜 Description
-          Text(description),
-          const SizedBox(height: 8),
-          Text(getTypeDescription(type), style: const TextStyle(fontSize: 13, color: Colors.grey)),
-          const SizedBox(height: 4),
-          Text('Mana Cost: $manaCost', style: const TextStyle(fontSize: 13, color: Colors.grey)),
-          const SizedBox(height: 4),
-          if (baseEffect.isNotEmpty)
-            Text(getBaseEffectDescription(baseEffect), style: const TextStyle(fontSize: 13, color: Colors.grey)),
-
-          const SizedBox(height: 12),
-
-          // 🎯 Learn button
-          if (canLearn)
-            Align(
-              alignment: Alignment.centerRight,
-              child: LearnSpellButton(
-                spellId: spell['id'],
-                heroId: heroId!,
-                userId: userId!,
-                isEnabled: canLearn,
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

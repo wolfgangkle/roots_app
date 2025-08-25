@@ -10,7 +10,11 @@ import 'package:roots_app/modules/heroes/views/hero_details_screen.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_group_movement_minimap.dart';
 import 'package:roots_app/modules/heroes/widgets/hero_group_movement_grid.dart';
-import 'package:roots_app/modules/heroes/widgets/hero_group_movement_controls.dart';
+
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
 
 class HeroGroupMovementScreen extends StatefulWidget {
   final HeroModel hero;
@@ -60,7 +64,7 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         .where('villageId', isGreaterThan: '')
         .get();
 
-    if (!mounted) return; // ✅ safety before setState after await
+    if (!mounted) return;
 
     setState(() {
       _villageTiles = snapshot.docs.map((doc) => doc.id).toSet();
@@ -121,31 +125,34 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         'movementQueue': _waypoints,
       });
 
-      if (!mounted) return; // ✅ after await, before using context
+      if (!mounted) return;
 
       final success = result.data['success'] == true;
 
       if (success) {
+        final style = kStyle;
+        final glass = style.glass;
+        final text = style.textOnGlass;
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isMoving
-                  ? '✅ Movement queue updated!'
-                  : '🚶‍♂️ Hero group is on the move!',
-            ),
+          buildTokenSnackBar(
+            message: isMoving
+                ? '✅ Movement queue updated!'
+                : '🚶‍♂️ Hero group is on the move!',
+            glass: glass,
+            text: text,
           ),
         );
 
         final updatedDoc = await widget.hero.ref.get();
-
-        if (!mounted) return; // ✅ after await, before using context
+        if (!mounted) return;
 
         final updatedHero = HeroModel.fromFirestore(
           updatedDoc.id,
           updatedDoc.data()! as Map<String, dynamic>,
         );
 
-        if (!mounted) return; // extra safety
+        if (!mounted) return;
 
         if (isMobile(context)) {
           Navigator.of(context).pushReplacement(
@@ -165,7 +172,7 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
       }
     } catch (e) {
       debugPrint('🧨 Error updating group movement: $e');
-      if (!mounted) return; // ✅ guard before using context in catch
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🔥 Error: $e')),
       );
@@ -186,24 +193,31 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
         'groupId': widget.group.id,
       });
 
-      if (!mounted) return; // ✅ after await, before using context
+      if (!mounted) return;
 
       final arrivesBackAt = result.data['arrivesBackAt'];
 
+      final style = kStyle;
+      final glass = style.glass;
+      final text = style.textOnGlass;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('↩️ Returning to origin (ETA: $arrivesBackAt)')),
+        buildTokenSnackBar(
+          message: '↩️ Returning to origin (ETA: $arrivesBackAt)',
+          glass: glass,
+          text: text,
+        ),
       );
 
       final updatedDoc = await widget.hero.ref.get();
-
-      if (!mounted) return; // ✅ after await, before using context
+      if (!mounted) return;
 
       final updatedHero = HeroModel.fromFirestore(
         updatedDoc.id,
         updatedDoc.data()! as Map<String, dynamic>,
       );
 
-      if (!mounted) return; // extra safety
+      if (!mounted) return;
 
       if (isMobile(context)) {
         Navigator.of(context).pushReplacement(
@@ -218,7 +232,7 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
       }
     } catch (e) {
       debugPrint('🧨 Error canceling movement: $e');
-      if (!mounted) return; // ✅ guard before using context in catch
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🔥 Error: $e')),
       );
@@ -229,38 +243,207 @@ class HeroGroupMovementScreenState extends State<HeroGroupMovementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔁 live tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+    final pad = kStyle.card.padding;
+
+    final isCurrentlyMoving = widget.group.arrivesAt != null;
+    final eta = widget.group.arrivesAt;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Hero Group Movement')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            HeroGroupMovementMiniMap(
-              key: _minimapKey,
-              group: widget.group,
-              waypoints: _waypoints,
-            ),
-            const SizedBox(height: 12),
-            HeroGroupMovementGrid(
-              currentX: _gridCenterX,
-              currentY: _gridCenterY,
-              waypoints: _waypoints,
-              insideVillage: widget.group.insideVillage == true,
-              onTapTile: _addStep,
-              villageTiles: _villageTiles,
-            ),
-            const SizedBox(height: 16),
-            HeroGroupMovementControls(
-              onClear: _clearWaypoints,
-              onSend: _sendMovement,
-              onCancelMovement:
-              widget.group.arrivesAt != null ? _cancelMovement : null,
-              isSending: _isSending,
-              waypointCount: _waypoints.length,
-            ),
-          ],
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: text.primary),
+      ),
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          MediaQuery.of(context).padding.top + 8,
+          16,
+          16,
         ),
+        children: [
+          // ── Status / Location panel
+          TokenPanel(
+            glass: glass,
+            text: text,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(pad.left, 12, pad.right, 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.route),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tile: (${widget.group.tileX}, ${widget.group.tileY})'
+                              '${widget.group.insideVillage == true ? " • In Village" : ""}',
+                          style: TextStyle(
+                            color: text.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isCurrentlyMoving
+                              ? 'Moving • ETA: ${eta?.toLocal().toIso8601String().substring(11, 19)}'
+                              : 'Idle',
+                          style: TextStyle(color: text.secondary, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isCurrentlyMoving
+                          ? Colors.orange.withValues(alpha: 0.18)
+                          : Colors.green.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: (isCurrentlyMoving ? Colors.orange : Colors.green)
+                            .withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      isCurrentlyMoving ? 'Moving' : 'Idle',
+                      style: TextStyle(
+                        color:
+                        isCurrentlyMoving ? Colors.orange : Colors.green,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Mini-map panel
+          TokenPanel(
+            glass: glass,
+            text: text,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(pad.left, 10, pad.right, 10),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final side = c.maxWidth; // use full panel width
+                  return SizedBox(
+                    height: side, // square: height == width
+                    child: HeroGroupMovementMiniMap(
+                      key: _minimapKey,
+                      group: widget.group,
+                      waypoints: _waypoints,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Grid panel
+          TokenPanel(
+            glass: glass,
+            text: text,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(pad.left, 10, pad.right, 10),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 280),
+                child: HeroGroupMovementGrid(
+                  currentX: _gridCenterX,
+                  currentY: _gridCenterY,
+                  waypoints: _waypoints,
+                  insideVillage: widget.group.insideVillage == true,
+                  onTapTile: _addStep,
+                  villageTiles: _villageTiles,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Controls panel (tokenized buttons)
+          TokenPanel(
+            glass: glass,
+            text: text,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(pad.left, 10, pad.right, 10),
+              child: Row(
+                children: [
+                  // Clear (outline)
+                  TokenTextButton(
+                    variant: TokenButtonVariant.outline,
+                    glass: glass,
+                    text: text,
+                    buttons: buttons,
+                    onPressed: _isSending ? null : _clearWaypoints,
+                    child: const Text('Clear Path'),
+                  ),
+                  const Spacer(),
+                  // Cancel (danger) if currently moving
+                  if (isCurrentlyMoving) ...[
+                    TokenButton(
+                      variant: TokenButtonVariant.danger,
+                      glass: glass,
+                      text: text,
+                      buttons: buttons,
+                      onPressed: _isSending ? null : _cancelMovement,
+                      child: _isSending
+                          ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                          AlwaysStoppedAnimation(text.primary),
+                        ),
+                      )
+                          : const Text('Cancel Movement'),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  // Send / Update (primary)
+                  TokenIconButton(
+                    variant: TokenButtonVariant.primary,
+                    glass: glass,
+                    text: text,
+                    buttons: buttons,
+                    onPressed:
+                    (_isSending || _waypoints.isEmpty) ? null : _sendMovement,
+                    icon: _isSending
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                        : const Icon(Icons.send),
+                    label: Text(_isSending
+                        ? 'Sending...'
+                        : (isCurrentlyMoving ? 'Update Path' : 'Start Movement')),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:provider/provider.dart';
+
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
 
 class AssignSpellScreen extends StatefulWidget {
   final Map<String, dynamic> spell;
@@ -29,7 +35,14 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
     _conditions.addAll(widget.existingConditions);
   }
 
-  void _openConditionDialog() {
+  Future<void> _openConditionDialog() async {
+    // 🔁 live tokens
+    context.read<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+    final pad = kStyle.card.padding;
+
     String? selectedKey;
     dynamic selectedValue;
 
@@ -43,7 +56,7 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
     };
 
     final descriptions = {
-      'manaPercentageAbove': 'Trigger if current mana is above given percent.',
+      'manaPercentageAbove': 'Trigger if current mana is above a given percent.',
       'manaAbove': 'Trigger if current mana is above the raw amount.',
       'enemiesInCombatMin': 'Trigger if there are at least X enemies.',
       'onlyIfEnemyHeroPresent': 'Trigger only if another player is in the fight.',
@@ -53,116 +66,239 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
 
     final controller = TextEditingController();
 
-    showDialog(
+    await showDialog(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            title: Text(
-              selectedKey == null ? 'Choose Condition Type' : 'Set Condition Value',
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (selectedKey == null)
-                  ...conditionOptions.entries.map(
-                        (entry) => ListTile(
-                      title: Text(entry.value),
-                      subtitle: Text(descriptions[entry.key]!),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {
-                        setDialogState(() {
-                          selectedKey = entry.key;
-                          selectedValue = entry.key == 'onlyIfEnemyHeroPresent' ? true : null;
-                          controller.text = '';
-                        });
-                      },
-                    ),
-                  )
-                else ...[
-                  Text(
-                    descriptions[selectedKey!] ?? '',
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 12),
-                  if (selectedKey == 'onlyIfEnemyHeroPresent') ...[
-                    const Text('This condition will only trigger if an enemy hero is present.'),
-                    const SizedBox(height: 12),
-                    const Icon(Icons.info_outline, size: 20, color: Colors.grey),
-                  ]
-                  else
-                    TextField(
-                      controller: controller,
-                      decoration: const InputDecoration(
-                        labelText: 'Enter value',
-                        border: OutlineInputBorder(),
+      barrierDismissible: true,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return TokenPanel(
+                  glass: glass,
+                  text: text,
+                  padding: EdgeInsets.fromLTRB(pad.left, 14, pad.right, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              selectedKey == null
+                                  ? 'Choose Condition Type'
+                                  : 'Set Condition Value',
+                              style: TextStyle(
+                                color: text.primary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                          TokenTextButton(
+                            glass: glass,
+                            text: text,
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Icon(Icons.close),
+                          ),
+                        ],
                       ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        final parsed = int.tryParse(value);
-                        if (parsed != null) {
-                          setDialogState(() => selectedValue = parsed);
-                        }
-                      },
-                    ),
-                ],
-              ],
+                      const SizedBox(height: 10),
+
+                      if (selectedKey == null) ...[
+                        // Picker list
+                        ...conditionOptions.entries.map(
+                              (entry) => ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              entry.value,
+                              style: TextStyle(color: text.primary),
+                            ),
+                            subtitle: Text(
+                              descriptions[entry.key]!,
+                              style: TextStyle(color: text.subtle, fontSize: 12),
+                            ),
+                            trailing: Icon(Icons.arrow_forward_ios, size: 14, color: text.secondary),
+                            onTap: () {
+                              setDialogState(() {
+                                selectedKey = entry.key;
+                                selectedValue = entry.key == 'onlyIfEnemyHeroPresent' ? true : null;
+                                controller.text = '';
+                              });
+                            },
+                          ),
+                        ),
+                      ] else ...[
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            descriptions[selectedKey!] ?? '',
+                            style: TextStyle(fontSize: 13, color: text.secondary),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        if (selectedKey == 'onlyIfEnemyHeroPresent') ...[
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'This condition will only trigger if an enemy hero is present.',
+                              style: TextStyle(color: text.secondary),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Icon(Icons.info_outline, size: 20, color: text.subtle),
+                        ] else
+                          TextField(
+                            controller: controller,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Enter value',
+                              hintText: selectedKey!.contains('Percentage') ? '1–100' : 'Enter a number',
+                              border: const OutlineInputBorder(),
+                            ),
+                            onChanged: (value) {
+                              final parsed = int.tryParse(value);
+                              setDialogState(() => selectedValue = parsed);
+                            },
+                          ),
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            TokenTextButton(
+                              glass: glass,
+                              text: text,
+                              onPressed: () => setDialogState(() {
+                                selectedKey = null;
+                                selectedValue = null;
+                                controller.text = '';
+                              }),
+                              child: const Text('← Back'),
+                            ),
+                            const Spacer(),
+                            TokenTextButton(
+                              glass: glass,
+                              text: text,
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 6),
+                            TokenIconButton(
+                              glass: glass,
+                              text: text,
+                              variant: TokenButtonVariant.primary,
+                              icon: const Icon(Icons.check),
+                              label: const Text('Save'),
+                              onPressed: selectedKey != null &&
+                                  (selectedKey == 'onlyIfEnemyHeroPresent' ||
+                                      (selectedValue != null &&
+                                          selectedValue is int &&
+                                          selectedValue > 0 &&
+                                          (selectedKey!.contains('Percentage')
+                                              ? (selectedValue as int) <= 100
+                                              : true)))
+                                  ? () {
+                                setState(() {
+                                  _conditions[selectedKey!] = selectedValue;
+                                });
+                                Navigator.of(context).pop();
+                              }
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
             ),
-            actions: [
-              if (selectedKey != null)
-                TextButton(
-                  onPressed: () => setDialogState(() {
-                    selectedKey = null;
-                    selectedValue = null;
-                  }),
-                  child: const Text('← Back'),
-                ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              if (selectedKey != null)
-                ElevatedButton(
-                  onPressed: selectedKey != null &&
-                      (selectedKey == 'onlyIfEnemyHeroPresent' ||
-                          (selectedValue != null &&
-                              selectedValue is int &&
-                              selectedValue > 0 &&
-                              (selectedKey!.contains('Percentage')
-                                  ? selectedValue <= 100
-                                  : true)))
-                      ? () {
-                    setState(() {
-                      _conditions[selectedKey!] = selectedValue;
-                    });
-                    Navigator.of(context).pop();
-                  }
-                      : null,
-                  child: const Text('Save'),
-                ),
-            ],
-          );
-        });
+          ),
+        );
       },
     );
+
+    controller.dispose();
   }
 
   Future<void> _handleRemoveAssignment() async {
+    // 🔁 live tokens
+    context.read<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final pad = kStyle.card.padding;
+
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove Assignment'),
-        content: const Text('Are you sure you want to remove this spell assignment?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: TokenPanel(
+            glass: glass,
+            text: text,
+            padding: EdgeInsets.fromLTRB(pad.left, 14, pad.right, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Remove Assignment',
+                        style: TextStyle(
+                          color: text.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    TokenTextButton(
+                      glass: glass,
+                      text: text,
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Are you sure you want to remove this spell assignment?',
+                    style: TextStyle(color: text.secondary),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TokenTextButton(
+                      glass: glass,
+                      text: text,
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 6),
+                    TokenTextButton(
+                      glass: glass,
+                      text: text,
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Remove'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove'),
-          ),
-        ],
+        ),
       ),
     );
 
@@ -191,7 +327,7 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
     }
   }
 
-  void _handleSave() async {
+  Future<void> _handleSave() async {
     if (_saving) return;
     setState(() => _saving = true);
 
@@ -225,6 +361,13 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔁 live tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+    final pad = kStyle.card.padding;
+
     final spell = widget.spell;
     final name = spell['name'] ?? 'Unknown';
     final description = spell['description'] ?? 'No description';
@@ -240,37 +383,54 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
       'allyHpBelowPercentage': 'If ally HP < X%',
     };
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return TokenPanel(
+      glass: glass,
+      text: text,
+      padding: EdgeInsets.fromLTRB(pad.left, 14, pad.right, 14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Assign: $name',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'Assign: $name',
+                  style: TextStyle(
+                    color: text.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
+              TokenTextButton(
+                glass: glass,
+                text: text,
                 onPressed: () => Navigator.of(context).pop(),
+                child: const Icon(Icons.close),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(description),
           const SizedBox(height: 8),
-          Text('Type: $type', style: const TextStyle(color: Colors.grey)),
-          Text('Mana Cost: $manaCost', style: const TextStyle(color: Colors.grey)),
-          const Divider(height: 32),
-          Text('🎯 Conditions', style: Theme.of(context).textTheme.titleMedium),
+          Text(description, style: TextStyle(color: text.secondary)),
+          const SizedBox(height: 6),
+          Text('Type: $type', style: TextStyle(color: text.subtle, fontSize: 13)),
+          Text('Mana Cost: $manaCost', style: TextStyle(color: text.subtle, fontSize: 13)),
           const SizedBox(height: 12),
+          TokenDivider(glass: glass, text: text),
+
+          const SizedBox(height: 10),
+          Text('🎯 Conditions',
+              style: TextStyle(
+                color: text.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              )),
+          const SizedBox(height: 10),
+
           if (_conditions.isEmpty)
-            const Text('No conditions set yet.')
+            Text('No conditions set yet.', style: TextStyle(color: text.secondary))
           else
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,9 +440,16 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
-                      Expanded(child: Text('$label → ${entry.value}')),
+                      Expanded(
+                        child: Text(
+                          '$label → ${entry.value}',
+                          style: TextStyle(color: text.primary),
+                        ),
+                      ),
                       IconButton(
                         icon: const Icon(Icons.delete, size: 20),
+                        color: Colors.redAccent,
+                        tooltip: 'Remove condition',
                         onPressed: () => setState(() => _conditions.remove(entry.key)),
                       ),
                     ],
@@ -290,39 +457,49 @@ class _AssignSpellScreenState extends State<AssignSpellScreen> {
                 );
               }).toList(),
             ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: _openConditionDialog,
-            icon: const Icon(Icons.add),
-            label: const Text('Add Condition'),
-          ),
-          const SizedBox(height: 32),
+
+          const SizedBox(height: 12),
           Align(
-            alignment: Alignment.centerRight,
-            child: _conditions.isEmpty
-                ? TextButton.icon(
-              onPressed: _saving ? null : _handleRemoveAssignment,
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Remove Assignment'),
-            )
-                : ElevatedButton.icon(
-              onPressed: _saving ? null : _handleSave,
-              icon: _saving
-                  ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-                  : const Icon(Icons.check),
-              label: Text(_saving ? 'Saving...' : 'Save Assignment'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo.shade700,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
+            alignment: Alignment.centerLeft,
+            child: TokenIconButton(
+              glass: glass,
+              text: text,
+              buttons: buttons,
+              variant: TokenButtonVariant.outline,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Condition'),
+              onPressed: _openConditionDialog,
             ),
+          ),
+
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (_conditions.isEmpty)
+                TokenTextButton(
+                  glass: glass,
+                  text: text,
+                  onPressed: _saving ? null : _handleRemoveAssignment,
+                  child: const Text('Remove Assignment'),
+                ),
+              const SizedBox(width: 8),
+              TokenIconButton(
+                glass: glass,
+                text: text,
+                buttons: buttons,
+                variant: TokenButtonVariant.primary,
+                icon: _saving
+                    ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Icon(Icons.check),
+                label: Text(_saving ? 'Saving...' : 'Save Assignment'),
+                onPressed: _saving ? null : _handleSave,
+              ),
+            ],
           ),
         ],
       ),

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
+import 'package:provider/provider.dart';
+
 class HeroGroupMovementControls extends StatelessWidget {
   final VoidCallback onClear;
   final VoidCallback onSend;
@@ -18,43 +24,92 @@ class HeroGroupMovementControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text('📦 Current Queue: $waypointCount step(s)'),
-        const SizedBox(height: 12),
+    // live tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+    final pad = kStyle.card.padding;
 
-        // Cancel movement button (if available)
-        if (onCancelMovement != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: ElevatedButton.icon(
-              onPressed: isSending ? null : onCancelMovement,
-              icon: const Icon(Icons.undo),
-              label: const Text('↩️ Cancel & Return'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-              ),
-            ),
-          ),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return TokenPanel(
+      glass: glass,
+      text: text,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(pad.left, 12, pad.right, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ElevatedButton.icon(
-              onPressed: isSending ? null : onClear,
-              icon: const Icon(Icons.clear),
-              label: const Text('🗑️ Clear'),
+            // Queue summary
+            Text(
+              '📦 Current Queue: $waypointCount step(s)',
+              style: TextStyle(color: text.secondary, fontSize: 13),
             ),
-            ElevatedButton.icon(
-              onPressed: isSending ? null : onSend,
-              icon: const Icon(Icons.send),
-              label: isSending
-                  ? const Text('Sending...')
-                  : const Text('🚀 Confirm Movement'),
+            const SizedBox(height: 12),
+
+            // Cancel movement (danger) if available
+            if (onCancelMovement != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TokenButton(
+                  variant: TokenButtonVariant.danger,
+                  glass: glass,
+                  text: text,
+                  buttons: buttons,
+                  onPressed: isSending ? null : onCancelMovement,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.undo, size: 18),
+                      const SizedBox(width: 8),
+                      const Text('↩️ Cancel & Return'),
+                    ],
+                  ),
+                ),
+              ),
+
+            if (onCancelMovement != null) const SizedBox(height: 8),
+
+            // Primary actions
+            Row(
+              children: [
+                // Clear (outline)
+                TokenTextButton(
+                  variant: TokenButtonVariant.outline,
+                  glass: glass,
+                  text: text,
+                  buttons: buttons,
+                  onPressed: isSending ? null : onClear,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.clear, size: 18),
+                      SizedBox(width: 6),
+                      Text('🗑️ Clear'),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                // Send / Confirm (primary)
+                TokenIconButton(
+                  variant: TokenButtonVariant.primary,
+                  glass: glass,
+                  text: text,
+                  buttons: buttons,
+                  onPressed: isSending ? null : onSend,
+                  icon: isSending
+                      ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                      : const Icon(Icons.send),
+                  label: Text(isSending ? 'Sending...' : '🚀 Confirm Movement'),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

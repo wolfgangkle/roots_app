@@ -9,6 +9,11 @@ import 'package:roots_app/modules/heroes/widgets/hero_weight_bar.dart';
 import 'package:roots_app/modules/heroes/views/found_village_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
+import 'package:roots_app/theme/tokens.dart'; // <-- add this
 
 class HeroStatsTab extends StatelessWidget {
   final HeroModel hero;
@@ -33,6 +38,13 @@ class HeroStatsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Live-reactive tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+    final cardPad = kStyle.card.padding;
+
     final isMobile = MediaQuery.of(context).size.width < 1024;
 
     return StreamBuilder<DocumentSnapshot>(
@@ -56,84 +68,163 @@ class HeroStatsTab extends StatelessWidget {
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(cardPad.left, cardPad.top, cardPad.right, cardPad.bottom),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text("📍 $locationText", style: Theme.of(context).textTheme.titleMedium),
+              // 📍 Location box (coords left, Found Village right)
+              TokenPanel(
+                glass: glass,
+                text: text,
+                padding: EdgeInsets.symmetric(
+                  horizontal: cardPad.horizontal / 2,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "📍 $locationText",
+                        style: TextStyle(
+                          color: text.secondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (group != null)
+                      FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance.doc('mapTiles/${group.tileKey}').get(),
+                        builder: (context, mapSnap) {
+                          final hasVillage = mapSnap.data?.data() != null &&
+                              (mapSnap.data!.data() as Map)['villageId'] != null;
+
+                          final isEligible = hero.state == 'idle' &&
+                              !group!.insideVillage &&
+                              !hasVillage;
+
+                          return Tooltip(
+                            message: isEligible
+                                ? 'Found a new village on this tile.'
+                                : 'Cannot found village: hero must be idle, not in a village, and tile must be empty.',
+                            child: TokenIconButton(
+                              glass: glass,
+                              text: text,
+                              buttons: buttons,
+                              variant: TokenButtonVariant.primary,
+                              icon: const Icon(Icons.flag),
+                              label: const Text("Found Village"),
+                              onPressed: isEligible
+                                  ? () {
+                                Provider.of<MainContentController>(context, listen: false)
+                                    .setCustomContent(FoundVillageScreen(group: group!));
+                              }
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
+
+              // Movement summary (your existing widget)
               HeroMovementCard(hero: hero, group: group, isMobile: isMobile),
               const SizedBox(height: 12),
-              if (group != null)
-                FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance.doc('mapTiles/${group.tileKey}').get(),
-                  builder: (context, snapshot) {
-                    final hasVillage = snapshot.data?.data() != null &&
-                        (snapshot.data!.data() as Map)['villageId'] != null;
 
-                    final isEligible = group != null &&
-                        hero.state == 'idle' &&
-                        !group.insideVillage &&
-                        !hasVillage;
+              // (Removed the old "Found Village action" block here)
 
-                    return Tooltip(
-                      message: isEligible
-                          ? 'Found a new village on this tile.'
-                          : 'Cannot found village: Hero must be idle, not in a village, and tile must be empty.',
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.flag),
-                        label: const Text("Found Village"),
-                        onPressed: isEligible
-                            ? () {
-                          Provider.of<MainContentController>(context, listen: false)
-                              .setCustomContent(FoundVillageScreen(group: group!));
-                        }
-                            : null,
-                      ),
-                    );
-                  },
-                ),
               const SizedBox(height: 16),
-              _infoCard(context, "🧙 Hero Info", [
-                _statRow("Name", hero.heroName),
-                _statRow("Race", hero.race),
-                _statRow("Level", hero.level.toString()),
-                _statRow("State", _formatHeroState(hero.state), color: _stateColor(hero.state)),
-              ]),
-              _infoCard(context, "⚔️ Combat Stats", [
-                _statRow("Experience", hero.experience.toString()),
-                _statRow("Magic Resistance", hero.magicResistance.toString()),
-                _barRow(context, "HP", hero.hp, hero.hpMax, color: Theme.of(context).colorScheme.error),
-                if (hero.type != 'companion')
-                  _barRow(context, "Mana", hero.mana, hero.manaMax, color: Theme.of(context).colorScheme.primary),
-              ]),
-              _infoCard(context, "📊 Attributes", [
-                _attributeBar(context, "Strength", hero.stats['strength'] ?? 0),
-                _attributeBar(context, "Dexterity", hero.stats['dexterity'] ?? 0),
-                _attributeBar(context, "Intelligence", hero.stats['intelligence'] ?? 0),
-                _attributeBar(context, "Constitution", hero.stats['constitution'] ?? 0),
-              ]),
-              _infoCard(context, "🗌 Movement & Waypoints", [
-                _statRow("Movement Speed", _formatTime(hero.movementSpeed)),
-                _statRowWithInfo("Max Waypoints", hero.maxWaypoints.toString(), tooltip: "Scales with INT later."),
-              ]),
-              _infoCard(context, "⚙️ Combat Mechanics", [
-                _statRow("Attack Min", hero.combat['attackMin'].toString()),
-                _statRow("Attack Max", hero.combat['attackMax'].toString()),
-                _statRow("Armor", hero.combat['defense'].toString()),
-                _statRowWithInfo("Attack Rating (at)", hero.combat['at'].toString(), tooltip: "Hit chance."),
-                _statRowWithInfo("Defense Rating (def)", hero.combat['def'].toString(), tooltip: "Avoid hits."),
-                _statRowWithInfo("Combat Level", hero.combatLevel.toString(), tooltip: "Matchmaking power."),
-                _statRowWithInfo("Regen per Tick", hero.combat['regenPerTick'].toString(), tooltip: "HP per 10s."),
-                _statRowWithInfo("Attack Speed", _formatMsToMinutesSeconds(hero.combat['attackSpeedMs']), tooltip: "Combat pacing."),
-                _statRowWithInfo("Estimated DPS", _calculateDPS(hero.combat), tooltip: "(min+max)/2 / speed"),
-              ]),
-              _infoCard(context, "🌿 Survival & Regen", [
-                _statRow("HP Regen", _formatTime(hero.hpRegen)),
-                _statRow("Mana Regen", _formatTime(hero.manaRegen)),
-                _statRow("Food consumption every", _formatTime(hero.foodDuration)),
-                HeroWeightBar(currentWeight: hero.currentWeight.toDouble(), carryCapacity: hero.carryCapacity.toDouble()),
-              ]),
+
+              // 🧙 Hero Info
+              _infoPanel(
+                title: "🧙 Hero Info",
+                glass: glass,
+                text: text,
+                padding: cardPad,
+                children: [
+                  _statRow("Name", hero.heroName, text),
+                  _statRow("Race", hero.race, text),
+                  _statRow("Level", hero.level.toString(), text),
+                  _statRow("State", _formatHeroState(hero.state), text,
+                      color: _stateColor(hero.state)),
+                ],
+              ),
+
+              // ⚔️ Combat Stats
+              _infoPanel(
+                title: "⚔️ Combat Stats",
+                glass: glass,
+                text: text,
+                padding: cardPad,
+                children: [
+                  _statRow("Experience", hero.experience.toString(), text),
+                  _statRow("Magic Resistance", hero.magicResistance.toString(), text),
+                  _barRow("HP", hero.hp, hero.hpMax,
+                      barColor: Theme.of(context).colorScheme.error, text: text, glass: glass),
+                  if (hero.type != 'companion')
+                    _barRow("Mana", hero.mana, hero.manaMax,
+                        barColor: Theme.of(context).colorScheme.primary, text: text, glass: glass),
+                ],
+              ),
+
+              // 📊 Attributes
+              _infoPanel(
+                title: "📊 Attributes",
+                glass: glass,
+                text: text,
+                padding: cardPad,
+                children: [
+                  _attributeBar("Strength", hero.stats['strength'] ?? 0, text, glass, context),
+                  _attributeBar("Dexterity", hero.stats['dexterity'] ?? 0, text, glass, context),
+                  _attributeBar("Intelligence", hero.stats['intelligence'] ?? 0, text, glass, context),
+                  _attributeBar("Constitution", hero.stats['constitution'] ?? 0, text, glass, context),
+                ],
+              ),
+
+              // ⚙️ Combat Mechanics
+              _infoPanel(
+                title: "⚙️ Combat Mechanics",
+                glass: glass,
+                text: text,
+                padding: cardPad,
+                children: [
+                  _statRow("Attack Min", hero.combat['attackMin'].toString(), text),
+                  _statRow("Attack Max", hero.combat['attackMax'].toString(), text),
+                  _statRow("Armor", hero.combat['defense'].toString(), text),
+                  _statRowWithInfo("Attack Rating (at)", hero.combat['at'].toString(), text,
+                      tooltip: "Hit chance."),
+                  _statRowWithInfo("Defense Rating (def)", hero.combat['def'].toString(), text,
+                      tooltip: "Avoid hits."),
+                  _statRowWithInfo("Combat Level", hero.combatLevel.toString(), text,
+                      tooltip: "Matchmaking power."),
+                  _statRowWithInfo("Regen per Tick", hero.combat['regenPerTick'].toString(), text,
+                      tooltip: "HP per 10s."),
+                  _statRowWithInfo("Attack Speed", _formatMsToMinutesSeconds(hero.combat['attackSpeedMs']), text,
+                      tooltip: "Combat pacing."),
+                  _statRowWithInfo("Estimated DPS", _calculateDPS(hero.combat), text,
+                      tooltip: "(min+max)/2 / speed"),
+                ],
+              ),
+
+              // 🌿 Survival & Regen
+              _infoPanel(
+                title: "🌿 Survival & Regen",
+                glass: glass,
+                text: text,
+                padding: cardPad,
+                children: [
+                  _statRow("HP Regen", _formatTime(hero.hpRegen), text),
+                  _statRow("Mana Regen", _formatTime(hero.manaRegen), text),
+                  _statRow("Food consumption every", _formatTime(hero.foodDuration), text),
+                  HeroWeightBar(
+                    currentWeight: hero.currentWeight.toDouble(),
+                    carryCapacity: hero.carryCapacity.toDouble(),
+                  ),
+                ],
+              ),
             ],
           ),
         );
@@ -141,16 +232,37 @@ class HeroStatsTab extends StatelessWidget {
     );
   }
 
-  Widget _infoCard(BuildContext context, String title, List<Widget> children) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+  // ==== tokenized building blocks ====
+
+  Widget _infoPanel({
+    required String title,
+    required GlassTokens glass,
+    required TextOnGlassTokens text,
+    required EdgeInsets padding,
+    required List<Widget> children,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TokenPanel(
+        glass: glass,
+        text: text,
+        padding: EdgeInsets.fromLTRB(
+          padding.left,
+          14,
+          padding.right,
+          14,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: TextStyle(
+                color: text.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
             const SizedBox(height: 12),
             ...children,
           ],
@@ -159,57 +271,70 @@ class HeroStatsTab extends StatelessWidget {
     );
   }
 
-  Widget _statRow(String label, String value, {Color? color}) => Padding(
+  Widget _statRow(String label, String value, TextOnGlassTokens text, {Color? color}) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label),
-        Text(value, style: TextStyle(color: color)),
+        Text(label, style: TextStyle(color: text.secondary)),
+        Text(value, style: TextStyle(color: color ?? text.primary)),
       ],
     ),
   );
 
-  Widget _statRowWithInfo(String label, String value, {String? tooltip}) => Padding(
+  Widget _statRowWithInfo(String label, String value, TextOnGlassTokens text, {String? tooltip}) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label),
+            Text(label, style: TextStyle(color: text.secondary)),
             if (tooltip != null)
               Padding(
                 padding: const EdgeInsets.only(left: 4),
                 child: Tooltip(
                   message: tooltip,
-                  child: const Icon(Icons.info_outline, size: 14, color: Colors.grey),
+                  child: Icon(Icons.info_outline, size: 14, color: text.subtle),
                 ),
               ),
           ],
         ),
-        Text(value),
+        Text(value, style: TextStyle(color: text.primary)),
       ],
     ),
   );
 
-  Widget _barRow(BuildContext context, String label, int current, int max, {required Color color}) {
+  Widget _barRow(
+      String label,
+      int current,
+      int max, {
+        required Color barColor,
+        required TextOnGlassTokens text,
+        required GlassTokens glass,
+      }) {
     final percent = max > 0 ? (current / max).clamp(0.0, 1.0) : 0.0;
+    final bg = glass.baseColor.withValues(alpha: glass.mode == SurfaceMode.solid ? 0.10 : 0.08);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("$label: $current / $max"),
+          Text("$label: $current / $max", style: TextStyle(color: text.secondary)),
+          const SizedBox(height: 4),
           TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 500),
             tween: Tween(begin: 0.0, end: percent),
             builder: (context, value, _) {
-              return LinearProgressIndicator(
-                value: value,
-                minHeight: 8,
-                backgroundColor: Colors.grey.shade300,
-                color: color,
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: value,
+                  minHeight: 8,
+                  backgroundColor: bg,
+                  color: barColor,
+                ),
               );
             },
           ),
@@ -218,28 +343,39 @@ class HeroStatsTab extends StatelessWidget {
     );
   }
 
-  Widget _attributeBar(BuildContext context, String label, int value) {
+  Widget _attributeBar(
+      String label,
+      int value,
+      TextOnGlassTokens text,
+      GlassTokens glass,
+      BuildContext context,
+      ) {
+    final bg = glass.baseColor.withValues(alpha: glass.mode == SurfaceMode.solid ? 0.10 : 0.08);
+    final barColor = Theme.of(context).colorScheme.secondary;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          SizedBox(width: 140, child: Text(label)),
+          SizedBox(width: 140, child: Text(label, style: TextStyle(color: text.secondary))),
           Expanded(
             child: TweenAnimationBuilder<double>(
               duration: const Duration(milliseconds: 600),
               tween: Tween(begin: 0.0, end: value.toDouble()),
               builder: (context, val, _) {
-                return LinearProgressIndicator(
-                  value: val / 500,
-                  minHeight: 10,
-                  backgroundColor: Colors.grey.shade200,
-                  color: Theme.of(context).colorScheme.secondary,
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: (val / 500).clamp(0.0, 1.0),
+                    minHeight: 10,
+                    backgroundColor: bg,
+                    color: barColor,
+                  ),
                 );
               },
             ),
           ),
           const SizedBox(width: 8),
-          Text(value.toString()),
+          Text(value.toString(), style: TextStyle(color: text.primary)),
         ],
       ),
     );
@@ -247,26 +383,34 @@ class HeroStatsTab extends StatelessWidget {
 
   Color _stateColor(String state) {
     switch (state) {
-      case 'idle': return Colors.green;
-      case 'moving': return Colors.orange;
-      case 'in_combat': return Colors.red;
-      default: return Colors.grey;
+      case 'idle':
+        return Colors.green;
+      case 'moving':
+        return Colors.orange;
+      case 'in_combat':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
   String _formatHeroState(String state) {
     switch (state) {
-      case 'idle': return '🟢 idle';
-      case 'moving': return '🟡 moving';
-      case 'in_combat': return '🔴 in combat';
-      default: return '❔ unknown';
+      case 'idle':
+        return '🟢 idle';
+      case 'moving':
+        return '🟡 moving';
+      case 'in_combat':
+        return '🔴 in combat';
+      default:
+        return '❔ unknown';
     }
   }
 
   String _calculateDPS(Map<String, dynamic> combat) {
-    final min = combat['attackMin'] ?? 0;
-    final max = combat['attackMax'] ?? 0;
-    final speedMs = combat['attackSpeedMs'] ?? 1000;
+    final min = (combat['attackMin'] ?? 0) as num;
+    final max = (combat['attackMax'] ?? 0) as num;
+    final speedMs = (combat['attackSpeedMs'] ?? 1000) as num;
     final avg = (min + max) / 2;
     final seconds = speedMs / 1000;
     if (seconds == 0) return '∞';

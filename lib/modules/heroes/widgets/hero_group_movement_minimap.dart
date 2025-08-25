@@ -8,6 +8,11 @@ import 'package:roots_app/modules/map/services/map_data_loader.dart';
 import 'package:roots_app/modules/map/widgets/map_tile_minimap_widget.dart';
 import 'package:roots_app/modules/map/widgets/minimap_tile_info_popup.dart';
 
+// 🔷 Tokens
+import 'package:provider/provider.dart';
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/tokens.dart';
+
 class HeroGroupMovementMiniMap extends StatefulWidget {
   final HeroGroupModel group;
   final List<Map<String, dynamic>> waypoints;
@@ -37,12 +42,10 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
   void initState() {
     super.initState();
     _computeMapBounds();
-
     panOffset = Offset(
       (widget.group.tileX - visibleTiles ~/ 2).toDouble(),
       (widget.group.tileY - visibleTiles ~/ 2).toDouble(),
     );
-
     _fetchData();
   }
 
@@ -66,6 +69,7 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
 
     final enriched = await MapDataLoader.loadFullMapData();
 
+    if (!mounted) return;
     setState(() {
       villageTiles = snapshot.docs.map((doc) => doc.id).toSet();
       allTiles = enriched;
@@ -83,11 +87,10 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
       ),
     );
 
-    setState(() {
-      selectedTile = match;
-    });
+    setState(() => selectedTile = match);
   }
 
+  // Exposed so parent can re-center the minimap
   void centerOnTile(int x, int y) {
     setState(() {
       panOffset = Offset(
@@ -97,9 +100,27 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
+    // 🔁 live tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+
+    // Soft fill matching your glass surface
+    final double fillAlpha = glass.mode == SurfaceMode.solid
+        ? 1.0
+        : (glass.opacity <= 0.02 ? 0.06 : glass.opacity);
+    final Color mapBg = glass.baseColor.withValues(alpha: fillAlpha);
+
+    // Accent dots
+    final Color newWaypointColor = buttons.primaryBg;
+    final Color savedWaypointColor = text.secondary;
+
+    // Rounded corner radius (tweak if you have a token for this)
+    final double radius = 12;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxSize = constraints.maxWidth < constraints.maxHeight
@@ -115,17 +136,15 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
             GestureDetector(
               onPanStart: (details) => dragStart = details.localPosition,
               onPanUpdate: (details) {
-                final delta = details.localPosition - dragStart!;
+                final delta = details.localPosition - (dragStart ?? details.localPosition);
                 dragStart = details.localPosition;
 
                 final dx = (panOffset.dx - delta.dx / tileSize)
-                    .clamp(minX.toDouble(), maxX - visibleTiles + 1);
+                    .clamp(minX.toDouble(), (maxX - visibleTiles + 1).toDouble());
                 final dy = (panOffset.dy - delta.dy / tileSize)
-                    .clamp(minY.toDouble(), maxY - visibleTiles + 1);
+                    .clamp(minY.toDouble(), (maxY - visibleTiles + 1).toDouble());
 
-                setState(() {
-                  panOffset = Offset(dx.toDouble(), dy.toDouble());
-                });
+                setState(() => panOffset = Offset(dx.toDouble(), dy.toDouble()));
               },
               onPanEnd: (_) {
                 dragStart = null;
@@ -137,71 +156,116 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
                 });
               },
               child: Center(
-                child: Container(
-                  width: mapSizePx,
-                  height: mapSizePx,
-                  color: const Color(0xFFA5D6A7),
-                  child: GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: visibleTiles,
-                      childAspectRatio: 1,
-                      mainAxisSpacing: 0,
-                      crossAxisSpacing: 0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(radius), // ⟵ round the corners
+                  child: Container(
+                    width: mapSizePx,
+                    height: mapSizePx,
+                    decoration: BoxDecoration(
+                      color: mapBg,
+                      borderRadius: BorderRadius.circular(radius),
+                      border: glass.showBorder
+                          ? Border.all(
+                        color: (glass.borderColor ??
+                            text.subtle.withValues(alpha: glass.strokeOpacity))
+                            .withValues(alpha: 0.6),
+                        width: 1,
+                      )
+                          : null,
                     ),
-                    itemCount: visibleTiles * visibleTiles,
-                    itemBuilder: (context, index) {
-                      final x = panOffset.dx.floor() + (index % visibleTiles);
-                      final y = panOffset.dy.floor() + (index ~/ visibleTiles);
-                      final tileKey = '${x}_$y';
-                      final terrainId = tier1Map[tileKey] ?? 'plains';
+                    child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: visibleTiles,
+                        childAspectRatio: 1,
+                      ),
+                      itemCount: visibleTiles * visibleTiles,
+                      itemBuilder: (context, index) {
+                        final x = panOffset.dx.floor() + (index % visibleTiles);
+                        final y = panOffset.dy.floor() + (index ~/ visibleTiles);
+                        final tileKey = '${x}_$y';
+                        final terrainId = tier1Map[tileKey] ?? 'plains';
 
-                      final isHero = (x == widget.group.tileX && y == widget.group.tileY);
-                      final isNewWaypoint = widget.waypoints
-                          .any((wp) => wp['x'] == x && wp['y'] == y);
-                      final isSavedWaypoint = (widget.group.movementQueue)
-                          .any((wp) => wp['x'] == x && wp['y'] == y);
-                      final hasVillage = villageTiles.contains(tileKey);
+                        final isHero = (x == widget.group.tileX && y == widget.group.tileY);
+                        final isNewWaypoint =
+                        widget.waypoints.any((wp) => wp['x'] == x && wp['y'] == y);
+                        final isSavedWaypoint =
+                        widget.group.movementQueue.any((wp) => wp['x'] == x && wp['y'] == y);
+                        final hasVillage = villageTiles.contains(tileKey);
 
-                      return GestureDetector(
-                        onTap: () => _showTileInfo(x, y),
-                        child: Stack(
-                          children: [
-                            MapTileMiniMapWidget(
-                              x: x,
-                              y: y,
-                              terrainId: terrainId,
-                            ),
-                            if (hasVillage)
-                              const Center(child: Text("🏰", style: TextStyle(fontSize: 16))),
-                            if (isHero)
-                              const Center(child: Text("🧙", style: TextStyle(fontSize: 16))),
-                            if (isNewWaypoint)
-                              const Center(child: Icon(Icons.circle, size: 10, color: Colors.orange)),
-                            if (!isNewWaypoint && isSavedWaypoint)
-                              const Center(child: Icon(Icons.circle, size: 10, color: Colors.blue)),
-                          ],
-                        ),
-                      );
-                    },
+                        return GestureDetector(
+                          onTap: () => _showTileInfo(x, y),
+                          child: Stack(
+                            children: [
+                              MapTileMiniMapWidget(
+                                x: x,
+                                y: y,
+                                terrainId: terrainId,
+                              ),
+                              if (hasVillage)
+                                Center(
+                                  child: Text(
+                                    "🏰",
+                                    style: TextStyle(fontSize: 16, color: text.primary),
+                                  ),
+                                ),
+                              if (isHero)
+                                Center(
+                                  child: Text(
+                                    "🧙",
+                                    style: TextStyle(fontSize: 16, color: text.primary),
+                                  ),
+                                ),
+                              if (isNewWaypoint)
+                                Center(
+                                  child: Icon(Icons.circle, size: 10, color: newWaypointColor),
+                                ),
+                              if (!isNewWaypoint && isSavedWaypoint)
+                                Center(
+                                  child: Icon(Icons.circle, size: 10, color: savedWaypointColor),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
+
+            // ℹ️ Tokenized info popup (no hardcoded white)
             if (selectedTile != null)
               Container(
                 margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)],
-                ),
                 width: 320,
-                child: MinimapTileInfoPopup(
-                  tile: selectedTile!,
-                  onClose: () => setState(() => selectedTile = null),
+                decoration: BoxDecoration(
+                  color: glass.baseColor.withValues(alpha: fillAlpha),
+                  borderRadius: BorderRadius.circular(12),
+                  border: glass.showBorder
+                      ? Border.all(
+                    color: (glass.borderColor ??
+                        text.subtle.withValues(alpha: glass.strokeOpacity))
+                        .withValues(alpha: 0.6),
+                    width: 1,
+                  )
+                      : null,
+                ),
+                child: Theme(
+                  // ensure inner text matches token colors
+                  data: Theme.of(context).copyWith(
+                    textTheme: Theme.of(context).textTheme.apply(
+                      bodyColor: text.primary,
+                      displayColor: text.primary,
+                    ),
+                    iconTheme: IconThemeData(color: text.primary),
+                  ),
+                  child: MinimapTileInfoPopup(
+                    tile: selectedTile!,
+                    onClose: () => setState(() => selectedTile = null),
+                  ),
                 ),
               ),
           ],
@@ -210,4 +274,3 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
     );
   }
 }
-

@@ -3,11 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+
 import 'package:roots_app/modules/heroes/models/hero_model.dart';
 import 'package:roots_app/modules/heroes/models/hero_group_model.dart';
 import 'package:roots_app/modules/heroes/views/hero_group_movement_screen.dart';
 import 'package:roots_app/screens/controllers/main_content_controller.dart';
 import 'package:roots_app/screens/helpers/responsive_push.dart';
+
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 class HeroMovementCard extends StatefulWidget {
   final HeroModel hero;
@@ -76,6 +83,13 @@ class _HeroMovementCardState extends State<HeroMovementCard> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔁 tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+    final pad = kStyle.card.padding;
+
     final hero = widget.hero;
     final group = widget.group;
     final isMobile = widget.isMobile;
@@ -83,60 +97,79 @@ class _HeroMovementCardState extends State<HeroMovementCard> {
 
     final waypoints = group?.movementQueue ?? [];
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TokenPanel(
+        glass: glass,
+        text: text,
+        padding: EdgeInsets.fromLTRB(pad.left, 16, pad.right, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("🧭 Movement",
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            // header
+            Row(
+              children: [
+                Text(
+                  '🧭 Movement',
+                  style: TextStyle(
+                    color: text.primary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                TokenIconButton(
+                  glass: glass,
+                  text: text,
+                  buttons: buttons,
+                  variant: TokenButtonVariant.primary,
+                  icon: const Icon(Icons.edit_location_alt),
+                  label: Text(hero.state == 'idle' ? 'Move Hero' : 'Edit Movement'),
+                  onPressed: group == null
+                      ? null
+                      : () {
+                    if (isMobile) {
+                      pushResponsiveScreen(
+                        context,
+                        HeroGroupMovementScreen(hero: hero, group: group),
+                      );
+                    } else {
+                      final controller =
+                      Provider.of<MainContentController>(context, listen: false);
+                      controller.setCustomContent(
+                        HeroGroupMovementScreen(hero: hero, group: group),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
 
             if (group != null) ...[
-              const Text("Current Move:"),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Current Tile:"),
-                  Text("(${group.tileX}, ${group.tileY})"),
-                ],
-              ),
+              _kvRow('Current Tile:', '(${group.tileX}, ${group.tileY})', text),
               if (waypoints.isNotEmpty) ...[
                 if (group.arrivesAt != null) ...[
                   const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Arrives in:"),
-                      Text(group.arrivesAt!.isAfter(now)
-                          ? _formatArrival(group.arrivesAt!.difference(now))
-                          : 'Arrived'),
-                    ],
+                  _kvRow(
+                    'Arrives in:',
+                    group.arrivesAt!.isAfter(now)
+                        ? _formatArrival(group.arrivesAt!.difference(now))
+                        : 'Arrived',
+                    text,
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Arrives at:"),
-                      Text(DateFormat('HH:mm:ss').format(group.arrivesAt!)),
-                    ],
+                  _kvRow('Arrives at:', DateFormat('HH:mm:ss').format(group.arrivesAt!), text),
+                ] else
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('No arrival time set.', style: TextStyle(color: text.secondary)),
                   ),
-                ] else ...[
-                  const Text("No arrival time set."),
-                ],
               ],
-
               const SizedBox(height: 12),
             ],
 
             if (waypoints.length > 1) ...[
-              const Text("Set Waypoints:"),
+              Text('Set Waypoints:', style: TextStyle(color: text.primary, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               ...waypoints.sublist(1).asMap().entries.map((entry) {
                 final index = entry.key + 2; // skipping the first
@@ -156,66 +189,43 @@ class _HeroMovementCardState extends State<HeroMovementCard> {
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text("Waypoint $index → $label"),
+                  child: Text("Waypoint $index → $label", style: TextStyle(color: text.secondary)),
                 );
               }),
               const SizedBox(height: 12),
             ],
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Movement Speed:"),
-                Text(_formatTime(hero.movementSpeed)),
-              ],
-            ),
+            _kvRow('Movement Speed:', _formatTime(hero.movementSpeed), text),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
-                  children: const [
-                    Text("Max Waypoints"),
-                    SizedBox(width: 4),
+                  children: [
+                    Text('Max Waypoints', style: TextStyle(color: text.secondary)),
+                    const SizedBox(width: 4),
                     Tooltip(
-                      message:
-                      "Max path steps your hero can queue. Scales with INT later.",
-                      child: Icon(Icons.info_outline, size: 14, color: Colors.grey),
+                      message: "Max path steps your hero can queue. Scales with INT later.",
+                      child: Icon(Icons.info_outline, size: 14, color: text.subtle),
                     ),
                   ],
                 ),
-                Text(hero.maxWaypoints.toString()),
+                Text(hero.maxWaypoints.toString(), style: TextStyle(color: text.primary)),
               ],
             ),
-
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.edit_location_alt),
-                label: Text(hero.state == 'idle' ? 'Move Hero' : 'Edit Movement'),
-                onPressed: group == null
-                    ? null
-                    : () {
-                  if (isMobile) {
-                    pushResponsiveScreen(
-                      context,
-                      HeroGroupMovementScreen(hero: hero, group: group),
-                    );
-                  } else {
-                    final controller = Provider.of<MainContentController>(
-                        context,
-                        listen: false);
-                    controller.setCustomContent(
-                      HeroGroupMovementScreen(hero: hero, group: group),
-                    );
-                  }
-                },
-              ),
-            )
           ],
         ),
       ),
+    );
+  }
+
+  Widget _kvRow(String k, String v, TextOnGlassTokens text) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(k, style: TextStyle(color: text.secondary)),
+        Text(v, style: TextStyle(color: text.primary)),
+      ],
     );
   }
 }

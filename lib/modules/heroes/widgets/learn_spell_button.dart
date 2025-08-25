@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:provider/provider.dart';
+
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
 
 class LearnSpellButton extends StatefulWidget {
   final String spellId;
@@ -30,19 +35,13 @@ class _LearnSpellButtonState extends State<LearnSpellButton> {
   bool _isProcessing = false;
 
   Future<void> _handleLearn() async {
-    if (mounted) {
-      setState(() {
-        _isProcessing = true;
-      });
-    }
+    if (mounted) setState(() => _isProcessing = true);
 
     widget.onLearnStart?.call();
     widget.onOptimisticLearn?.call();
 
     try {
-      await FirebaseFunctions.instance
-          .httpsCallable('learnSpell')
-          .call({
+      await FirebaseFunctions.instance.httpsCallable('learnSpell').call({
         'heroId': widget.heroId,
         'spellId': widget.spellId,
         'userId': widget.userId,
@@ -58,50 +57,72 @@ class _LearnSpellButtonState extends State<LearnSpellButton> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('❌ Error learning spell: $e')),
         );
-        setState(() {
-          _isProcessing = false;
-        });
+        setState(() => _isProcessing = false);
       }
       widget.onLearnComplete?.call();
       return;
     }
 
-    if (mounted) {
-      setState(() {
-        _isProcessing = false;
-      });
-    }
-
+    if (mounted) setState(() => _isProcessing = false);
     widget.onLearnComplete?.call();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 🔁 Tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+
     final isButtonActive = widget.isEnabled && !_isProcessing;
 
-    return ElevatedButton(
+    return TokenButton(
+      variant: TokenButtonVariant.primary,
+      glass: glass,
+      text: text,
+      buttons: buttons,
       onPressed: isButtonActive ? _handleLearn : null,
-      style: ElevatedButton.styleFrom(
-        elevation: isButtonActive ? 3 : 0,
-        backgroundColor:
-        isButtonActive ? Colors.indigo.shade700 : Colors.grey.shade300,
-        foregroundColor:
-        isButtonActive ? Colors.white : Colors.grey.shade600,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, anim) =>
+            FadeTransition(opacity: anim, child: child),
+        child: _isProcessing
+            ? Row(
+          key: const ValueKey('loading'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor:
+                AlwaysStoppedAnimation<Color>(text.primary),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Learning…',
+              style: TextStyle(color: text.primary),
+            ),
+          ],
+        )
+            : Row(
+          key: const ValueKey('idle'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.school),
+            const SizedBox(width: 8),
+            Text(
+              'Learn Spell',
+              style: TextStyle(color: text.primary),
+            ),
+          ],
         ),
       ),
-      child: _isProcessing
-          ? const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        ),
-      )
-          : const Text('Learn Spell'),
     );
   }
 }
