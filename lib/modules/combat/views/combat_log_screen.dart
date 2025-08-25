@@ -98,7 +98,7 @@ class _CombatLogViewState extends State<CombatLogView> {
                     if (tick != null) 'Tick: $tick',
                   ].join('  •  '),
                   style: TextStyle(
-                    color: text.subtle.withOpacity(0.95),
+                    color: text.subtle.withValues(alpha: 0.95),
                     fontSize: 12,
                   ),
                 ),
@@ -221,7 +221,7 @@ class _CombatLogViewState extends State<CombatLogView> {
                                   Text(
                                     '[$entryTick] ',
                                     style: TextStyle(
-                                      color: text.subtle.withOpacity(0.95),
+                                      color: text.subtle.withValues(alpha: 0.95),
                                       fontSize: 12,
                                     ),
                                   ),

@@ -15,7 +15,6 @@ import 'package:roots_app/theme/app_style_manager.dart';
 
 // 🧭 Analytics
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_analytics/observer.dart';
 
 // 🔤 Localization imports (matches l10n.yaml output)
 import 'package:flutter_localizations/flutter_localizations.dart';

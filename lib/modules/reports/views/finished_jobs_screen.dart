@@ -178,14 +178,14 @@ class FinishedJobsScreen extends StatelessWidget {
         ? 1.0
         : (glass.opacity <= 0.02 ? 0.06 : glass.opacity);
 
-    final Color menuBg = glass.baseColor.withOpacity(fillAlpha);
+    final Color menuBg = glass.baseColor.withValues(alpha: fillAlpha);
     final ShapeBorder menuShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
       side: glass.showBorder
           ? BorderSide(
         color: (glass.borderColor ??
-            tokens.subtle.withOpacity(glass.strokeOpacity))
-            .withOpacity(0.6),
+            tokens.subtle.withValues(alpha: glass.strokeOpacity))
+            .withValues(alpha: 0.6),
         width: 1,
       )
           : BorderSide.none,
