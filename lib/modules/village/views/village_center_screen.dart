@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:provider/provider.dart';
+
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/services/village_service.dart';
 import 'package:roots_app/modules/village/views/building_screen.dart';
@@ -9,8 +11,11 @@ import 'package:roots_app/modules/village/views/workers_tab.dart';
 import 'package:roots_app/modules/village/views/trading_tab.dart';
 import 'package:roots_app/modules/village/views/techtree_tab.dart';
 
-// 🌿 Theme color
-const Color kAccentGreenLight = Color(0xFF3B5743);
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 enum VillageTab { buildings, items, storage, workers, trading, techtree }
 
@@ -29,99 +34,146 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔄 Live tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
+    final cardPad = kStyle.card.padding;
+
     return StreamBuilder<VillageModel>(
       stream: villageService.watchVillage(widget.villageId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         final village = snapshot.data!;
-        final _ = village.simulatedResources;
+        final _ = village.simulatedResources; // keep local sim up-to-date
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(village.name),
-          ),
-          body: Column(
-            children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildTabButton(VillageTab.buildings, 'Buildings'),
-                    _buildTabButton(VillageTab.items, 'Items'),
-                    _buildTabButton(VillageTab.storage, 'Storage'),
-                    _buildTabButton(VillageTab.workers, 'Workers'),
-                    _buildTabButton(VillageTab.trading, 'Trading'),
-                    _buildTabButton(VillageTab.techtree, 'Techtree'),
-                  ],
-                ),
+        return Column(
+          children: [
+            // 🔝 Header: name + tabs
+            TokenPanel(
+              glass: glass,
+              text: text,
+              padding: EdgeInsets.fromLTRB(cardPad.left, 14, cardPad.right, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    village.name,
+                    style: TextStyle(
+                      color: text.primary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _tabButton(VillageTab.buildings, 'Buildings', glass, text, buttons),
+                        const SizedBox(width: 6),
+                        _tabButton(VillageTab.items, 'Items', glass, text, buttons),
+                        const SizedBox(width: 6),
+                        _tabButton(VillageTab.storage, 'Storage', glass, text, buttons),
+                        const SizedBox(width: 6),
+                        _tabButton(VillageTab.workers, 'Workers', glass, text, buttons),
+                        const SizedBox(width: 6),
+                        _tabButton(VillageTab.trading, 'Trading', glass, text, buttons),
+                        const SizedBox(width: 6),
+                        _tabButton(VillageTab.techtree, 'Techtree', glass, text, buttons),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const Divider(),
-              Expanded(child: _buildTabContent(village)),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // 📦 Content
+            Expanded(child: _buildTabContent(context, village, glass, text, buttons, cardPad)),
+          ],
         );
       },
     );
   }
 
-  Widget _buildTabButton(VillageTab tab, String label) {
-    final isSelected = currentTab == tab;
-    return TextButton(
-      onPressed: () {
-        setState(() {
-          currentTab = tab;
-        });
-      },
+  Widget _tabButton(
+      VillageTab tab,
+      String label,
+      GlassTokens glass,
+      TextOnGlassTokens text,
+      ButtonTokens buttons,
+      ) {
+    final bool isSelected = currentTab == tab;
+
+    // Selected → outline; Unselected → ghost
+    final variant = isSelected ? TokenButtonVariant.outline : TokenButtonVariant.ghost;
+
+    return TokenButton(
+      variant: variant,
+      glass: glass,
+      text: text,
+      buttons: buttons,
+      onPressed: () => setState(() => currentTab = tab),
       child: Text(
         label,
         style: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? kAccentGreenLight : Colors.black87,
+          color: text.primary,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
         ),
       ),
     );
   }
 
-  Widget _buildTabContent(VillageModel village) {
+  Widget _buildTabContent(
+      BuildContext context,
+      VillageModel village,
+      GlassTokens glass,
+      TextOnGlassTokens text,
+      ButtonTokens buttons,
+      EdgeInsets cardPad,
+      ) {
     switch (currentTab) {
       case VillageTab.buildings:
         return Column(
           children: [
             if (village.currentBuildJob != null)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.bolt),
-                  label: const Text('🔥 Finish Building Now'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kAccentGreenLight,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () async {
-                    try {
-                      await FirebaseFunctions.instance
-                          .httpsCallable('devFinishNow')
-                          .call({'villageId': village.id});
+                padding: EdgeInsets.fromLTRB(cardPad.left, 0, cardPad.right, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TokenIconButton(
+                    glass: glass,
+                    text: text,
+                    buttons: buttons,
+                    variant: TokenButtonVariant.primary,
+                    icon: const Icon(Icons.bolt),
+                    label: const Text('🔥 Finish Building Now'),
+                    onPressed: () async {
+                      // ✅ capture messenger BEFORE await to avoid using context across async gaps
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        await FirebaseFunctions.instance
+                            .httpsCallable('devFinishNow')
+                            .call({'villageId': village.id});
 
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Upgrade finished!')),
-                      );
-                    } catch (e) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
-                    }
-                  },
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('Upgrade finished!')),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                    },
+                  ),
                 ),
               ),
             Expanded(child: BuildingScreen(village: village)),
@@ -133,34 +185,36 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
           children: [
             if (village.currentCraftingJob != null)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.bolt),
-                  label: const Text('🔥 Finish Crafting Now'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF6B2C2C), // 🔥 crafting red
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () async {
-                    try {
-                      await FirebaseFunctions.instance
-                          .httpsCallable('devFinishCraftingNow')
-                          .call({'villageId': village.id});
+                padding: EdgeInsets.fromLTRB(cardPad.left, 0, cardPad.right, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TokenIconButton(
+                    glass: glass,
+                    text: text,
+                    buttons: buttons,
+                    variant: TokenButtonVariant.danger, // crafting "finish now" as danger
+                    icon: const Icon(Icons.bolt),
+                    label: const Text('🔥 Finish Crafting Now'),
+                    onPressed: () async {
+                      // ✅ capture messenger BEFORE await to avoid using context across async gaps
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        await FirebaseFunctions.instance
+                            .httpsCallable('devFinishCraftingNow')
+                            .call({'villageId': village.id});
 
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Crafting job finished!')),
-                      );
-                    } catch (e) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
-                    }
-                  },
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('Crafting job finished!')),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                    },
+                  ),
                 ),
               ),
             Expanded(child: VillageItemsTab(villageId: village.id)),
@@ -168,7 +222,15 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
         );
 
       case VillageTab.storage:
-        return const Center(child: Text('📦 Storage view coming soon!'));
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: cardPad.horizontal / 2),
+          child: TokenPanel(
+            glass: glass,
+            text: text,
+            padding: EdgeInsets.fromLTRB(cardPad.left, 14, cardPad.right, 14),
+            child: Text('📦 Storage view coming soon!', style: TextStyle(color: text.secondary)),
+          ),
+        );
 
       case VillageTab.workers:
         return WorkersTab(villageId: village.id);

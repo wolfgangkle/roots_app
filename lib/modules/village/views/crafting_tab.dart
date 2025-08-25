@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:roots_app/modules/village/data/items.dart';
 import 'package:roots_app/modules/village/widgets/crafting_button.dart';
 import 'package:roots_app/modules/village/widgets/crafting_card.dart';
+
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 class CraftingTab extends StatefulWidget {
   final String villageId;
@@ -42,6 +49,12 @@ class _CraftingTabState extends State<CraftingTab> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔄 Live-reactive tokens
+    context.watch<StyleManager>();
+    final GlassTokens glass = kStyle.glass;
+    final TextOnGlassTokens text = kStyle.textOnGlass;
+    final EdgeInsets cardPad = kStyle.card.padding;
+
     final entries = gameItems.entries.toList();
 
     final filtered = entries.where((entry) {
@@ -54,31 +67,45 @@ class _CraftingTabState extends State<CraftingTab> {
     final allDisabled =
         isCraftingInProgress || widget.currentCraftingJob != null;
 
-    return filtered.isEmpty
-        ? const Center(child: Text("🚫 No matching items."))
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              final itemId = filtered[index].key;
-              final item = filtered[index].value;
+    if (filtered.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(cardPad.left, 12, cardPad.right, cardPad.bottom),
+        child: TokenPanel(
+          glass: glass,
+          text: text,
+          padding: EdgeInsets.fromLTRB(cardPad.left, 14, cardPad.right, 14),
+          child: Text(
+            "🚫 No matching items.",
+            style: TextStyle(color: text.secondary),
+          ),
+        ),
+      );
+    }
 
-              return CraftingCard(
-                itemId: itemId,
-                itemData: item,
-                villageId: widget.villageId,
-                isDisabled: allDisabled,
-                currentCraftingJob: widget.currentCraftingJob,
-                craftingButtonWidget: CraftButton(
-                  itemId: itemId,
-                  villageId: widget.villageId,
-                  isDisabled: allDisabled,
-                  label: allDisabled ? 'Crafting...' : 'Craft',
-                  onCraftStart: _onCraftStart,
-                ),
-              );
-            },
-          );
+    return ListView.separated(
+      padding: EdgeInsets.fromLTRB(cardPad.left, 12, cardPad.right, cardPad.bottom),
+      itemCount: filtered.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final itemId = filtered[index].key;
+        final item = filtered[index].value;
+
+        return CraftingCard(
+          itemId: itemId,
+          itemData: item,
+          villageId: widget.villageId,
+          isDisabled: allDisabled,
+          currentCraftingJob: widget.currentCraftingJob,
+          craftingButtonWidget: CraftButton(
+            itemId: itemId,
+            villageId: widget.villageId,
+            isDisabled: allDisabled,
+            label: allDisabled ? 'Crafting...' : 'Craft',
+            onCraftStart: _onCraftStart,
+          ),
+        );
+      },
+    );
   }
 
   String _normalizedType(String filter) {

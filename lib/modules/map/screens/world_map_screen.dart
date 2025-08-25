@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+
 import 'package:roots_app/modules/map/constants/tier1_map.dart';
 import 'package:roots_app/modules/map/services/map_data_loader.dart';
 import 'package:roots_app/modules/map/models/enriched_tile_data.dart';
 import 'package:roots_app/modules/map/widgets/map_painter.dart';
 import 'package:roots_app/modules/map/widgets/tile_info_popup.dart';
+
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 class WorldMapScreen extends StatefulWidget {
   const WorldMapScreen({super.key});
@@ -47,6 +54,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
 
   Future<void> _loadMapData() async {
     final enriched = await MapDataLoader.loadFullMapData();
+    if (!mounted) return;
     setState(() {
       _tiles = enriched;
     });
@@ -59,7 +67,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
-    final delta = details.focalPoint - _initialFocalPoint!;
+    final delta = details.focalPoint - (_initialFocalPoint ?? details.focalPoint);
     setState(() {
       _scale = (_initialScale * details.scale).clamp(0.2, 4.0);
       _offset = _initialOffset + delta / _scale;
@@ -100,121 +108,154 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
       orElse: () => EnrichedTileData(tileKey: '', terrain: '', x: tileX, y: tileY),
     );
 
-    setState(() {
-      _selectedTile = tapped;
-    });
+    setState(() => _selectedTile = tapped);
   }
 
-  void _openPopup(Widget popup) {
-    setState(() => _activePopup = popup);
-  }
-
-  void _closePopup() {
-    setState(() => _activePopup = null);
-  }
+  void _openPopup(Widget popup) => setState(() => _activePopup = popup);
+  void _closePopup() => setState(() => _activePopup = null);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('🌍 World Map')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collectionGroup('heroGroups')
-            .where('insideVillage', isEqualTo: false)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
+    // 🔄 Live tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final pad = kStyle.card.padding;
+
+    final scrim = glass.baseColor.withValues(alpha: glass.mode == SurfaceMode.solid ? 0.25 : 0.30);
+    const modalWidth = 420.0;
+
+    return Column(
+      children: [
+        // 🏷 Tokenized header with Back arrow
+        TokenPanel(
+          glass: glass,
+          text: text,
+          padding: EdgeInsets.fromLTRB(pad.left, 10, pad.right, 10),
+          child: Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back, color: text.secondary),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '🌍 World Map',
+                style: TextStyle(color: text.primary, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // 🗺️ Full-bleed map area
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collectionGroup('heroGroups')
+                .where('insideVillage', isEqualTo: false)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
                   final newMap = <String, List<Map<String, dynamic>>>{};
                   for (var doc in snapshot.data!.docs) {
                     final data = doc.data() as Map<String, dynamic>;
                     final key = '${data['tileX']}_${data['tileY']}';
                     newMap.putIfAbsent(key, () => []).add(data);
                   }
-                  _liveHeroGroups = newMap;
+                  setState(() => _liveHeroGroups = newMap);
                 });
               }
-            });
-          }
 
+              final size = MediaQuery.of(context).size;
 
-          return Stack(
-            children: [
-              Listener(
-                onPointerSignal: (event) {
-                  if (event is PointerScrollEvent) _handleScroll(event);
-                },
-                child: GestureDetector(
-                  onTapUp: _handleTapUp,
-                  onScaleStart: _handleScaleStart,
-                  onScaleUpdate: _handleScaleUpdate,
-                  child: RepaintBoundary(
-                    child: CustomPaint(
-                      painter: MapPainter(
-                        offset: _offset,
-                        scale: _scale,
-                        screenSize: MediaQuery.of(context).size,
-                        minX: minX,
-                        minY: minY,
-                        tiles: _tiles,
-                        liveHeroGroups: _liveHeroGroups,
-                      ),
-                      size: MediaQuery.of(context).size,
-                    ),
-                  ),
-                ),
-              ),
-
-              if (_selectedTile != null)
-                Positioned(
-                  top: 20,
-                  left: (MediaQuery.of(context).size.width / 2) - 160,
-                  child: SizedBox(
-                    width: 320,
-                    child: TileInfoPopup(
-                      tile: _selectedTile!,
-                      onClose: () => setState(() => _selectedTile = null),
-                      onProfileTap: _openPopup,
-                    ),
-                  ),
-                ),
-
-              if (_activePopup != null)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    ignoring: false,
-                    child: Center(
-                      child: Container(
-                        width: 420,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)],
+              return Stack(
+                children: [
+                  // Map interaction layer
+                  Listener(
+                    onPointerSignal: (event) {
+                      if (event is PointerScrollEvent) _handleScroll(event);
+                    },
+                    child: GestureDetector(
+                      onTapUp: _handleTapUp,
+                      onScaleStart: _handleScaleStart,
+                      onScaleUpdate: _handleScaleUpdate,
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          painter: MapPainter(
+                            offset: _offset,
+                            scale: _scale,
+                            screenSize: size,
+                            minX: minX,
+                            minY: minY,
+                            tiles: _tiles,
+                            liveHeroGroups: _liveHeroGroups,
+                            // ⛔ No grid lines:
+                            drawGrid: false, // ← add this param in MapPainter (default true) and skip grid when false
+                          ),
+                          size: size,
                         ),
-                        child: Stack(
-                          children: [
-                            _activePopup!,
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: IconButton(
-                                icon: const Icon(Icons.close),
-                                onPressed: _closePopup,
-                              ),
+                      ),
+                    ),
+                  ),
+
+                  // Tile info popup
+                  if (_selectedTile != null)
+                    Positioned(
+                      top: 16,
+                      left: (size.width / 2) - 160,
+                      child: SizedBox(
+                        width: 320,
+                        child: TileInfoPopup(
+                          tile: _selectedTile!,
+                          onClose: () => setState(() => _selectedTile = null),
+                          onProfileTap: _openPopup,
+                        ),
+                      ),
+                    ),
+
+                  // Center modal (tokenized) + scrim
+                  if (_activePopup != null) ...[
+                    Positioned.fill(child: Container(color: scrim)),
+                    Positioned.fill(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints.tightFor(width: modalWidth),
+                          child: TokenPanel(
+                            glass: glass,
+                            text: text,
+                            padding: EdgeInsets.fromLTRB(pad.left, pad.top, pad.right, pad.bottom),
+                            child: Stack(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4, right: 36),
+                                  child: _activePopup!,
+                                ),
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: IconButton(
+                                    icon: Icon(Icons.close, color: text.secondary),
+                                    onPressed: _closePopup,
+                                    tooltip: 'Close',
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

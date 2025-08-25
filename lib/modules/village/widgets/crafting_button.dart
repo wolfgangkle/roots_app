@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:provider/provider.dart';
 
-const Color kCraftingRed = Color(0xFF6B2C2C);
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 class CraftButton extends StatefulWidget {
   final String itemId;
@@ -34,13 +38,14 @@ class _CraftButtonState extends State<CraftButton> {
 
   Future<void> _handleCraft() async {
     if (mounted) {
-      setState(() {
-        _isProcessing = true;
-      });
+      setState(() => _isProcessing = true);
     }
 
     widget.onCraftStart?.call();
     widget.onOptimisticCraft?.call();
+
+    // ✅ capture messenger before async gaps
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       await FirebaseFunctions.instance
@@ -54,27 +59,23 @@ class _CraftButtonState extends State<CraftButton> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('🛠️ Crafting started: ${widget.itemId}')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Crafting error: $e')),
         );
-        setState(() {
-          _isProcessing = false;
-        });
+        setState(() => _isProcessing = false);
       }
       widget.onCraftComplete?.call();
       return;
     }
 
     if (mounted) {
-      setState(() {
-        _isProcessing = false;
-      });
+      setState(() => _isProcessing = false);
     }
 
     widget.onCraftComplete?.call();
@@ -82,30 +83,27 @@ class _CraftButtonState extends State<CraftButton> {
 
   @override
   Widget build(BuildContext context) {
-    final disabled = _isProcessing || widget.isDisabled;
+    // 🔄 Live tokens
+    context.watch<StyleManager>();
+    final GlassTokens glass = kStyle.glass;
+    final TextOnGlassTokens text = kStyle.textOnGlass;
+    final ButtonTokens buttons = kStyle.buttons;
 
-    return ElevatedButton(
+    final bool disabled = _isProcessing || widget.isDisabled;
+
+    return TokenButton(
+      variant: TokenButtonVariant.danger, // crafting vibe
+      glass: glass,
+      text: text,
+      buttons: buttons,
       onPressed: disabled ? null : _handleCraft,
-      style: ElevatedButton.styleFrom(
-        elevation: disabled ? 0 : 3,
-        backgroundColor: disabled ? Colors.grey.shade300 : kCraftingRed,
-        foregroundColor: disabled ? Colors.grey.shade600 : Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        textStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
       child: _isProcessing
-          ? const SizedBox(
+          ? SizedBox(
         width: 20,
         height: 20,
         child: CircularProgressIndicator(
           strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          valueColor: AlwaysStoppedAnimation<Color>(text.primary),
         ),
       )
           : Text(widget.label ?? 'Craft'),

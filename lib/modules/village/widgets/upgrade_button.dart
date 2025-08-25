@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:provider/provider.dart';
 
-const Color kAccentGreenLight = Color(0xFF3B5743);
-const Color kAccentGreenDark = Color(0xFF5B7C68); // Optional for dark mode adjustments
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_buttons.dart';
 
 class UpgradeButton extends StatefulWidget {
   final String buildingType;
@@ -13,7 +15,7 @@ class UpgradeButton extends StatefulWidget {
   final VoidCallback? onGlobalUpgradeStart;
   final VoidCallback? onUpgradeComplete;
 
-  /// 🔥 NEW: callback to perform optimistic UI update
+  /// Optimistic UI hook
   final VoidCallback? onOptimisticUpgrade;
 
   const UpgradeButton({
@@ -37,13 +39,14 @@ class UpgradeButtonState extends State<UpgradeButton> {
 
   Future<void> _handleUpgrade() async {
     if (mounted) {
-      setState(() {
-        _isProcessing = true;
-      });
+      setState(() => _isProcessing = true);
     }
 
     widget.onGlobalUpgradeStart?.call();
     widget.onOptimisticUpgrade?.call();
+
+    // ✅ capture messenger before async gaps
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       await FirebaseFunctions.instance
@@ -58,59 +61,49 @@ class UpgradeButtonState extends State<UpgradeButton> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Upgrade started for ${widget.buildingType}')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-        setState(() {
-          _isProcessing = false;
-        });
+        messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+        setState(() => _isProcessing = false);
       }
-
       widget.onUpgradeComplete?.call();
       return;
     }
 
     if (mounted) {
-      setState(() {
-        _isProcessing = false;
-      });
+      setState(() => _isProcessing = false);
     }
-
     widget.onUpgradeComplete?.call();
   }
 
   @override
   Widget build(BuildContext context) {
-    final disabled = _isProcessing || widget.isGloballyDisabled;
+    // 🔄 Live tokens
+    context.watch<StyleManager>();
+    final glass = kStyle.glass;
+    final text = kStyle.textOnGlass;
+    final buttons = kStyle.buttons;
 
-    return ElevatedButton(
+    final bool disabled = _isProcessing || widget.isGloballyDisabled;
+
+    return TokenButton(
+      variant: TokenButtonVariant.primary,
+      glass: glass,
+      text: text,
+      buttons: buttons,
       onPressed: disabled ? null : _handleUpgrade,
-      style: ElevatedButton.styleFrom(
-        elevation: disabled ? 0 : 3,
-        backgroundColor: disabled ? Colors.grey.shade300 : kAccentGreenLight,
-        foregroundColor: disabled ? Colors.grey.shade600 : Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        textStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
       child: _isProcessing
-          ? const SizedBox(
+          ? SizedBox(
         width: 20,
         height: 20,
         child: CircularProgressIndicator(
           strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          // Spinner inherits foreground; use token text to ensure contrast
+          valueColor: AlwaysStoppedAnimation<Color>(text.primary),
         ),
       )
           : Text(widget.label ?? 'Upgrade'),

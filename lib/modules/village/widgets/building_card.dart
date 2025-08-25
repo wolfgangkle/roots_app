@@ -1,8 +1,15 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:roots_app/modules/village/widgets/upgrade_progress_indicator.dart';
 import 'package:roots_app/modules/village/models/village_model.dart';
 import 'package:roots_app/modules/village/extensions/village_model_extension.dart';
+
+// 🔷 Tokens
+import 'package:roots_app/theme/app_style_manager.dart';
+import 'package:roots_app/theme/widgets/token_panels.dart';
+import 'package:roots_app/theme/tokens.dart';
 
 class BuildingCard extends StatelessWidget {
   final String type;
@@ -22,87 +29,113 @@ class BuildingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseProduction = definition['baseProductionPerHour'] as int? ?? 0;
-    final displayNameMap = definition['displayName'] as Map<String, dynamic>? ?? {};
-    final name = displayNameMap['default'] ?? 'Unknown';
+    // 🔄 Live tokens
+    context.watch<StyleManager>();
+    final GlassTokens glass = kStyle.glass;
+    final TextOnGlassTokens text = kStyle.textOnGlass;
+    final EdgeInsets cardPad = kStyle.card.padding;
 
-    final baseCost = Map<String, int>.from(definition['baseCost'] ?? {});
-    final costMultiplier = definition['costMultiplier'] as Map<String, dynamic>? ?? {};
-    final costFactor = (costMultiplier['factor'] as num?) ?? 1.0;
-    final costLinear = (costMultiplier['linear'] as num?) ?? 0;
+    final int baseProduction = definition['baseProductionPerHour'] as int? ?? 0;
+    final Map<String, dynamic> displayNameMap =
+        definition['displayName'] as Map<String, dynamic>? ?? {};
+    final String name = (displayNameMap['default'] ?? 'Unknown').toString();
 
-    final currentProduction = baseProduction * level;
-    final nextLevel = level + 1;
-    final nextProduction = baseProduction * nextLevel;
+    final Map<String, int> baseCost =
+    Map<String, int>.from(definition['baseCost'] ?? {});
+    final Map<String, dynamic> costMultiplier =
+        definition['costMultiplier'] as Map<String, dynamic>? ?? {};
+    final num costFactor = (costMultiplier['factor'] as num?) ?? 1.0;
+    final num costLinear = (costMultiplier['linear'] as num?) ?? 0;
 
-    final nextCost = baseCost.map((k, v) {
-      final linearPart = k == 'gold' ? 0 : nextLevel * costLinear;
-      final scaled = (v * pow(nextLevel, costFactor) + linearPart).round();
+    final int currentProduction = baseProduction * level;
+    final int nextLevel = level + 1;
+    final int nextProduction = baseProduction * nextLevel;
+
+    final Map<String, int> nextCost = baseCost.map((k, v) {
+      final num linearPart = k == 'gold' ? 0 : nextLevel * costLinear;
+      final int scaled = (v * pow(nextLevel, costFactor) + linearPart).round();
       return MapEntry(k, scaled);
     });
 
-    final buildTimeScaling = definition['buildTimeScaling'] as Map<String, dynamic>? ?? {};
-    final baseBuildTime = definition['baseBuildTimeSeconds'] as int? ?? 30;
-    final timeFactor = (buildTimeScaling['factor'] as num?) ?? 1.0;
-    final timeLinear = (buildTimeScaling['linear'] as num?) ?? 0;
+    final Map<String, dynamic> buildTimeScaling =
+        definition['buildTimeScaling'] as Map<String, dynamic>? ?? {};
+    final int baseBuildTime = definition['baseBuildTimeSeconds'] as int? ?? 30;
+    final num timeFactor = (buildTimeScaling['factor'] as num?) ?? 1.0;
+    final num timeLinear = (buildTimeScaling['linear'] as num?) ?? 0;
 
-    final seconds = (baseBuildTime * pow(nextLevel, timeFactor) + (nextLevel * timeLinear)).round();
-    final nextDuration = Duration(seconds: seconds);
+    final int seconds =
+    (baseBuildTime * pow(nextLevel, timeFactor) + (nextLevel * timeLinear))
+        .round();
+    final Duration nextDuration = Duration(seconds: seconds);
 
-    final isUpgradingThis = village.currentBuildJob?.buildingType == type &&
-        village.currentBuildJob?.isComplete == false;
+    final bool isUpgradingThis =
+        village.currentBuildJob?.buildingType == type &&
+            village.currentBuildJob?.isComplete == false;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return TokenPanel(
+      glass: glass,
+      text: text,
+      padding: EdgeInsets.fromLTRB(cardPad.left, 12, cardPad.right, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 🏷 Title
           Text(
             '$name (Level $level)',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            style: TextStyle(
+              color: text.primary,
               fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
           ),
           const SizedBox(height: 8),
 
+          // 📦 Current production
           if (baseProduction > 0)
-            Text('📦 Produces: $currentProduction per hour'),
+            Text(
+              '📦 Produces: $currentProduction per hour',
+              style: TextStyle(color: text.secondary),
+            ),
 
-          const Divider(height: 20),
-          Text('➡️ Next Level ($nextLevel):'),
+          const SizedBox(height: 12),
+          // Subheader
+          Text(
+            '➡️ Next Level ($nextLevel):',
+            style: TextStyle(color: text.primary, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
 
           if (baseProduction > 0)
-            Text('📦 Produces: $nextProduction per hour'),
+            Text(
+              '📦 Produces: $nextProduction per hour',
+              style: TextStyle(color: text.secondary),
+            ),
 
+          // 💸 Costs
+          const SizedBox(height: 6),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('💸 Costs: '),
-              Expanded(child: _buildCostRichText(nextCost)),
+              Text('💸 Costs: ', style: TextStyle(color: text.secondary)),
+              Expanded(child: _buildCostRichText(context, nextCost, text)),
             ],
           ),
 
-          Text('⏱️ Takes: ${_formatDuration(nextDuration)}'),
+          // ⏱ Duration
+          const SizedBox(height: 4),
+          Text(
+            '⏱️ Takes: ${_formatDuration(nextDuration)}',
+            style: TextStyle(color: text.secondary),
+          ),
+
           const SizedBox(height: 12),
 
+          // ▶️ Action / progress
           if (isUpgradingThis)
             UpgradeProgressIndicator(
               startedAt: village.currentBuildJob!.startedAt,
-              endsAt: village.currentBuildJob!.startedAt
-                  .add(village.currentBuildJob!.duration),
+              endsAt:
+              village.currentBuildJob!.startedAt.add(village.currentBuildJob!.duration),
               villageId: village.id,
             )
           else if (upgradeButtonWidget != null)
@@ -111,34 +144,45 @@ class BuildingCard extends StatelessWidget {
               child: upgradeButtonWidget!,
             )
           else
-            Container(),
+            const SizedBox.shrink(),
         ],
       ),
     );
   }
 
-  Widget _buildCostRichText(Map<String, int> cost) {
+  Widget _buildCostRichText(
+      BuildContext context,
+      Map<String, int> cost,
+      TextOnGlassTokens text,
+      ) {
     final simulated = village.simulatedResources;
+    final Color danger = Theme.of(context).colorScheme.error;
 
     final spans = <TextSpan>[];
     cost.forEach((resource, amount) {
-      final current = simulated[resource] ?? 0;
-      final isEnough = current >= amount;
+      final int current = simulated[resource] ?? 0;
+      final bool isEnough = current >= amount;
 
       spans.add(TextSpan(
         text: '$amount $resource',
         style: TextStyle(
-          color: isEnough ? Colors.black : Colors.red,
+          color: isEnough ? text.primary : danger,
           fontWeight: FontWeight.w500,
         ),
       ));
-      spans.add(const TextSpan(text: ', '));
+      spans.add(TextSpan(
+        text: ', ',
+        style: TextStyle(color: text.subtle),
+      ));
     });
 
     if (spans.isNotEmpty) spans.removeLast();
 
     return RichText(
-      text: TextSpan(style: const TextStyle(fontSize: 14), children: spans),
+      text: TextSpan(
+        style: const TextStyle(fontSize: 14),
+        children: spans,
+      ),
     );
   }
 

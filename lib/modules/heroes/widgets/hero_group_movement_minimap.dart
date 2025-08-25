@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:roots_app/theme/app_style_manager.dart';
 import 'package:roots_app/theme/tokens.dart';
 
+
 class HeroGroupMovementMiniMap extends StatefulWidget {
   final HeroGroupModel group;
   final List<Map<String, dynamic>> waypoints;
@@ -90,7 +91,6 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
     setState(() => selectedTile = match);
   }
 
-  // Exposed so parent can re-center the minimap
   void centerOnTile(int x, int y) {
     setState(() {
       panOffset = Offset(
@@ -108,17 +108,14 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
     final text = kStyle.textOnGlass;
     final buttons = kStyle.buttons;
 
-    // Soft fill matching your glass surface
     final double fillAlpha = glass.mode == SurfaceMode.solid
         ? 1.0
         : (glass.opacity <= 0.02 ? 0.06 : glass.opacity);
     final Color mapBg = glass.baseColor.withValues(alpha: fillAlpha);
 
-    // Accent dots
     final Color newWaypointColor = buttons.primaryBg;
     final Color savedWaypointColor = text.secondary;
 
-    // Rounded corner radius (tweak if you have a token for this)
     final double radius = 12;
 
     return LayoutBuilder(
@@ -157,7 +154,7 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
               },
               child: Center(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(radius), // ⟵ round the corners
+                  borderRadius: BorderRadius.circular(radius),
                   child: Container(
                     width: mapSizePx,
                     height: mapSizePx,
@@ -166,19 +163,21 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
                       borderRadius: BorderRadius.circular(radius),
                       border: glass.showBorder
                           ? Border.all(
-                        color: (glass.borderColor ??
-                            text.subtle.withValues(alpha: glass.strokeOpacity))
+                        color: (glass.borderColor ?? text.subtle.withValues(alpha: glass.strokeOpacity))
                             .withValues(alpha: 0.6),
                         width: 1,
                       )
                           : null,
                     ),
+                    clipBehavior: Clip.hardEdge, // ensure tight clipping (no hairlines)
                     child: GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       padding: EdgeInsets.zero,
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: visibleTiles,
                         childAspectRatio: 1,
+                        mainAxisSpacing: 0, // make explicit
+                        crossAxisSpacing: 0, // make explicit
                       ),
                       itemCount: visibleTiles * visibleTiles,
                       itemBuilder: (context, index) {
@@ -188,44 +187,37 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
                         final terrainId = tier1Map[tileKey] ?? 'plains';
 
                         final isHero = (x == widget.group.tileX && y == widget.group.tileY);
-                        final isNewWaypoint =
-                        widget.waypoints.any((wp) => wp['x'] == x && wp['y'] == y);
-                        final isSavedWaypoint =
-                        widget.group.movementQueue.any((wp) => wp['x'] == x && wp['y'] == y);
+                        final isNewWaypoint = widget.waypoints.any((wp) => wp['x'] == x && wp['y'] == y);
+                        final isSavedWaypoint = widget.group.movementQueue.any((wp) => wp['x'] == x && wp['y'] == y);
                         final hasVillage = villageTiles.contains(tileKey);
 
                         return GestureDetector(
                           onTap: () => _showTileInfo(x, y),
-                          child: Stack(
-                            children: [
-                              MapTileMiniMapWidget(
-                                x: x,
-                                y: y,
-                                terrainId: terrainId,
-                              ),
-                              if (hasVillage)
-                                Center(
-                                  child: Text(
-                                    "🏰",
-                                    style: TextStyle(fontSize: 16, color: text.primary),
+                          child: RepaintBoundary(
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                // 👇 Tell the tile widget not to draw its own border/grid
+                                MapTileMiniMapWidget(
+                                  x: x,
+                                  y: y,
+                                  terrainId: terrainId,
+                                  drawGrid: false, // ← hide tile lines
+                                ),
+                                if (hasVillage)
+                                  Center(
+                                    child: Text("🏰", style: TextStyle(fontSize: 16, color: text.primary)),
                                   ),
-                                ),
-                              if (isHero)
-                                Center(
-                                  child: Text(
-                                    "🧙",
-                                    style: TextStyle(fontSize: 16, color: text.primary),
+                                if (isHero)
+                                  Center(
+                                    child: Text("🧙", style: TextStyle(fontSize: 16, color: text.primary)),
                                   ),
-                                ),
-                              if (isNewWaypoint)
-                                Center(
-                                  child: Icon(Icons.circle, size: 10, color: newWaypointColor),
-                                ),
-                              if (!isNewWaypoint && isSavedWaypoint)
-                                Center(
-                                  child: Icon(Icons.circle, size: 10, color: savedWaypointColor),
-                                ),
-                            ],
+                                if (isNewWaypoint)
+                                  Center(child: Icon(Icons.circle, size: 10, color: newWaypointColor)),
+                                if (!isNewWaypoint && isSavedWaypoint)
+                                  Center(child: Icon(Icons.circle, size: 10, color: savedWaypointColor)),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -235,26 +227,24 @@ class HeroGroupMovementMiniMapState extends State<HeroGroupMovementMiniMap> {
               ),
             ),
 
-            // ℹ️ Tokenized info popup (no hardcoded white)
+            // ℹ️ Tokenized info popup
             if (selectedTile != null)
               Container(
                 margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.all(8),
                 width: 320,
                 decoration: BoxDecoration(
-                  color: glass.baseColor.withValues(alpha: fillAlpha),
+                  color: mapBg,
                   borderRadius: BorderRadius.circular(12),
                   border: glass.showBorder
                       ? Border.all(
-                    color: (glass.borderColor ??
-                        text.subtle.withValues(alpha: glass.strokeOpacity))
+                    color: (glass.borderColor ?? text.subtle.withValues(alpha: glass.strokeOpacity))
                         .withValues(alpha: 0.6),
                     width: 1,
                   )
                       : null,
                 ),
                 child: Theme(
-                  // ensure inner text matches token colors
                   data: Theme.of(context).copyWith(
                     textTheme: Theme.of(context).textTheme.apply(
                       bodyColor: text.primary,
