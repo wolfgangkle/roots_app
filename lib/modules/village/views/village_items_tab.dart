@@ -35,15 +35,20 @@ class _VillageItemsTabState extends State<VillageItemsTab> {
 
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      return Center(
-        child: TokenPanel(
-          glass: glass,
-          text: text,
-          padding: EdgeInsets.fromLTRB(cardPad.left, 14, cardPad.right, 14),
-          child: Text("⚠️ Not logged in.", style: TextStyle(color: text.secondary)),
+      return Padding(
+        padding: EdgeInsets.fromLTRB(cardPad.left, 12, cardPad.right, cardPad.bottom),
+        child: SizedBox(
+          width: double.infinity, // <-- ensure full width
+          child: TokenPanel(
+            glass: glass,
+            text: text,
+            padding: EdgeInsets.fromLTRB(cardPad.left, 14, cardPad.right, 14),
+            child: Text("⚠️ Not logged in.", style: TextStyle(color: text.secondary)),
+          ),
         ),
       );
     }
+
 
     final itemsRef = FirebaseFirestore.instance
         .collection('users')
@@ -53,6 +58,7 @@ class _VillageItemsTabState extends State<VillageItemsTab> {
         .collection('items');
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // 🔘 Filters
         Padding(

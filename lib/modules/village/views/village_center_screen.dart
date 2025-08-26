@@ -182,6 +182,7 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
 
       case VillageTab.items:
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (village.currentCraftingJob != null)
               Padding(
@@ -224,13 +225,17 @@ class _VillageCenterScreenState extends State<VillageCenterScreen> {
       case VillageTab.storage:
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: cardPad.horizontal / 2),
-          child: TokenPanel(
-            glass: glass,
-            text: text,
-            padding: EdgeInsets.fromLTRB(cardPad.left, 14, cardPad.right, 14),
-            child: Text('📦 Storage view coming soon!', style: TextStyle(color: text.secondary)),
+          child: SizedBox( // ← forces full width
+            width: double.infinity,
+            child: TokenPanel(
+              glass: glass,
+              text: text,
+              padding: EdgeInsets.fromLTRB(cardPad.left, 14, cardPad.right, 14),
+              child: Text('📦 Storage view coming soon!', style: TextStyle(color: text.secondary)),
+            ),
           ),
         );
+
 
       case VillageTab.workers:
         return WorkersTab(villageId: village.id);
