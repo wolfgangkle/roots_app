@@ -15,6 +15,9 @@ import 'package:provider/provider.dart';
 import 'package:roots_app/theme/app_style_manager.dart';
 import 'package:roots_app/theme/widgets/token_panels.dart';
 
+// 🧠 Level-up controller (provided at screen scope)
+import 'package:roots_app/modules/heroes/controllers/level_up_controller.dart';
+
 class HeroDetailsScreen extends StatelessWidget {
   final HeroModel hero;
 
@@ -66,110 +69,129 @@ class HeroDetailsScreen extends StatelessWidget {
 
             final bool isMage = currentHero.type == 'mage';
 
-            return DefaultTabController(
-              length: isMage ? 6 : 5,
-              child: Scaffold(
-                backgroundColor: Colors.transparent,
-                extendBody: true,
-                appBar: AppBar(
-                  backgroundColor: Colors.transparent,
-                  title: Text(currentHero.heroName),
-                  automaticallyImplyLeading: isMobile,
-                  // Put the TabBar inside a token "box" as the app bar bottom
-                  bottom: PreferredSize(
-                    preferredSize: const Size.fromHeight(80), // header row + tabs
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Small header info (location, state) in a box
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            cardPad.left,
-                            8,
-                            cardPad.right,
-                            6,
-                          ),
-                          child: TokenPanel(
-                            glass: glass,
-                            text: text,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: cardPad.horizontal / 2,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'Tile: ($tileX, $tileY) • ${insideVillage ? "Inside village" : "In the wilds"}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: text.secondary,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+            // 🧩 Provide LevelUpController at screen scope.
+            // Note: HeroStatsTab currently creates its own controller internally.
+            // After verifying this screen-level provider works for you, we can
+            // refactor HeroStatsTab to consume this one instead.
+            return ChangeNotifierProvider<LevelUpController>(
+              create: (_) => LevelUpController(hero: currentHero),
+              builder: (context, child) {
+                // Keep controller synced with latest hero stream
+                final ctrl = context.read<LevelUpController>();
+                if (ctrl.hero.id != currentHero.id ||
+                    ctrl.hero.updatedAt != currentHero.updatedAt) {
+                  ctrl.updateHero(currentHero);
+                }
+
+                return DefaultTabController(
+                  length: isMage ? 6 : 5,
+                  child: Scaffold(
+                    backgroundColor: Colors.transparent,
+                    extendBody: true,
+                    appBar: AppBar(
+                      backgroundColor: Colors.transparent,
+                      title: Text(currentHero.heroName),
+                      automaticallyImplyLeading: isMobile,
+                      // Put the TabBar inside a token "box" as the app bar bottom
+                      bottom: PreferredSize(
+                        preferredSize: const Size.fromHeight(80), // header row + tabs
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Small header info (location, state) in a box
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                cardPad.left,
+                                8,
+                                cardPad.right,
+                                6,
+                              ),
+                              child: TokenPanel(
+                                glass: glass,
+                                text: text,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: cardPad.horizontal / 2,
+                                  vertical: 8,
                                 ),
-                              ],
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Tile: ($tileX, $tileY) • ${insideVillage ? "Inside village" : "In the wilds"}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: text.secondary,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                            // Tabs themselves in a box
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                cardPad.left,
+                                0,
+                                cardPad.right,
+                                8,
+                              ),
+                              child: TokenPanel(
+                                glass: glass,
+                                text: text,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: cardPad.horizontal / 2,
+                                  vertical: 4,
+                                ),
+                                child: TabBar(
+                                  isScrollable: true,
+                                  labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                                  labelColor: text.primary,
+                                  unselectedLabelColor: text.secondary,
+                                  tabs: [
+                                    const Tab(text: 'Stats'),
+                                    const Tab(text: 'Equipment'),
+                                    const Tab(text: 'Resources'),
+                                    const Tab(text: 'Hero Settings'),
+                                    const Tab(text: 'Groups'),
+                                    if (isMage) const Tab(text: 'Spellbook'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        // Tabs themselves in a box
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            cardPad.left,
-                            0,
-                            cardPad.right,
-                            8,
-                          ),
-                          child: TokenPanel(
-                            glass: glass,
-                            text: text,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: cardPad.horizontal / 2,
-                              vertical: 4,
-                            ),
-                            child: TabBar(
-                              isScrollable: true,
-                              labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                              labelColor: text.primary,
-                              unselectedLabelColor: text.secondary,
-                              tabs: [
-                                const Tab(text: 'Stats'),
-                                const Tab(text: 'Equipment'),
-                                const Tab(text: 'Resources'),
-                                const Tab(text: 'Hero Settings'),
-                                const Tab(text: 'Groups'),
-                                if (isMage) const Tab(text: 'Spellbook'),
-                              ],
-                            ),
-                          ),
+                      ),
+                    ),
+                    body: TabBarView(
+                      children: [
+                        // Stats tab (currently still provides its own controller internally)
+                        HeroStatsTab(hero: currentHero),
+
+                        // Other tabs unchanged
+                        HeroEquipmentTab(
+                          heroId: currentHero.id,
+                          tileX: tileX,
+                          tileY: tileY,
+                          insideVillage: insideVillage,
                         ),
+                        HeroResourcesTab(hero: currentHero),
+                        const HeroSettingsTab(),
+                        HeroGroupsTab(hero: currentHero),
+                        if (isMage)
+                          HeroSpellbookTab(
+                            heroId: currentHero.id,
+                            userId: currentHero.ownerId,
+                            tileX: tileX,
+                            tileY: tileY,
+                            insideVillage: insideVillage,
+                          ),
                       ],
                     ),
                   ),
-                ),
-                body: TabBarView(
-                  children: [
-                    HeroStatsTab(hero: currentHero),
-                    HeroEquipmentTab(
-                      heroId: currentHero.id,
-                      tileX: tileX,
-                      tileY: tileY,
-                      insideVillage: insideVillage,
-                    ),
-                    HeroResourcesTab(hero: currentHero),
-                    const HeroSettingsTab(),
-                    HeroGroupsTab(hero: currentHero),
-                    if (isMage)
-                      HeroSpellbookTab(
-                        heroId: currentHero.id,
-                        userId: currentHero.ownerId,
-                        tileX: tileX,
-                        tileY: tileY,
-                        insideVillage: insideVillage,
-                      ),
-                  ],
-                ),
-              ),
+                );
+              },
             );
           },
         );
