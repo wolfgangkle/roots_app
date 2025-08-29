@@ -74,9 +74,10 @@ export async function runGroupPveCombatTick(combatId: string, combat: any) {
   });
 
   const enemyLogs = rawEnemyLogs.map((log, index) => ({
-    enemyIndex: index,
+    attackerId: log.attackerId,       // ✅ stable per enemy
     heroId: log.targetHeroId,
     damage: log.damage,
+    enemyIndex: index,                // (optional) keep for debugging
   }));
 
   const updatedHeroes = await applyDamageAndUpdateHeroes({

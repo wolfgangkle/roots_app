@@ -81,7 +81,10 @@ export async function createPveEvent(
     }
 
     const scale = eventData.scale ?? { base: 1, scalePerLevel: 0.015, max: 3 };
-    const scaledCount = Math.min(scale.max ?? 5, Math.floor((scale.base ?? 1) + (scale.scalePerLevel ?? 0.015) * level));
+    const scaledCount = Math.min(
+      scale.max ?? 5,
+      Math.floor((scale.base ?? 1) + (scale.scalePerLevel ?? 0.015) * level)
+    );
 
     const chosenIds = Array.from({ length: scaledCount }, () => {
       const i = Math.floor(Math.random() * enemyTypeIds.length);
@@ -89,20 +92,27 @@ export async function createPveEvent(
     });
 
     const enemyDocs = await db.getAll(...chosenIds.map(id => db.doc(`enemyTypes/${id}`)));
+
+    // 👉 Build enemies with stable spawnIndex + instanceId
     const enemies = enemyDocs.map((snap, idx) => {
       if (!snap.exists) {
         throw new Error(`❌ Enemy type '${chosenIds[idx]}' not found`);
       }
       const data = snap.data()!;
       const stats = data.baseStats!;
+      const baseName = (data.name ?? 'Unknown') as string;
+
       return {
-        instanceId:   `enemy_${randomUUID()}`,
+        instanceId:   `enemy_${randomUUID()}`, // stable ID per enemy
         enemyTypeId:  snap.id,
-        name:         data.name        ?? 'Unknown',
+        name:         baseName,
         description:  data.description ?? '',
-        xp:           data.xp          ?? 0,
+        xp:           data.xp ?? 0,
         combatLevel:  data.combatLevel ?? 1,
         refPath:      snap.ref.path,
+
+        // ✅ Stable display number (0-based)
+        spawnIndex:   idx,
 
         // Combat stats
         hp:            stats.hp,
@@ -111,8 +121,8 @@ export async function createPveEvent(
         attackMin:     stats.minDamage,
         attackMax:     stats.maxDamage,
         attackSpeedMs: stats.attackSpeedMs ?? 15000,
-        attackRating:  stats.at        ?? 0,
-        defense:       stats.def       ?? 0,
+        attackRating:  stats.at ?? 0,
+        defense:       stats.def ?? 0,
 
         baseStats:     stats,
       };
@@ -185,6 +195,19 @@ export async function createPveEvent(
     console.log(`👥 participantOwnerIds = ${JSON.stringify(participantOwnerIds)}`);
     console.log(`📥 Preparing to write combat document with ${heroes.length} heroes and ${enemies.length} enemies.`);
 
+    // 🏷️ Build a stable name map (instanceId → "Name #X")
+    const enemyNameMap = Object.fromEntries(
+      enemies
+        .filter(e => !!e.instanceId)
+        .map(e => {
+          const displayNum = (typeof e.spawnIndex === 'number')
+            ? e.spawnIndex + 1
+            : (enemies.findIndex(x => x.instanceId === e.instanceId) + 1);
+          const prettyName = (e.name ?? 'Enemy') as string;
+          return [e.instanceId as string, `${prettyName} #${displayNum}`];
+        })
+    );
+
     const combatRef = db.collection('combats').doc();
     await combatRef.set({
       groupId,
@@ -201,9 +224,12 @@ export async function createPveEvent(
       heroActions: [],
       enemyActions: [],
       combatLog:   [],
-      // 🔗 New denormalized fields
+      // 🔗 Denormalized fields
       participantOwnerIds, // ✅ query by player
       participantHeroIds,  // optional helper for hero-scoped UIs
+
+      // ✅ Stable labels for UI/log rendering
+      enemyNameMap,
       // lastTickAt: admin.firestore.Timestamp.now(),
     });
 
