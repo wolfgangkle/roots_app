@@ -88,7 +88,7 @@ class _CombatLogViewState extends State<CombatLogView> {
         final String? eventId = combatData['eventId'] as String?;
         if (eventId == null) {
           return _buildCombatLogUI(
-            context,
+            context: context,
             heroNameMap: heroNameMap,
             enemyNameMap: enemyNameMap,
             enemies: enemies,
@@ -114,7 +114,7 @@ class _CombatLogViewState extends State<CombatLogView> {
             }
 
             return _buildCombatLogUI(
-              context,
+              context: context,
               heroNameMap: heroNameMap,
               enemyNameMap: enemyNameMap,
               enemies: enemies,
